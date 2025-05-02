@@ -372,7 +372,7 @@ app.get('/tournaments/:id', async (req, res) => {
 
 // ================== POST /tournaments/id/signup ==================
 
-router.post('/tournaments/:id/signup', async (req, res) => {
+app.post('/tournaments/:id/signup', async (req, res) => {
   const tournamentId = parseInt(req.params.id);
   const userId = req.user.id; // Assuming the user is logged in
 
