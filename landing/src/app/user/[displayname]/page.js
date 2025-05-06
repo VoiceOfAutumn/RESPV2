@@ -52,10 +52,11 @@ export default function UserProfile() {
         <div className="max-w-3xl mx-auto p-6 bg-gray-800 text-white rounded-lg shadow-md">
           <div className="flex items-center gap-6">
             <img
-              src="/images/default-avatar.png"
-              alt="Profile"
-              className="w-32 h-32 rounded-full border-4 border-gray-700"
+              src={user.profile_picture || '/images/default-avatar.png'}
+              alt={`${user.display_name}'s profile picture`}
+              className="w-32 h-32 rounded-full border-4 border-gray-700 object-cover"
             />
+
             <div>
               <h1 className="text-4xl font-semibold">{user.display_name}</h1>
               <p className="text-lg mt-2">Country: {user.country}</p>

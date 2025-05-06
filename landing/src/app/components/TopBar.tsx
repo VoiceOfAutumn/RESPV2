@@ -56,11 +56,10 @@ export default function TopBar() {
       {/* Logo on the left */}
       <Link href="/" className="flex items-center space-x-3">
         <img
-          src="/images/logo.png"
+          src="/images/logo1.png"
           alt="Logo"
-          className="h-10" // Adjust size of the logo as necessary
+          className="h-22" // Adjust size of the logo as necessary
         />
-        <span className="font-bold text-lg">Retro eSports</span>
       </Link>
 
       {/* User profile dropdown (only when user is logged in) */}

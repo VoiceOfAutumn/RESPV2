@@ -291,6 +291,8 @@ app.get('/user/:displayname', async (req, res) => {
     const result = await pool.query(`
       SELECT 
         users.display_name, 
+        users.profile_picture,
+        users.points,
         countries.name AS country 
       FROM users 
       LEFT JOIN countries ON users.country_id = countries.id 
@@ -316,7 +318,7 @@ app.get('/leaderboard', async (req, res) => {
   try {
     // Query to fetch leaderboard data (display name and points sorted by points)
     const query = `
-      SELECT display_name, points
+      SELECT display_name, points, profile_picture
       FROM users
       ORDER BY points DESC;
     `;
@@ -337,7 +339,7 @@ app.get('/leaderboard', async (req, res) => {
 app.get('/tournaments', async (req, res) => {
   try {
     const result = await pool.query(`
-      SELECT id, name, date, status
+      SELECT id, name, date, status, image
       FROM tournaments
       ORDER BY date
     `);
@@ -373,6 +375,10 @@ app.get('/tournaments/:id', async (req, res) => {
 // ================== POST /tournaments/id/signup ==================
 
 app.post('/tournaments/:id/signup', async (req, res) => {
+  if (!req.session.userId) {
+    return res.status(401).json({ error: 'You must be logged in to sign up.' });
+  }
+  
   const tournamentId = parseInt(req.params.id);
   const userId = req.user.id; // Assuming the user is logged in
 

@@ -9,7 +9,7 @@ export default function Home() {
       <TopBar />
       <Navbar />
       <HeroLanding />
-      <section className="flex flex-col items-center justify-center text-center px-4 py-32">
+      <section className="flex flex-col items-center justify-center text-center px-4 py-8">
       </section>
     </main>
   );

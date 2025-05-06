@@ -9,7 +9,7 @@ export default function LeaderboardPage() {
     <main className="min-h-screen bg-gradient-to-br from-black via-gray-800 to-black text-white pt-16 pl-64">
       <TopBar />
       <Navbar />
-      <section className="flex flex-col items-center justify-center text-center px-4 py-32">
+      <section className="flex flex-col items-center justify-center text-center px-4 py-8">
         <h1 className="text-4xl font-semibold mb-8">Leaderboard</h1>
         <Leaderboard />
       </section>

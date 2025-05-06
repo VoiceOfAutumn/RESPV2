@@ -7,6 +7,7 @@ import Image from 'next/image';
 interface LeaderboardEntry {
   display_name: string;
   points: number;
+  profile_picture: string | null;
 }
 
 const FrontPageLeaderboard = () => {
@@ -47,32 +48,38 @@ const FrontPageLeaderboard = () => {
     <div className="bg-neutral-800 rounded-2xl shadow-md p-6 flex-1">
       <h2 className="text-lg font-semibold mb-4 text-white">Leaderboard</h2>
       <div className="space-y-3">
-        {leaderboardData.map((entry, index) => (
-          <div
-            key={entry.display_name}
-            className="flex items-center justify-between px-4 py-2"
-          >
-            {/* Rank */}
-            <div className="w-6 text-white font-bold text-center">{index + 1}</div>
+        {leaderboardData.map((entry, index) => {
+          const avatarSrc = entry.profile_picture && entry.profile_picture.trim() !== ''
+            ? entry.profile_picture
+            : '/images/default-avatar.png';
 
-            {/* Avatar + Name */}
-            <div className="flex items-center gap-3 flex-1 ml-4">
-              <Image
-                src="/images/default-avatar.png"
-                alt={`${entry.display_name}'s avatar`}
-                width={32}
-                height={32}
-                className="rounded-full"
-              />
-              <Link href={`/user/${entry.display_name}`} className="text-gray-300 hover:text-white font-medium">
-                {entry.display_name}
-              </Link>
+          return (
+            <div
+              key={entry.display_name}
+              className="flex items-center justify-between px-4 py-2"
+            >
+              {/* Rank */}
+              <div className="w-6 text-white font-bold text-center">{index + 1}</div>
+
+              {/* Avatar + Name */}
+              <div className="flex items-center gap-3 flex-1 ml-4">
+                <Image
+                  src={avatarSrc}
+                  alt={`${entry.display_name}'s avatar`}
+                  width={32}
+                  height={32}
+                  className="rounded-full object-cover"
+                />
+                <Link href={`/user/${entry.display_name}`} className="text-gray-300 hover:text-white font-medium">
+                  {entry.display_name}
+                </Link>
+              </div>
+
+              {/* Points */}
+              <div className="text-white font-bold">{entry.points} EXP</div>
             </div>
-
-            {/* Points */}
-            <div className="text-white font-bold">{entry.points} EXP</div>
-          </div>
-        ))}
+          );
+        })}
       </div>
       <div className="mt-5 text-center">
         <Link href="/leaderboards" className="text-sm text-purple-400 hover:text-white">
