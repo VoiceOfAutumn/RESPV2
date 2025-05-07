@@ -10,6 +10,7 @@ const { Resend } = require('resend');
 const pool = require('./db');
 const multer = require('multer');
 const path = require('path');
+const authMiddleware = require('./middleware/authMiddleware');
 
 // ReSend setup
 const resend = new Resend(process.env.RESEND_API_KEY);
@@ -281,6 +282,104 @@ app.post('/reset-password', async (req, res) => {
     res.status(500).json({ message: "Internal server error" });
   }
 });
+
+// ================== /user/me endpoint ==================
+
+app.get('/user/me', authMiddleware, async (req, res) => {
+  try {
+    const userId = req.session.userId;
+    const user = await db.query(
+      `SELECT u.email, u.display_name, u.profile_picture, c.name AS country
+       FROM users u
+       LEFT JOIN countries c ON u.country_id = c.id
+       WHERE u.id = $1`,
+      [userId]
+    );
+
+    if (user.rows.length === 0) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    res.json(user.rows[0]);
+  } catch (err) {
+    console.error('Error fetching user:', err);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+// ================== UPDATE PROFILE INFORMATION ==================
+
+app.put('/user/update', authMiddleware, async (req, res) => {
+  const userId = req.session.userId;
+  const { email, password, country, profile_picture } = req.body;
+
+  if (!userId) {
+    return res.status(401).json({ error: 'Not authenticated' });
+  }
+
+  try {
+    const updates = {};
+
+    // Normalize and validate email
+    if (email) {
+      const normalizedEmail = email.trim().toLowerCase();
+      const existingEmail = await pool.query(
+        'SELECT id FROM users WHERE email = $1 AND id != $2',
+        [normalizedEmail, userId]
+      );
+      if (existingEmail.rows.length > 0) {
+        return res.status(400).json({ error: 'Email already in use' });
+      }
+      updates.email = normalizedEmail;
+    }
+
+    // Update password (if provided)
+    if (password && password.trim() !== '') {
+      if (password.length < 8) {
+        return res.status(400).json({ error: 'Password must be at least 8 characters' });
+      }
+      const hashedPassword = await bcrypt.hash(password, 10);
+      updates.password_hash = hashedPassword;
+    }
+
+    // Update country (if provided)
+    if (country) {
+      updates.country = country.trim();
+    }
+
+    // Validate and update profile picture (if provided)
+    if (profile_picture) {
+      const urlRegex = /\.(png|jpg|jpeg)$/i;
+      if (!urlRegex.test(profile_picture)) {
+        return res.status(400).json({ error: 'Invalid image URL. Must end in .png, .jpg, or .jpeg' });
+      }
+      updates.profile_picture = profile_picture.trim();
+    }
+
+    // Build the update query dynamically
+    const updateFields = Object.keys(updates);
+    if (updateFields.length === 0) {
+      return res.status(400).json({ error: 'No valid fields provided for update' });
+    }
+
+    const updateQuery = `
+      UPDATE users
+      SET ${updateFields.map((field, i) => `${field} = $${i + 1}`).join(', ')}
+      WHERE id = $${updateFields.length + 1}
+      RETURNING id, display_name, email, country, profile_picture, points
+    `;
+
+    const values = [...updateFields.map(field => updates[field]), userId];
+
+    const result = await pool.query(updateQuery, values);
+
+    res.json(result.rows[0]);
+  } catch (err) {
+    console.error('Error updating user:', err);
+    res.status(500).json({ error: 'Server error during update' });
+  }
+});
+
 
 // =================== GET USER BY DISPLAY NAME ==================
 

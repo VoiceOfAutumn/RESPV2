@@ -1,5 +1,3 @@
-// src/app/contributing/page.tsx
-
 'use client';
 
 import TopBar from "../components/TopBar";
@@ -7,85 +5,80 @@ import Navbar from "../components/Navbar";
 
 export default function Contributing() {
   return (
-    <main className="min-h-screen bg-gradient-to-br from-black via-gray-800 to-black text-white pt-16 pl-64">
+    <main className="min-h-screen bg-gradient-to-br from-black via-gray-900 to-black text-white pt-16 pl-64">
       <TopBar />
       <Navbar />
 
-      <section className="flex flex-col items-center justify-center text-center px-8 py-8">
-        <h1 className="text-4xl font-bold mb-8 text-white">Ways to Contribute</h1>
+      <section className="flex flex-col items-center justify-center text-center px-8 py-12">
+        <h1 className="text-4xl font-extrabold mb-12 text-purple-400 tracking-wide drop-shadow-md">
+          Ways to Contribute
+        </h1>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-12 max-w-6xl mx-auto">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-12 max-w-7xl w-full mx-auto">
           {/* Volunteering Column */}
-          <div className="rounded-lg p-6 text-gray-200">
-            <div className="mb-4">
+          <div className="bg-white/5 backdrop-blur-sm rounded-2xl p-8 border border-white/10 shadow-md hover:shadow-purple-500/20 transition duration-300 text-left">
+            <div className="mb-6 text-center">
               <img
                 src="/images/volunteering.png"
-                alt="Profile Icon"
-                className="h-25 w-25 rounded-full mx-auto mb-4 object-cover" />
-              <h2 className="text-2xl font-semibold text-white">Volunteering</h2>
+                alt="Volunteering Icon"
+                className="h-24 w-24 rounded-full mx-auto mb-4 object-cover border border-purple-400/30"
+              />
+              <h2 className="text-2xl font-bold text-cyan-400">Volunteering</h2>
             </div>
-            <p className="text-sm leading-relaxed">
-              We live and breathe retro gaming, and we know you do too. That's why we're always on the lookout for passionate volunteers to help us grow and improve our community.
-              Whether you're a seasoned pro or just starting out, there are plenty of ways to get involved and make a difference.
-              Retro eSports currently consists of the following teams that are often open to new members:
-              <li>
-                <strong>Tournament Hosts:</strong> Organize tournaments and events, ensuring everything runs smoothly and fairly. If you have experience in event management or just love being part of the action, this is the role for you.
-              </li>
-              <li>
-                <strong>Game Masters:</strong> Referee the on-going tournaments, ensuring that all players are following the rules and guidelines. If you have a keen eye for detail and a passion for fair play, this is the role for you.
-              </li>
-              <li>
-                <strong>Streamers:</strong> Help us showcase our tournaments and events by streaming them live. If you have experience with streaming or just love being in front of the camera, this is the role for you.
-              </li>
-              <li>
-                <strong>Media Team:</strong> Create graphics, videos, and other media to promote our events and community, or maintain our VOD library. If you have a knack for design, video editing or file handling, this is the role for you.
-              </li>
-              If you're interested in volunteering, please reach out to us through our Discord server. We would love to hear from you and see how you can help us grow and improve our community.
+            <p className="text-gray-300 text-base leading-relaxed">
+              We live and breathe retro gaming, and we know you do too. That’s why we're always on the lookout for passionate volunteers to help us grow. Join any of our teams:
+            </p>
+            <ul className="list-disc list-inside text-base text-gray-400 mt-4 space-y-2">
+              <li><strong>Tournament Hosts:</strong> Organize and run tournaments fairly and smoothly.</li>
+              <li><strong>Game Masters:</strong> Referee matches and enforce rules.</li>
+              <li><strong>Streamers:</strong> Showcase events through live streams.</li>
+              <li><strong>Media Team:</strong> Create graphics, videos, and manage VODs.</li>
+            </ul>
+            <p className="text-base text-gray-400 mt-4">
+              Interested? Reach out on our Discord server — we'd love to hear from you!
             </p>
           </div>
 
           {/* Financing Column */}
-          <div className="rounded-lg p-6 text-gray-200">
-            <div className="mb-4">
+          <div className="bg-white/5 backdrop-blur-sm rounded-2xl p-8 border border-white/10 shadow-md hover:shadow-cyan-500/20 transition duration-300 text-left">
+            <div className="mb-6 text-center">
               <img
                 src="/images/financing.png"
-                alt="Profile Icon"
-                className="h-25 w-25 rounded-full mx-auto mb-4 object-cover" />
-              <h2 className="text-2xl font-semibold text-white">Financing</h2>
+                alt="Financing Icon"
+                className="h-24 w-24 rounded-full mx-auto mb-4 object-cover border border-cyan-400/30"
+              />
+              <h2 className="text-2xl font-bold text-purple-400">Financing</h2>
             </div>
-            <p className="text-sm leading-relaxed">
-              At Retro eSports, our mission is to celebrate classic games through competition — not to chase profits.
-
-              This project is powered by passion, nostalgia, and a belief that retro gaming deserve a competitive space that feels authentic and community driven.
-              While we're not here to make money, running Retro eSports still comes with real-world costs. Things like:
-              <ul>
-                💻 Server hosting and maintenance
-              </ul>
-              <ul>
-                🎥 Media production (graphics, streams, edits)
-              </ul>
-              <ul>
-                🛠 Quality-of-life improvements to the website and platform
-              </ul>
-              <ul>
-                ⚡ Bandwidth, storage, and third-party tools
-              </ul>
-              We gratefully accept financial support from the community to help us break even and keep the project running smoothly. Every bit helps — and everything we receive goes directly toward keeping Retro eSports alive and improving the experience for everyone.
+            <p className="text-gray-300 text-base leading-relaxed">
+              Retro eSports is powered by nostalgia — not profits. But running things costs money:
+            </p>
+            <ul className="list-disc list-inside text-base text-gray-400 mt-4 space-y-2">
+              <li>💻 Server hosting and maintenance</li>
+              <li>🎥 Media production & streaming</li>
+              <li>🛠 Website improvements & tools</li>
+              <li>⚡ Bandwidth, storage, APIs</li>
+            </ul>
+            <p className="text-base text-gray-400 mt-4">
+              We gratefully accept donations to help keep the platform alive and thriving. Every bit helps!
             </p>
           </div>
 
           {/* Miscellaneous Column */}
-          <div className="rounded-lg p-6 text-gray-200">
-            <div className="mb-4">
+          <div className="bg-white/5 backdrop-blur-sm rounded-2xl p-8 border border-white/10 shadow-md hover:shadow-pink-500/20 transition duration-300 text-left">
+            <div className="mb-6 text-center">
               <img
-                src="/images/misc.png" // Replace this path with your actual image path or URL
-                alt="Profile Icon"
-                className="h-25 w-25 rounded-full mx-auto mb-4 object-cover" />
-              <h2 className="text-2xl font-semibold text-white">Miscellaneous</h2>
+                src="/images/misc.png"
+                alt="Miscellaneous Icon"
+                className="h-24 w-24 rounded-full mx-auto mb-4 object-cover border border-pink-400/30"
+              />
+              <h2 className="text-2xl font-bold text-pink-400">Miscellaneous</h2>
             </div>
-            <p className="text-sm leading-relaxed">
-              If you have any other ideas on how to contribute, we would love to hear them! We are always looking for new ways to improve our community and make it a better place for everyone.
-              Whether it's a new feature for the website, a suggestion for a tournament format, or anything else you can think of, we want to hear it. Please reach out to us through our Discord server.
+            <p className="text-gray-300 text-base leading-relaxed">
+              Got another idea? We’re all ears.
+              Whether it's a new site feature, tournament format, or community initiative — we welcome your creativity.
+            </p>
+            <p className="text-base text-gray-400 mt-4">
+              Reach out via Discord and help shape the future of Retro eSports with your unique contributions.
             </p>
           </div>
         </div>

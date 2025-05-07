@@ -5,62 +5,53 @@ import Navbar from "../components/Navbar";
 
 export default function Rules() {
   return (
-    <div className="min-h-screen bg-gradient-to-br from-black via-gray-800 to-black text-white pt-16 pl-64">
+    <div className="min-h-screen bg-gradient-to-br from-black via-gray-900 to-black text-white pt-16 pl-64">
       <TopBar />
       <Navbar />
 
-      <main className="max-w-4xl px-6 py-12">
-        <h1 className="text-3xl font-bold mb-6 border-b border-neutral-700 pb-2">Rules & Guidelines</h1>
+      <main className="max-w-6xl mx-auto px-6 py-12">
+        <h1 className="text-4xl font-extrabold mb-12 text-center text-purple-400 tracking-wide drop-shadow-md">
+          Rules & Guidelines
+        </h1>
 
-        <section className="mb-8">
-          <h2 className="text-xl font-semibold mb-2">General rules</h2>
-          <p className="text-gray-300">
-            <li>
-              Use of glitches & cheat codes is not allowed unless specified otherwise. When in doubt, please ask a Game Master or Tournament Host.
-            </li>
-            <li>
-              Fast Forward, Rewind, Macros, Save States and other similar features are not allowed.
-            </li>
-            <li>
-              Players must stream their matches for a Game Master in the Discord server unless the used platform contains a spectator function. Players are responsible for ensuring their stream is working properly before the match starts.
-            </li>
-            <li>
-              There is a zero tolerance policy towards intentional cheating and any other form of unsportsmanlike conduct. Players found to be in violation of this policy will be disqualified from the tournament and banned from the platform.
-            </li>
-            <li>
-              Failure to start your match on time will result in a forfeit. Players are expected to be present in the Discord server and ready to play at the scheduled time. Rescheduling is not an option.
-              </li>
-            <li>
-              If a player disconnects or crashes after the match has started, the match will be considered a forfeit unless the Game Master decides otherwise. Players are expected to have a stable internet connection and to be using a reliable emulator.
-            </li> 
-            <li>
-              Players are expected to play on a stable device. If a player gains an advantage due technical issues, such as slow-down, the match will be considered a forfeit.
-            </li>
-          </p>
-        </section>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
+          {/* General Rules */}
+          <section className="bg-white/5 backdrop-blur-sm rounded-2xl p-6 shadow-md hover:shadow-purple-500/20 transition duration-300 border border-white/10">
+            <h2 className="text-2xl font-bold mb-4 text-cyan-400">General Rules</h2>
+            <p className="text-gray-400 mb-4 leading-relaxed">
+              The following rules apply to all tournaments and events on Retro eSports. By participating, you agree to abide by these rules. Please note that individual tournaments may have additional rules.
+            </p>
+            <ul className="space-y-4 text-gray-300 list-disc list-inside leading-relaxed">
+              <li>Use of glitches & cheat codes is not allowed unless specified otherwise. When in doubt, ask a Game Master or Tournament Host.</li>
+              <li>Fast Forward, Rewind, Macros, Save States, and similar features are not allowed.</li>
+              <li>Players must stream matches for a Game Master in Discord unless a spectator function is available.</li>
+              <li>Zero tolerance for cheating or unsportsmanlike conduct. Violators will be disqualified and banned.</li>
+              <li>Failure to start your match on time results in forfeit. No rescheduling allowed.</li>
+              <li>Disconnections or crashes after a match starts are counted as forfeits unless ruled otherwise.</li>
+              <li>Technical advantages from poor devices or emulators (e.g., slow-down) will result in a forfeit.</li>
+            </ul>
+          </section>
 
-        <section className="mb-8">
-          <h2 className="text-xl font-semibold mb-2">Player Behaviour</h2>
-          <p className="text-gray-300">
-              Retro eSports is a competitive platform that believes sport and both physical and mental health go hand in hand. To ensure this, we expect the following of our players:
+          {/* Player Behaviour */}
+          <section className="bg-white/5 backdrop-blur-sm rounded-2xl p-6 shadow-md hover:shadow-cyan-500/20 transition duration-300 border border-white/10">
+            <h2 className="text-2xl font-bold mb-4 text-purple-400">Player Behaviour</h2>
+            <p className="text-gray-400 mb-4 leading-relaxed">
+              Retro eSports is a competitive platform that values both mental and physical well-being. We expect the following from our players:
+            </p>
+            <ul className="space-y-4 text-gray-300 list-disc list-inside leading-relaxed">
               <li>
-              Players are to treat the platform as an addition to their gaming experience, not a replacement of it or their life. <strong>Players are expected to take breaks and not use the platform as a substitute for real life social interactions.</strong>
+                Treat the platform as an enhancement to your gaming life, not a substitute. 
+                <strong> Take breaks and maintain real-world social interactions.</strong>
               </li>
+              <li>Show respect and sportsmanship. Use block features to de-escalate situations—repeat offenders will be banned.</li>
+              <li>No tolerance for defamation, racism, threats, grooming, or other inappropriate behavior.</li>
+              <li>Appeals or complaints must be handled privately with staff, not in public channels.</li>
               <li>
-                Players are expected to treat each other with respect and sportsmanship. On the flip side, players are expected to deescalate any conflicts by blocking users if they feel uncomfortable. Players circumventing these constraints will be banned from the platform.
+                Do not break copyright laws. We don’t provide ROMs or illegal content, and we’ll remove anything that violates our policy.
               </li>
-              <li>
-                Blatant defamation, racism, threats, grooming, and any other form of inappropriate communication will not be tolerated. Players found to be in violation of this policy will be banned from the platform.
-              </li>
-              <li>
-                Players are to reach out to a Game Master or Tournament Host in private if they disagree with a decision made during a match. Players are expected to respect the decisions made by the Game Master or Tournament Host and to not argue about them in public channels.
-              </li>
-              <li>
-                Players are expected to not break any copyright laws. Retro eSports does not support or provide any copyright-protected ROMs! We have a zero-tolerance policy towards any illegal content on our platform. We do not provide any links to download ROMs or any other copyrighted content. We are not responsible for any content uploaded by users, and we reserve the right to remove any content that violates our policies.
-              </li>
-          </p>
-        </section>
-
+            </ul>
+          </section>
+        </div>
       </main>
     </div>
   );
