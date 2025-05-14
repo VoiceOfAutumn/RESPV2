@@ -51,7 +51,8 @@ app.use(session({
   resave: false,
   saveUninitialized: true,
   cookie: {
-    maxAge: null // Session expires on browser close unless "remember me"
+    maxAge: null, // Session expires on browser close unless "remember me"
+    secure: false // Set to true if using HTTPS
   }
 }));
 
@@ -118,6 +119,7 @@ app.post('/signup', async (req, res) => {
 });
 
 // ================== LOGIN ==================
+
 app.post('/login', async (req, res) => {
   const { email, password, rememberMe } = req.body;
 
@@ -169,15 +171,18 @@ app.post('/login', async (req, res) => {
     // Create session
     req.session.userId = user.id;
     req.session.email = user.email;
-    req.session.cookie.maxAge = rememberMe ? 30 * 24 * 60 * 60 * 1000 : null;
+
+    console.log('Session after login:', req.session);  // Log session details
 
     res.status(200).json({
       message: "Login successful",
       user: {
         email: user.email,
         display_name: user.display_name,
+        profile_picture: user.profile_picture || null // <-- Added here
       }
     });
+
   } catch (err) {
     console.error("Login error:", err);
     res.status(500).json({ message: "Internal Server Error" });
@@ -190,6 +195,7 @@ app.post('/logout', (req, res) => {
     if (err) {
       return res.status(500).json({ message: "Failed to log out" });
     }
+    res.clearCookie('connect.sid');
     res.status(200).json({ message: "Logged out successfully" });
   });
 });
@@ -283,103 +289,102 @@ app.post('/reset-password', async (req, res) => {
   }
 });
 
-// ================== /user/me endpoint ==================
+// ++++++++++++++++++++ USER DATA RELATED ++++++++++++++++++++
 
-app.get('/user/me', authMiddleware, async (req, res) => {
+// ================== GET /usersettings ==================
+
+app.get('/usersettings', authMiddleware, async (req, res) => {
+  const userId = req.session.userId; // Assuming userId is stored in the session
+
   try {
-    const userId = req.session.userId;
-    const user = await db.query(
-      `SELECT u.email, u.display_name, u.profile_picture, c.name AS country
-       FROM users u
-       LEFT JOIN countries c ON u.country_id = c.id
-       WHERE u.id = $1`,
-      [userId]
-    );
+    // Query the database to get the user's settings
+    const result = await pool.query(`
+      SELECT display_name, email, country_id, profile_picture
+      FROM users
+      WHERE id = $1
+    `, [userId]);
 
-    if (user.rows.length === 0) {
+    if (result.rows.length === 0) {
       return res.status(404).json({ error: 'User not found' });
     }
 
-    res.json(user.rows[0]);
+    // Send back the user's profile data
+    res.json(result.rows[0]);
   } catch (err) {
-    console.error('Error fetching user:', err);
+    console.error('Error fetching user settings:', err);
     res.status(500).json({ error: 'Server error' });
   }
 });
 
-// ================== UPDATE PROFILE INFORMATION ==================
+// ================== POST /usersettings (UPDATE USER SETTINGS)==================
 
 app.put('/user/update', authMiddleware, async (req, res) => {
+  console.log('Session:', req.session); // ✅ log full session object
   const userId = req.session.userId;
-  const { email, password, country, profile_picture } = req.body;
+  console.log('userId:', userId);       // ✅ confirm this is a number or valid ID
 
   if (!userId) {
-    return res.status(401).json({ error: 'Not authenticated' });
+    return res.status(401).json({ error: 'Unauthorized: No session userId' });
   }
 
+  const allowedFields = ['email', 'password', 'country_id', 'profile_picture'];
+  const keys = Object.keys(req.body);
+
+  if (keys.length !== 1 || !allowedFields.includes(keys[0])) {
+    return res.status(400).json({ message: 'Invalid update field' });
+  }
+
+  const field = keys[0];
+  const value = req.body[field];
+
   try {
-    const updates = {};
-
-    // Normalize and validate email
-    if (email) {
-      const normalizedEmail = email.trim().toLowerCase();
-      const existingEmail = await pool.query(
-        'SELECT id FROM users WHERE email = $1 AND id != $2',
-        [normalizedEmail, userId]
-      );
-      if (existingEmail.rows.length > 0) {
-        return res.status(400).json({ error: 'Email already in use' });
-      }
-      updates.email = normalizedEmail;
+    if (field === 'password') {
+      const hashedPassword = await bcrypt.hash(value, 10);
+      await pool.query('UPDATE users SET password_hash = $1 WHERE id = $2', [hashedPassword, userId]);
+    } else if (field === 'email') {
+      const normalizedEmail = value.trim().toLowerCase();
+      await pool.query('UPDATE users SET email = $1 WHERE id = $2', [normalizedEmail, userId]);
+    } else if (field === 'profile_picture') {
+      // Optional: validate .png/.jpg/.jpeg
+      await pool.query('UPDATE users SET profile_picture = $1 WHERE id = $2', [value, userId]);
+    } else if (field === 'country_id') {
+      await pool.query('UPDATE users SET country_id = $1 WHERE id = $2', [value, userId]);
     }
 
-    // Update password (if provided)
-    if (password && password.trim() !== '') {
-      if (password.length < 8) {
-        return res.status(400).json({ error: 'Password must be at least 8 characters' });
-      }
-      const hashedPassword = await bcrypt.hash(password, 10);
-      updates.password_hash = hashedPassword;
-    }
-
-    // Update country (if provided)
-    if (country) {
-      updates.country = country.trim();
-    }
-
-    // Validate and update profile picture (if provided)
-    if (profile_picture) {
-      const urlRegex = /\.(png|jpg|jpeg)$/i;
-      if (!urlRegex.test(profile_picture)) {
-        return res.status(400).json({ error: 'Invalid image URL. Must end in .png, .jpg, or .jpeg' });
-      }
-      updates.profile_picture = profile_picture.trim();
-    }
-
-    // Build the update query dynamically
-    const updateFields = Object.keys(updates);
-    if (updateFields.length === 0) {
-      return res.status(400).json({ error: 'No valid fields provided for update' });
-    }
-
-    const updateQuery = `
-      UPDATE users
-      SET ${updateFields.map((field, i) => `${field} = $${i + 1}`).join(', ')}
-      WHERE id = $${updateFields.length + 1}
-      RETURNING id, display_name, email, country, profile_picture, points
-    `;
-
-    const values = [...updateFields.map(field => updates[field]), userId];
-
-    const result = await pool.query(updateQuery, values);
-
-    res.json(result.rows[0]);
+    res.status(200).json({ message: `${field} updated` });
   } catch (err) {
-    console.error('Error updating user:', err);
-    res.status(500).json({ error: 'Server error during update' });
+    console.error(`Error updating ${field}:`, err);
+    res.status(500).json({ message: 'Internal Server Error' });
   }
 });
 
+// =================== GET user/me ==================
+
+app.get('/user/me', async (req, res) => {
+  if (!req.session.userId) {
+    return res.status(401).json({ message: 'Not logged in' });
+  }
+
+  try {
+    const result = await pool.query(
+      'SELECT display_name, profile_picture FROM users WHERE id = $1',
+      [req.session.userId]
+    );
+
+    const user = result.rows[0];
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    res.json({
+      displayName: user.display_name,
+      profile_picture: user.profile_picture,
+    });
+  } catch (err) {
+    console.error('Error in /user/me:', err);
+    res.status(500).json({ message: 'Internal Server Error' });
+  }
+});
 
 // =================== GET USER BY DISPLAY NAME ==================
 
@@ -410,6 +415,19 @@ app.get('/user/:displayname', async (req, res) => {
     res.status(500).json({ message: 'Internal server error' });
   }
 });
+
+// ==================== GET COUNTRY LIST ====================
+
+app.get('/countries', async (req, res) => {
+  try {
+    const result = await pool.query('SELECT id, name FROM countries ORDER BY id');
+    res.json(result.rows);
+  } catch (err) {
+    console.error('Error fetching countries:', err);
+    res.status(500).json({ message: 'Internal Server Error' });
+  }
+});
+
 
 //=================== GET LEADERBOARD DATA ==================
 

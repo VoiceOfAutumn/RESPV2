@@ -17,20 +17,17 @@ export default function LoginPage() {
     e.preventDefault();
     setMessage('');
 
-    try {
-      const res = await fetch('http://localhost:3000/login', {
+    try {      const res = await fetch('http://localhost:3000/login', {
         method: 'POST',
+        credentials: 'include',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify(formData),
-      });
-
-      const data = await res.json();
-
-      if (res.status === 200) {
+      });      const data = await res.json();      if (res.status === 200) {
         setMessage('✅ Login successful!');
-        localStorage.setItem('user', JSON.stringify(data.user));
+        // Store the display name before redirecting
+        localStorage.setItem('justLoggedIn', data.display_name);
         window.location.href = '/'; // 🔁 Redirect to homepage
       } else {
         setMessage(`❌ ${data.message}`);

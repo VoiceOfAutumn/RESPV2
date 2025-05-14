@@ -1,11 +1,9 @@
-function authenticateUser(req, res, next) {
-  if (req.session && req.session.userId) {
-    req.user = { id: req.session.userId }; // ← Attach to req.user
-    next();
-  } else {
-    res.status(401).json({ error: 'Unauthorized: Please log in first.' });
+const authMiddleware = (req, res, next) => {
+  if (!req.session || !req.session.userId) {
+    return res.status(401).json({ error: 'Authentication required' });
   }
-}
-  
-  module.exports = authenticateUser;
-  
+
+  next(); // User is authenticated, proceed
+};
+
+module.exports = authMiddleware;
