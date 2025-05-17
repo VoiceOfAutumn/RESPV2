@@ -28,22 +28,10 @@ const Toast = ({ message, duration = 3000, onClose }: ToastProps) => {
         <div className="absolute inset-0 bg-gradient-to-r from-pink-500/20 to-purple-500/20 blur-xl rounded-xl"></div>
         
         {/* Main toast container */}
-        <div className="relative overflow-hidden bg-neutral-900/95 backdrop-blur px-6 py-4 rounded-xl border border-purple-500/50">
-          {/* Animated gradient background */}
-          <div className="absolute inset-0 bg-gradient-to-r from-pink-500/10 to-purple-500/10 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+        <div className="relative overflow-hidden bg-neutral-900/95 backdrop-blur-sm px-6 py-3.5 rounded-xl border border-white/10 shadow-lg transition-all duration-300 group-hover:border-purple-500/50">
+          {/* Hover gradient background */}
+          <div className="absolute inset-0 bg-gradient-to-r from-pink-500/5 to-purple-500/5 opacity-0 group-hover:opacity-100 transition-all duration-300"></div>
           
-          {/* Top gradient line */}
-          <div className="absolute top-0 inset-x-0 h-[1px] bg-gradient-to-r from-transparent via-pink-500 to-purple-500"></div>
-          
-          {/* Bottom gradient line */}
-          <div className="absolute bottom-0 inset-x-0 h-[1px] bg-gradient-to-r from-transparent via-purple-500 to-pink-500"></div>
-          
-          {/* Left gradient line */}
-          <div className="absolute left-0 inset-y-0 w-[1px] bg-gradient-to-b from-pink-500/50 via-purple-500/50 to-pink-500/50"></div>
-          
-          {/* Right gradient line */}
-          <div className="absolute right-0 inset-y-0 w-[1px] bg-gradient-to-b from-purple-500/50 via-pink-500/50 to-purple-500/50"></div>
-
           {/* Content container */}
           <div className="relative flex items-center space-x-3">
             {/* Icon */}
@@ -54,17 +42,11 @@ const Toast = ({ message, duration = 3000, onClose }: ToastProps) => {
             </div>
 
             {/* Message */}
-            <p className="text-white font-press-start text-sm py-0.5">
+            <p className="text-white text-sm font-medium tracking-wide">
               {message}
             </p>
           </div>
         </div>
-
-        {/* Corner accents */}
-        <div className="absolute -top-1 -left-1 w-2 h-2 border-t-2 border-l-2 border-pink-500/50 rounded-tl"></div>
-        <div className="absolute -top-1 -right-1 w-2 h-2 border-t-2 border-r-2 border-purple-500/50 rounded-tr"></div>
-        <div className="absolute -bottom-1 -left-1 w-2 h-2 border-b-2 border-l-2 border-purple-500/50 rounded-bl"></div>
-        <div className="absolute -bottom-1 -right-1 w-2 h-2 border-b-2 border-r-2 border-pink-500/50 rounded-br"></div>
       </div>
     </div>
   );

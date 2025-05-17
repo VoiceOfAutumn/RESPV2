@@ -13,6 +13,7 @@ import {
   faGavel,
   faHandshake,
   faFileAlt,
+  faUsers,
 } from '@fortawesome/free-solid-svg-icons';
 
 export default function Navbar() {
@@ -42,15 +43,26 @@ export default function Navbar() {
             <FontAwesomeIcon icon={icon} className="h-5 w-5" />
             <Link href={href}>{label}</Link>
           </li>
-        ))}
-
-        {/* Clubs - Coming Soon */}
+        ))}        {/* Clubs - Coming Soon */}
         <li className="flex items-center space-x-2 text-[#81878C] hover:text-[#E5E5E5]">
           <FontAwesomeIcon
             icon={faShieldAlt}
             className="h-5 w-5 text-[#81878C] hover:text-[#81878C]"
           />
           <span className="line-through text-gray-400">Clubs</span>
+          <div className="relative group">
+            <AiOutlineInfoCircle className="text-[#81878C] ml-2" />
+            <span className="absolute left-full top-1/2 transform -translate-y-1/2 ml-2 bg-gray-800 text-white text-xs rounded-lg py-1 px-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300 whitespace-nowrap z-10">
+              Coming Soon
+            </span>
+          </div>
+        </li>        {/* Factions - Coming Soon */}
+        <li className="flex items-center space-x-2 text-[#81878C] hover:text-[#E5E5E5]">
+          <FontAwesomeIcon
+            icon={faUsers}
+            className="h-5 w-5 text-[#81878C] hover:text-[#81878C]"
+          />
+          <span className="line-through text-gray-400">Factions</span>
           <div className="relative group">
             <AiOutlineInfoCircle className="text-[#81878C] ml-2" />
             <span className="absolute left-full top-1/2 transform -translate-y-1/2 ml-2 bg-gray-800 text-white text-xs rounded-lg py-1 px-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300 whitespace-nowrap z-10">
