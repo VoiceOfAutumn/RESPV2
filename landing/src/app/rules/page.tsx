@@ -10,14 +10,12 @@ export default function Rules() {
       <Navbar />
 
       <main className="max-w-6xl mx-auto px-6 py-12">
-        <h1 className="text-4xl font-extrabold mb-12 text-center text-purple-400 tracking-wide drop-shadow-md">
-          Rules & Guidelines
-        </h1>
+        <h1 className="text-4xl font-semibold text-center mb-8">Rules & Guidelines</h1>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
           {/* General Rules */}
           <section className="bg-white/5 backdrop-blur-sm rounded-2xl p-6 shadow-md hover:shadow-purple-500/20 transition duration-300 border border-white/10">
-            <h2 className="text-2xl font-bold mb-4 text-cyan-400">General Rules</h2>
+            <h2 className="text-2xl font-bold mb-4">General Rules</h2>
             <p className="text-gray-400 mb-4 leading-relaxed">
               The following rules apply to all tournaments and events on Retro eSports. By participating, you agree to abide by these rules. Please note that individual tournaments may have additional rules.
             </p>
@@ -33,8 +31,8 @@ export default function Rules() {
           </section>
 
           {/* Player Behaviour */}
-          <section className="bg-white/5 backdrop-blur-sm rounded-2xl p-6 shadow-md hover:shadow-cyan-500/20 transition duration-300 border border-white/10">
-            <h2 className="text-2xl font-bold mb-4 text-purple-400">Player Behaviour</h2>
+          <section className="bg-white/5 backdrop-blur-sm rounded-2xl p-6 shadow-md hover:shadow-purple-500/20 transition duration-300 border border-white/10">
+            <h2 className="text-2xl font-bold mb-4">Player Behaviour</h2>
             <p className="text-gray-400 mb-4 leading-relaxed">
               Retro eSports is a competitive platform that values both mental and physical well-being. We expect the following from our players:
             </p>

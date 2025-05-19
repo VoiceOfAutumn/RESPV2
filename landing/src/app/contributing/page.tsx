@@ -10,9 +10,7 @@ export default function Contributing() {
       <Navbar />
 
       <section className="flex flex-col items-center justify-center text-center px-8 py-12">
-        <h1 className="text-4xl font-extrabold mb-12 text-purple-400 tracking-wide drop-shadow-md">
-          Ways to Contribute
-        </h1>
+        <h1 className="text-4xl font-semibold text-center mb-8">Ways To Contribute</h1>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-12 max-w-7xl w-full mx-auto">
           {/* Volunteering Column */}
@@ -23,7 +21,7 @@ export default function Contributing() {
                 alt="Volunteering Icon"
                 className="h-24 w-24 rounded-full mx-auto mb-4 object-cover border border-purple-400/30"
               />
-              <h2 className="text-2xl font-bold text-cyan-400">Volunteering</h2>
+              <h2 className="text-2xl font-bold">Volunteering</h2>
             </div>
             <p className="text-gray-300 text-base leading-relaxed">
               We live and breathe retro gaming, and we know you do too. That’s why we're always on the lookout for passionate volunteers to help us grow. Join any of our teams:
@@ -40,14 +38,14 @@ export default function Contributing() {
           </div>
 
           {/* Financing Column */}
-          <div className="bg-white/5 backdrop-blur-sm rounded-2xl p-8 border border-white/10 shadow-md hover:shadow-cyan-500/20 transition duration-300 text-left">
+          <div className="bg-white/5 backdrop-blur-sm rounded-2xl p-8 border border-white/10 shadow-md hover:shadow-purple-500/20 transition duration-300 text-left">
             <div className="mb-6 text-center">
               <img
                 src="/images/financing.png"
                 alt="Financing Icon"
                 className="h-24 w-24 rounded-full mx-auto mb-4 object-cover border border-cyan-400/30"
               />
-              <h2 className="text-2xl font-bold text-purple-400">Financing</h2>
+              <h2 className="text-2xl font-bold">Financing</h2>
             </div>
             <p className="text-gray-300 text-base leading-relaxed">
               Retro eSports is powered by nostalgia — not profits. But running things costs money:
@@ -64,14 +62,14 @@ export default function Contributing() {
           </div>
 
           {/* Miscellaneous Column */}
-          <div className="bg-white/5 backdrop-blur-sm rounded-2xl p-8 border border-white/10 shadow-md hover:shadow-pink-500/20 transition duration-300 text-left">
+          <div className="bg-white/5 backdrop-blur-sm rounded-2xl p-8 border border-white/10 shadow-md hover:shadow-purple-500/20 transition duration-300 text-left">
             <div className="mb-6 text-center">
               <img
                 src="/images/misc.png"
                 alt="Miscellaneous Icon"
                 className="h-24 w-24 rounded-full mx-auto mb-4 object-cover border border-pink-400/30"
               />
-              <h2 className="text-2xl font-bold text-pink-400">Miscellaneous</h2>
+              <h2 className="text-2xl font-bold">Miscellaneous</h2>
             </div>
             <p className="text-gray-300 text-base leading-relaxed">
               Got another idea? We’re all ears.

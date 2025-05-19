@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
 import Navbar from '../../components/Navbar';
 import TopBar from '../../components/TopBar';
+import Link from 'next/link';
 
 interface Tournament {
   id: number;
@@ -149,6 +150,19 @@ export default function TournamentDetailPage() {
             <h2 className="text-2xl font-bold text-white mb-4">Rules</h2>
             <div className="prose prose-invert max-w-none">
               <div className="text-gray-300 whitespace-pre-wrap">{tournament.rules}</div>
+            </div>
+          </section>
+
+          {/* Internal Bracket Link */}
+          <section className="bg-gray-800/50 backdrop-blur rounded-2xl p-6">
+            <div className="flex items-center justify-between">
+              <h2 className="text-2xl font-bold text-white">Tournament Bracket</h2>
+              <Link
+                href={`/tournament/${id}/bracket`}
+                className="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg text-sm font-medium transition-colors"
+              >
+                View Bracket
+              </Link>
             </div>
           </section>
 
