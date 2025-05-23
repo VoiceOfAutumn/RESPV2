@@ -1,0 +1,286 @@
+'use client';
+
+import React, { useEffect, useState } from 'react';
+import { useParams } from 'next/navigation';
+import Navbar from '../../../components/Navbar';
+import TopBar from '../../../components/TopBar';
+import Bracket from '@/app/tournament/[id]/bracket/components/Bracket';
+import { useToast } from '@/app/components/ToastContext';
+import { BracketData, Match, Tournament } from '@/app/tournament/[id]/bracket/types';
+
+interface User {
+  role?: 'user' | 'staff' | 'admin';
+}
+
+export default function TournamentBracketPage() {
+  const { id } = useParams();
+  const [data, setData] = useState<BracketData | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [user, setUser] = useState<User | null>(null);
+  const { showToast } = useToast();
+
+  useEffect(() => {
+    // Fetch user data for permissions
+    const fetchUser = async () => {
+      try {
+        const res = await fetch('http://localhost:3000/user/me', {
+          credentials: 'include'
+        });
+        if (res.ok) {
+          const userData = await res.json();
+          setUser(userData);
+        }
+      } catch (err) {
+        console.error('Error fetching user data:', err);
+      }
+    };
+
+    // Fetch bracket data
+    const fetchBracket = async () => {
+      try {
+        const res = await fetch(`http://localhost:3000/tournaments/${id}/bracket`, {
+          credentials: 'include'
+        });
+        
+        if (!res.ok) throw new Error('Failed to fetch bracket');
+        
+        const bracketData = await res.json();
+        
+        // Validate the bracket data structure
+        if (!bracketData || !Array.isArray(bracketData.matches)) {
+          throw new Error('Invalid bracket data format');
+        }
+        
+        setData(bracketData);
+        setLoading(false);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'An error occurred');
+        setLoading(false);
+      }
+    };
+
+    fetchUser();
+    fetchBracket();
+  }, [id]);
+
+  const handleScoreSubmit = async (matchId: number, player1Score: number, player2Score: number): Promise<void> => {
+    if (!data?.matches) {
+      showToast({
+        title: 'Error',
+        message: 'No match data available',
+        type: 'error'
+      });
+      return;
+    }
+
+    // Validate scores
+    if (player1Score < 0 || player2Score < 0) {
+      showToast({
+        title: 'Error',
+        message: 'Scores cannot be negative',
+        type: 'error'
+      });
+      return;
+    }
+
+    try {
+      const match = data.matches.find(m => m.id === matchId);
+      if (!match) throw new Error('Match not found');
+
+      const winnerId = player1Score > player2Score ? match.player1_id :
+                      player2Score > player1Score ? match.player2_id :
+                      null;
+
+      const res = await fetch(`http://localhost:3000/tournaments/${id}/matches/${matchId}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include',
+        body: JSON.stringify({
+          player1_score: player1Score,
+          player2_score: player2Score,
+          winner_id: winnerId
+        }),
+      });
+
+      if (!res.ok) {
+        throw new Error('Failed to update match');
+      }
+
+      // Refresh bracket data
+      const bracketRes = await fetch(`http://localhost:3000/tournaments/${id}/bracket`, {
+        credentials: 'include'
+      });
+      if (!bracketRes.ok) throw new Error('Failed to refresh bracket');
+      
+      const newData = await bracketRes.json();
+      // Validate the new data
+      if (!newData || !Array.isArray(newData.matches)) {
+        throw new Error('Invalid bracket data format');
+      }
+      
+      setData(newData);
+      showToast({
+        title: 'Success',
+        message: 'Match result updated successfully',
+        type: 'success'
+      });
+    } catch (err) {
+      showToast({
+        title: 'Error',
+        message: err instanceof Error ? err.message : 'Failed to update match',
+        type: 'error'
+      });
+    }
+  };
+  if (loading) {
+    return (
+      <main className="min-h-screen bg-gradient-to-br from-black via-gray-800 to-black text-white pt-16 pl-64">
+        <TopBar />
+        <Navbar />
+        <div className="container mx-auto px-4 py-8">
+          <div className="bg-neutral-800/50 backdrop-blur rounded-xl shadow-lg border border-gray-700/50 p-8">
+            <div className="flex flex-col justify-center items-center h-64 space-y-6">
+              <div className="animate-spin rounded-full h-16 w-16 border-4 border-purple-500 border-t-transparent shadow-lg shadow-purple-500/20"></div>
+              <p className="text-gray-400">Loading tournament bracket...</p>
+            </div>
+          </div>
+        </div>
+      </main>
+    );
+  }
+
+  if (error || !data || !data.matches) {
+    return (
+      <main className="min-h-screen bg-gradient-to-br from-black via-gray-800 to-black text-white pt-16 pl-64">
+        <TopBar />
+        <Navbar />
+        <div className="container mx-auto px-4 py-8">
+          <div className="bg-neutral-800/50 backdrop-blur rounded-xl shadow-lg p-8 border border-red-500/20">
+            <div className="text-center">
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-16 w-16 text-red-500 mx-auto mb-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+              </svg>
+              <h3 className="text-xl font-bold text-white mb-4">Bracket Not Available</h3>
+              <p className="text-red-400 font-medium mb-6">{error || 'Unable to load tournament bracket data'}</p>
+              <div className="flex justify-center gap-4">
+                <a
+                  href={`/tournaments/${id}`}
+                  className="px-5 py-2 bg-gray-700/50 text-gray-300 rounded-lg hover:bg-gray-700 transition-colors duration-300"
+                >
+                  Back to Tournament
+                </a>
+                <button 
+                  onClick={() => window.location.reload()} 
+                  className="px-5 py-2 bg-red-500/10 text-red-400 rounded-lg hover:bg-red-500/20 transition-all duration-300"
+                >
+                  Try Again
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </main>
+    );
+  }
+  return (
+    <main className="min-h-screen bg-gradient-to-br from-black via-gray-800 to-black text-white pt-16 pl-64">
+      <TopBar />
+      <Navbar />
+      
+      <div className="container mx-auto px-4 py-8">
+        <div className="flex flex-col space-y-6">
+          {/* Header Section */}
+          <div className="bg-neutral-800/50 backdrop-blur rounded-xl shadow-lg p-6 border border-gray-700/50">
+            <div className="flex items-center justify-between mb-2">
+              <h1 className="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-white to-gray-300">
+                Tournament Bracket
+              </h1>
+              
+              {/* Tournament Status Badge */}
+              <div className="flex items-center">
+                <div className={`px-3 py-1.5 rounded-lg text-sm font-medium 
+                  ${data.tournament.status === 'in_progress' ? 'bg-blue-500/10 text-blue-400' : 
+                    data.tournament.status === 'completed' ? 'bg-purple-500/10 text-purple-400' : 
+                    'bg-gray-500/10 text-gray-400'}`}>
+                  {data.tournament.status.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase())}
+                </div>
+              </div>
+            </div>
+            
+            <div className="text-gray-400 text-sm mb-4">
+              Tournament format: <span className="font-medium text-white">{data.tournament.format.replace('_', ' ')}</span>
+            </div>
+          </div>
+          
+          {/* Bracket Navigation */}
+          <div className="bg-neutral-800/50 backdrop-blur rounded-xl shadow-lg border border-gray-700/50">
+            <div className="border-b border-gray-700/50 px-6 py-4 flex items-center justify-between">
+              <h2 className="text-lg font-semibold bg-clip-text text-transparent bg-gradient-to-r from-white to-gray-300">
+                Tournament Brackets
+              </h2>
+              
+              {/* Staff Controls */}
+              {user?.role === 'staff' || user?.role === 'admin' ? (
+                <div className="text-sm text-gray-400">
+                  Staff controls enabled — you can edit match scores
+                </div>
+              ) : null}
+            </div>
+            
+            <div className="overflow-x-auto p-6">
+              <div className="min-w-max">
+                {/* Only render Bracket when we have valid data */}
+                {data.tournament && data.matches && (
+                  <Bracket
+                    matches={data.matches}
+                    tournament={data.tournament}
+                    isStaff={user?.role === 'staff' || user?.role === 'admin'}
+                    onMatchUpdate={handleScoreSubmit}
+                  />
+                )}
+              </div>
+            </div>
+          </div>
+          
+          {/* Back to Tournament Link */}
+          <div className="flex justify-start">
+            <a 
+              href={`/tournaments/${id}`}
+              className="flex items-center gap-2 text-sm text-gray-400 hover:text-white transition-colors duration-300"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+              </svg>
+              Back to Tournament Details
+            </a>
+          </div>
+        </div>
+      </div>
+      
+      {/* Scrollbar styling for bracket container */}
+      <style jsx global>{`
+        .bracket-container {
+          scrollbar-width: thin;
+          scrollbar-color: rgba(139, 92, 246, 0.3) rgba(30, 30, 30, 0.5);
+        }
+        .bracket-container::-webkit-scrollbar {
+          height: 8px;
+        }
+        .bracket-container::-webkit-scrollbar-track {
+          background: rgba(30, 30, 30, 0.5);
+          border-radius: 4px;
+        }
+        .bracket-container::-webkit-scrollbar-thumb {
+          background-color: rgba(139, 92, 246, 0.3);
+          border-radius: 4px;
+        }
+        .bracket-container::-webkit-scrollbar-thumb:hover {
+          background-color: rgba(139, 92, 246, 0.5);
+        }
+      `}</style>
+    </main>
+  );
+}

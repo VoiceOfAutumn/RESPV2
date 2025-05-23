@@ -30,6 +30,17 @@ app.use(cors({
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
+// Session config
+app.use(session({
+  secret: process.env.SESSION_SECRET,
+  resave: false,
+  saveUninitialized: true,
+  cookie: {
+    maxAge: null, // Session expires on browser close unless "remember me"
+    secure: false // Set to true if using HTTPS
+  }
+}));
+
 // ✅ Serve uploaded files statically
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
@@ -44,17 +55,6 @@ const storage = multer.diskStorage({
   },
 });
 const upload = multer({ storage });
-
-// Session config
-app.use(session({
-  secret: process.env.SESSION_SECRET,
-  resave: false,
-  saveUninitialized: true,
-  cookie: {
-    maxAge: null, // Session expires on browser close unless "remember me"
-    secure: false // Set to true if using HTTPS
-  }
-}));
 
 // ================== SIGNUP ==================
 app.post('/signup', async (req, res) => {
@@ -367,7 +367,7 @@ app.get('/user/me', async (req, res) => {
 
   try {
     const result = await pool.query(
-      'SELECT display_name, profile_picture FROM users WHERE id = $1',
+      'SELECT display_name, profile_picture, role FROM users WHERE id = $1',
       [req.session.userId]
     );
 
@@ -379,6 +379,7 @@ app.get('/user/me', async (req, res) => {
     res.json({
       displayName: user.display_name,
       profile_picture: user.profile_picture,
+      role: user.role
     });
   } catch (err) {
     console.error('Error in /user/me:', err);
@@ -450,83 +451,7 @@ app.get('/leaderboard', async (req, res) => {
 });
 
 // ++++++++++++++++++++++ TOURNAMENT RELATED ++++++++++++++++++++++
-
-// ================== GET /tournaments ==================
-
-app.get('/tournaments', async (req, res) => {
-  try {
-    const result = await pool.query(`
-      SELECT id, name, date, status, image
-      FROM tournaments
-      ORDER BY date
-    `);
-    res.json(result.rows);
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: 'Internal server error' });
-  }
-});
-
-// ================== GET /tournaments/:id ==================
-
-app.get('/tournaments/:id', async (req, res) => {
-  const { id } = req.params;
-  try {
-    const result = await pool.query(`
-      SELECT *
-      FROM tournaments
-      WHERE id = $1
-    `, [id]);
-
-    if (result.rows.length === 0) {
-      return res.status(404).json({ error: 'Tournament not found' });
-    }
-
-    res.json(result.rows[0]);
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: 'Internal server error' });
-  }
-});
-
-// ================== POST /tournaments/id/signup ==================
-
-app.post('/tournaments/:id/signup', async (req, res) => {
-  if (!req.session.userId) {
-    return res.status(401).json({ error: 'You must be logged in to sign up.' });
-  }
-  
-  const tournamentId = parseInt(req.params.id);
-  const userId = req.user.id; // Assuming the user is logged in
-
-  try {
-    // Check if tournament exists
-    const tournament = await db.query('SELECT * FROM tournaments WHERE id = $1', [tournamentId]);
-    if (tournament.rows.length === 0) {
-      return res.status(404).json({ message: 'Tournament not found' });
-    }
-
-    // Check if user is already signed up
-    const existingSignup = await db.query(
-      'SELECT * FROM tournament_participants WHERE tournament_id = $1 AND user_id = $2',
-      [tournamentId, userId]
-    );
-    if (existingSignup.rows.length > 0) {
-      return res.status(400).json({ message: 'Already signed up' });
-    }
-
-    // Add user to tournament_participants table
-    await db.query(
-      'INSERT INTO tournament_participants (tournament_id, user_id) VALUES ($1, $2)',
-      [tournamentId, userId]
-    );
-
-    return res.status(200).json({ message: 'Signed up successfully' });
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ message: 'Error signing up' });
-  }
-});
+app.use('/tournaments', require('./routes/tournament-router'));
 
 // ++++++++++++++++++++ SERVER +++++++++++++++++
 // ================== START SERVER ==================
