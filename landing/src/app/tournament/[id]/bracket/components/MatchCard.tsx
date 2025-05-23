@@ -59,9 +59,18 @@ export default function MatchCard({ match, isStaff = false, onScoreUpdate, brack
       ) : (
         <div className="space-y-3">
           {/* Player 1 */}
-          <div className={`flex justify-between items-center p-2 ${match.winner_id === match.player1_id ? 'bg-green-500/10 rounded-md' : ''}`}>
-            <div className="flex items-center gap-2">
-              <div className="w-6 h-6 bg-gray-700/50 rounded-full flex-shrink-0"></div>
+          <div className={`flex justify-between items-center p-2 ${match.winner_id === match.player1_id ? 'bg-green-500/10 rounded-md' : ''}`}>            <div className="flex items-center gap-2">
+              <div className="w-6 h-6 rounded-full flex-shrink-0 relative">
+                {match.player1_name ? (
+                  <img
+                    src={match.player1_picture || '/images/default-avatar.png'}
+                    alt={match.player1_name}
+                    className="w-full h-full rounded-full object-cover ring-1 ring-gray-700/50"
+                  />
+                ) : (
+                  <div className="w-full h-full bg-gray-700/50 rounded-full" />
+                )}
+              </div>
               <span className={`text-sm ${match.winner_id === match.player1_id ? 'font-semibold text-green-400' : 'text-gray-300'}`}>
                 {match.player1_name || 'TBD'}
               </span>
@@ -84,9 +93,18 @@ export default function MatchCard({ match, isStaff = false, onScoreUpdate, brack
           </div>
 
           {/* Player 2 */}
-          <div className={`flex justify-between items-center p-2 ${match.winner_id === match.player2_id ? 'bg-green-500/10 rounded-md' : ''}`}>
-            <div className="flex items-center gap-2">
-              <div className="w-6 h-6 bg-gray-700/50 rounded-full flex-shrink-0"></div>
+          <div className={`flex justify-between items-center p-2 ${match.winner_id === match.player2_id ? 'bg-green-500/10 rounded-md' : ''}`}>            <div className="flex items-center gap-2">
+              <div className="w-6 h-6 rounded-full flex-shrink-0 relative">
+                {match.player2_name ? (
+                  <img
+                    src={match.player2_picture || '/images/default-avatar.png'}
+                    alt={match.player2_name}
+                    className="w-full h-full rounded-full object-cover ring-1 ring-gray-700/50"
+                  />
+                ) : (
+                  <div className="w-full h-full bg-gray-700/50 rounded-full" />
+                )}
+              </div>
               <span className={`text-sm ${match.winner_id === match.player2_id ? 'font-semibold text-green-400' : 'text-gray-300'}`}>
                 {match.player2_name || 'TBD'}
               </span>
@@ -139,14 +157,7 @@ export default function MatchCard({ match, isStaff = false, onScoreUpdate, brack
                   className="px-3 py-1.5 text-xs bg-purple-500/10 text-purple-400 hover:bg-purple-500/20 rounded-lg transition-all duration-300"
                 >
                   Edit Score
-                </button>
-              )}
-            </div>
-          )}
-
-          {match.winner_name && (
-            <div className="mt-2 py-1.5 px-2 bg-green-500/10 rounded-lg text-xs text-green-400 font-medium">
-              Winner: {match.winner_name}
+                </button>              )}
             </div>
           )}
         </div>

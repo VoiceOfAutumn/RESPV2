@@ -398,7 +398,8 @@ app.get('/user/:displayname', async (req, res) => {
         users.display_name, 
         users.profile_picture,
         users.points,
-        countries.name AS country 
+        countries.code as country_code,
+        countries.name as country_name
       FROM users 
       LEFT JOIN countries ON users.country_id = countries.id 
       WHERE LOWER(users.display_name) = LOWER($1)

@@ -4,9 +4,106 @@ import React, { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
 import Navbar from '../../../components/Navbar';
 import TopBar from '../../../components/TopBar';
-import Bracket from '@/app/tournament/[id]/bracket/components/Bracket';
+import BracketView from '@/app/tournament/[id]/bracket/components/BracketView';
 import { useToast } from '@/app/components/ToastContext';
 import { BracketData, Match, Tournament } from '@/app/tournament/[id]/bracket/types';
+
+// Bracket Tabs Component
+interface BracketTabsProps {
+  matches: Match[];
+}
+
+function BracketTabs({ matches, onTabChange }: BracketTabsProps & { onTabChange: (tab: 'all' | 'winners' | 'losers' | 'finals') => void }) {
+  const [activeTab, setActiveTab] = useState<'all' | 'winners' | 'losers' | 'finals'>('all');
+  
+  // Count matches of each type for the badge
+  const matchCounts = matches.reduce(
+    (acc, match) => {
+      const bracket = match.bracket || 'winners';
+      acc[bracket] = (acc[bracket] || 0) + 1;
+      return acc;
+    }, 
+    {} as Record<string, number>
+  );
+  
+  const handleTabChange = (tab: 'all' | 'winners' | 'losers' | 'finals') => {
+    setActiveTab(tab);
+    onTabChange(tab); // Notify parent about tab change
+    
+    // Apply filter to scroll to appropriate section
+    setTimeout(() => {
+      const element = document.getElementById(`${tab}-bracket`);
+      if (element) {
+        element.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      } else if (tab === 'all') {
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      }
+    }, 100);
+  };
+
+  return (
+    <div className="flex overflow-x-auto px-6 py-2 scrollbar-thin scrollbar-track-gray-800 scrollbar-thumb-gray-600">
+      <button 
+        onClick={() => handleTabChange('all')}
+        className={`px-4 py-2 mr-2 font-medium text-sm rounded-t-lg transition-all ${
+          activeTab === 'all' 
+            ? 'text-white border-b-2 border-purple-500'
+            : 'text-gray-400 hover:text-gray-300'
+        }`}
+      >
+        All Brackets
+      </button>
+      
+      <button 
+        onClick={() => handleTabChange('winners')}
+        className={`px-4 py-2 mr-2 font-medium text-sm rounded-t-lg transition-all flex items-center ${
+          activeTab === 'winners' 
+            ? 'text-green-400 border-b-2 border-green-500'
+            : 'text-gray-400 hover:text-gray-300'
+        }`}
+      >
+        Winners
+        {matchCounts['winners'] > 0 && (
+          <span className="ml-2 bg-green-500/20 text-green-400 text-xs px-2 py-0.5 rounded-full">
+            {matchCounts['winners']}
+          </span>
+        )}
+      </button>
+      
+      <button 
+        onClick={() => handleTabChange('losers')}
+        className={`px-4 py-2 mr-2 font-medium text-sm rounded-t-lg transition-all flex items-center ${
+          activeTab === 'losers' 
+            ? 'text-red-400 border-b-2 border-red-500'
+            : 'text-gray-400 hover:text-gray-300'
+        }`}
+      >
+        Losers
+        {matchCounts['losers'] > 0 && (
+          <span className="ml-2 bg-red-500/20 text-red-400 text-xs px-2 py-0.5 rounded-full">
+            {matchCounts['losers']}
+          </span>
+        )}
+      </button>
+      
+      {matchCounts['finals'] > 0 && (
+        <button 
+          onClick={() => handleTabChange('finals')}
+          className={`px-4 py-2 font-medium text-sm rounded-t-lg transition-all flex items-center ${
+            activeTab === 'finals' 
+              ? 'text-purple-400 border-b-2 border-purple-500'
+              : 'text-gray-400 hover:text-gray-300'
+          }`}
+        >
+          Finals
+          <span className="ml-2 bg-purple-500/20 text-purple-400 text-xs px-2 py-0.5 rounded-full">
+            {matchCounts['finals']}
+          </span>
+        </button>
+      )}
+    </div>
+  );
+}
 
 interface User {
   role?: 'user' | 'staff' | 'admin';
@@ -17,8 +114,12 @@ export default function TournamentBracketPage() {
   const [data, setData] = useState<BracketData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [user, setUser] = useState<User | null>(null);
-  const { showToast } = useToast();
+  const [user, setUser] = useState<User | null>(null);  const { showToast } = useToast();
+  const [activeBracketType, setActiveBracketType] = useState<'all' | 'winners' | 'losers' | 'finals'>('all');
+
+  const handleBracketTabChange = (tab: 'all' | 'winners' | 'losers' | 'finals') => {
+    setActiveBracketType(tab);
+  };
 
   useEffect(() => {
     // Fetch user data for permissions
@@ -151,20 +252,37 @@ export default function TournamentBracketPage() {
       </main>
     );
   }
-
-  if (error || !data || !data.matches) {
+  // Check if this is a "no brackets yet" situation vs an actual error
+  const isBracketNotGeneratedYet = !error && data && (!data.matches || data.matches.length === 0);
+  
+  if (error || !data || !data.matches || data.matches.length === 0) {
     return (
       <main className="min-h-screen bg-gradient-to-br from-black via-gray-800 to-black text-white pt-16 pl-64">
         <TopBar />
         <Navbar />
         <div className="container mx-auto px-4 py-8">
-          <div className="bg-neutral-800/50 backdrop-blur rounded-xl shadow-lg p-8 border border-red-500/20">
+          <div className={`bg-neutral-800/50 backdrop-blur rounded-xl shadow-lg p-8 border ${isBracketNotGeneratedYet ? 'border-yellow-500/20' : 'border-red-500/20'}`}>
             <div className="text-center">
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-16 w-16 text-red-500 mx-auto mb-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-              </svg>
-              <h3 className="text-xl font-bold text-white mb-4">Bracket Not Available</h3>
-              <p className="text-red-400 font-medium mb-6">{error || 'Unable to load tournament bracket data'}</p>
+              {isBracketNotGeneratedYet ? (
+                <>
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-16 w-16 text-yellow-500 mx-auto mb-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                  </svg>
+                  <h3 className="text-xl font-bold text-white mb-4">Brackets Not Generated Yet</h3>
+                  <p className="text-yellow-400 font-medium mb-6">
+                    This tournament doesn't have brackets generated yet. Brackets will be available when the tournament starts.
+                  </p>
+                </>
+              ) : (
+                <>
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-16 w-16 text-red-500 mx-auto mb-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                  </svg>
+                  <h3 className="text-xl font-bold text-white mb-4">Bracket Not Available</h3>
+                  <p className="text-red-400 font-medium mb-6">{error || 'Unable to load tournament bracket data'}</p>
+                </>
+              )}
+              
               <div className="flex justify-center gap-4">
                 <a
                   href={`/tournaments/${id}`}
@@ -192,53 +310,25 @@ export default function TournamentBracketPage() {
       
       <div className="container mx-auto px-4 py-8">
         <div className="flex flex-col space-y-6">
-          {/* Header Section */}
-          <div className="bg-neutral-800/50 backdrop-blur rounded-xl shadow-lg p-6 border border-gray-700/50">
-            <div className="flex items-center justify-between mb-2">
-              <h1 className="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-white to-gray-300">
-                Tournament Bracket
-              </h1>
-              
-              {/* Tournament Status Badge */}
-              <div className="flex items-center">
-                <div className={`px-3 py-1.5 rounded-lg text-sm font-medium 
-                  ${data.tournament.status === 'in_progress' ? 'bg-blue-500/10 text-blue-400' : 
-                    data.tournament.status === 'completed' ? 'bg-purple-500/10 text-purple-400' : 
-                    'bg-gray-500/10 text-gray-400'}`}>
-                  {data.tournament.status.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase())}
-                </div>
-              </div>
-            </div>
-            
-            <div className="text-gray-400 text-sm mb-4">
-              Tournament format: <span className="font-medium text-white">{data.tournament.format.replace('_', ' ')}</span>
-            </div>
-          </div>
-          
           {/* Bracket Navigation */}
           <div className="bg-neutral-800/50 backdrop-blur rounded-xl shadow-lg border border-gray-700/50">
-            <div className="border-b border-gray-700/50 px-6 py-4 flex items-center justify-between">
-              <h2 className="text-lg font-semibold bg-clip-text text-transparent bg-gradient-to-r from-white to-gray-300">
-                Tournament Brackets
-              </h2>
-              
-              {/* Staff Controls */}
-              {user?.role === 'staff' || user?.role === 'admin' ? (
-                <div className="text-sm text-gray-400">
-                  Staff controls enabled — you can edit match scores
-                </div>
-              ) : null}
-            </div>
+            {/* Bracket Tabs - Show only for double elimination */}
+            {data.tournament && data.tournament.format === 'DOUBLE_ELIMINATION' && (
+              <div className="flex border-b border-gray-700/50">
+                <BracketTabs matches={data.matches} onTabChange={handleBracketTabChange} />
+              </div>
+            )}
             
             <div className="overflow-x-auto p-6">
               <div className="min-w-max">
-                {/* Only render Bracket when we have valid data */}
+                {/* Only render BracketView when we have valid data */}
                 {data.tournament && data.matches && (
-                  <Bracket
+                  <BracketView
                     matches={data.matches}
                     tournament={data.tournament}
                     isStaff={user?.role === 'staff' || user?.role === 'admin'}
                     onMatchUpdate={handleScoreSubmit}
+                    bracketType={activeBracketType}
                   />
                 )}
               </div>

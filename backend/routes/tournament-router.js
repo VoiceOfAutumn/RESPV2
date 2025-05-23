@@ -22,6 +22,66 @@ const isStaff = async (req, res, next) => {
     }
 };
 
+// POST /tournaments - Create a new tournament (staff only)
+router.post('/', authMiddleware, isStaff, [
+    body('name').isLength({ min: 3, max: 100 }).withMessage('Tournament name must be between 3 and 100 characters'),
+    body('description').optional(),
+    body('date').isISO8601().withMessage('Date must be a valid ISO date'),
+    body('format').isIn(['SINGLE_ELIMINATION', 'DOUBLE_ELIMINATION']).withMessage('Invalid tournament format'),
+    body('maxParticipants').isInt({ min: 2 }).withMessage('Maximum participants must be at least 2'),
+    body('seedType').isIn(['RANDOM', 'MANUAL']).withMessage('Invalid seed type'),
+], async (req, res) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+        return res.status(400).json({ errors: errors.array() });
+    }
+
+    const { 
+        name, 
+        description, 
+        date, 
+        game, 
+        rules, 
+        format, 
+        maxParticipants, 
+        seedType,
+        externalLinks
+    } = req.body;
+
+    const userId = req.session.userId;
+
+    try {        const result = await pool.query(`
+            INSERT INTO tournaments 
+            (name, description, date, format, max_participants, rules, created_by, status) 
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8) 
+            RETURNING id
+        `, [
+            name, 
+            description, 
+            date, 
+            format, 
+            maxParticipants, 
+            rules || null,
+            userId,
+            'registration_open'
+        ]);
+
+        // If there are external links, could store them in a related table
+        // This would require creating a new table for tournament_external_links
+
+        res.status(201).json({ 
+            id: result.rows[0].id,
+            message: 'Tournament created successfully' 
+        });
+    } catch (err) {
+        console.error('Error creating tournament:', err);
+        res.status(500).json({ 
+            error: 'Failed to create tournament',
+            details: err.message
+        });
+    }
+});
+
 // GET /tournaments - List all tournaments
 router.get('/', async (req, res) => {
     try {
@@ -268,28 +328,28 @@ router.get('/:id/bracket', async (req, res) => {
 
         if (tournamentResult.rows.length === 0) {
             return res.status(404).json({ error: 'Tournament not found' });
-        }
-
-        // Get match data
+        }        // Get match data
         const matchesResult = await pool.query(`
             SELECT m.*, 
                 p1.display_name as player1_name, p1.profile_picture as player1_picture,
                 p2.display_name as player2_name, p2.profile_picture as player2_picture,
                 w.display_name as winner_name,
-                CASE 
-                    WHEN t.format = 'DOUBLE_ELIMINATION' AND m.round > (SELECT MAX(round) FROM tournament_matches WHERE tournament_id = $1)/2 
-                    THEN 'losers'
-                    WHEN t.format = 'DOUBLE_ELIMINATION' AND m.round = (SELECT MAX(round) FROM tournament_matches WHERE tournament_id = $1) 
-                    THEN 'finals'
-                    ELSE 'winners'
-                END as bracket
+                COALESCE(m.bracket_type, 'winners') as bracket
             FROM tournament_matches m
             JOIN tournaments t ON m.tournament_id = t.id
             LEFT JOIN users p1 ON m.player1_id = p1.id
             LEFT JOIN users p2 ON m.player2_id = p2.id
             LEFT JOIN users w ON m.winner_id = w.id
             WHERE m.tournament_id = $1
-            ORDER BY m.round, m.match_number
+            ORDER BY 
+                CASE m.bracket_type 
+                    WHEN 'winners' THEN 1 
+                    WHEN 'losers' THEN 2 
+                    WHEN 'finals' THEN 3 
+                    ELSE 4 
+                END,
+                m.round, 
+                m.match_number
         `, [req.params.id]);
 
         // Return both tournament and matches in the structure expected by the front-end
@@ -308,10 +368,9 @@ router.put('/:id/matches/:matchId', authMiddleware, isStaff, async (req, res) =>
     const { id, matchId } = req.params;
     const { player1_score, player2_score, winner_id } = req.body;
 
-    try {
-        // Verify match exists and belongs to tournament
+    try {        // Verify match exists and belongs to tournament
         const matchCheck = await pool.query(
-            'SELECT player1_id, player2_id, next_match_id FROM tournament_matches WHERE id = $1 AND tournament_id = $2',
+            'SELECT player1_id, player2_id, next_match_id, losers_match_id, bracket_type FROM tournament_matches WHERE id = $1 AND tournament_id = $2',
             [matchId, id]
         );
 
@@ -319,7 +378,7 @@ router.put('/:id/matches/:matchId', authMiddleware, isStaff, async (req, res) =>
             return res.status(404).json({ error: 'Match not found' });
         }
 
-        const { player1_id, player2_id, next_match_id } = matchCheck.rows[0];
+        const { player1_id, player2_id, next_match_id, losers_match_id, bracket_type } = matchCheck.rows[0];
         
         if (winner_id && winner_id !== player1_id && winner_id !== player2_id) {
             return res.status(400).json({ error: 'Winner must be one of the match participants' });
@@ -331,6 +390,11 @@ router.put('/:id/matches/:matchId', authMiddleware, isStaff, async (req, res) =>
             SET player1_score = $1, player2_score = $2, winner_id = $3, updated_at = CURRENT_TIMESTAMP
             WHERE id = $4
         `, [player1_score, player2_score, winner_id, matchId]);
+
+        // If there's no winner set, we don't need to update other matches
+        if (!winner_id) {
+            return res.json({ message: 'Match result updated' });
+        }
 
         // If there's a next match and we have a winner, update the next match
         if (next_match_id && winner_id) {
@@ -346,6 +410,24 @@ router.put('/:id/matches/:matchId', authMiddleware, isStaff, async (req, res) =>
                 SET ${isFirstPlayer ? 'player1_id' : 'player2_id'} = $1
                 WHERE id = $2
             `, [winner_id, next_match_id]);
+        }
+        
+        // For double elimination, handle the loser going to losers bracket
+        if (losers_match_id && player1_id && player2_id) {
+            const loserId = (winner_id === player1_id) ? player2_id : player1_id;
+            
+            const losersMatch = await pool.query(
+                'SELECT player1_id, player2_id FROM tournament_matches WHERE id = $1',
+                [losers_match_id]
+            );
+            
+            // Determine which slot to fill in the losers match
+            const isFirstPlayer = !losersMatch.rows[0].player1_id;
+            await pool.query(`
+                UPDATE tournament_matches 
+                SET ${isFirstPlayer ? 'player1_id' : 'player2_id'} = $1
+                WHERE id = $2
+            `, [loserId, losers_match_id]);
         }
 
         res.json({ message: 'Match result updated' });
@@ -495,15 +577,18 @@ async function generateBracket(client, tournamentId, playerIds, isDoubleEliminat
 
         console.log(`Generating ${isDoubleElimination ? 'double' : 'single'} elimination bracket with ${rounds} rounds, ${playerIds.length} players`);
 
-        // First round matches
+        // Store first-round match IDs to use when creating losers bracket
+        const firstRoundMatchIds = [];
+
+        // Winners bracket - First round matches
         for (let i = 0; i < playerIds.length; i += 2) {
             const player1Id = playerIds[i];
             const player2Id = i + 1 < playerIds.length ? playerIds[i + 1] : null;
             
             const result = await client.query(`
                 INSERT INTO tournament_matches 
-                (tournament_id, round, match_number, player1_id, player2_id, bye_match)
-                VALUES ($1, $2, $3, $4, $5, $6)
+                (tournament_id, round, match_number, player1_id, player2_id, bye_match, bracket_type)
+                VALUES ($1, $2, $3, $4, $5, $6, $7)
                 RETURNING id
             `, [
                 tournamentId,
@@ -511,8 +596,12 @@ async function generateBracket(client, tournamentId, playerIds, isDoubleEliminat
                 matchNumber++,
                 player1Id,
                 player2Id,
-                !player2Id  // bye_match is true if there's no player2
+                !player2Id,  // bye_match is true if there's no player2
+                'winners'    // Mark as winners bracket
             ]);
+            
+            const matchId = result.rows[0].id;
+            firstRoundMatchIds.push(matchId);
 
             // If it's a bye match, automatically advance player1
             if (!player2Id) {
@@ -520,29 +609,34 @@ async function generateBracket(client, tournamentId, playerIds, isDoubleEliminat
                     UPDATE tournament_matches
                     SET winner_id = $1
                     WHERE id = $2
-                `, [player1Id, result.rows[0].id]);
+                `, [player1Id, matchId]);
             }
         }
 
-        // Create empty matches for subsequent rounds
+        // Winners bracket - Create empty matches for subsequent rounds
         const remainingRounds = rounds - 1;
         let prevRoundMatches = Math.ceil(playerIds.length / 2);
+        const winnersBracketMatchesByRound = { 1: firstRoundMatchIds };
 
         for (let round = 2; round <= remainingRounds + 1; round++) {
             const matchesInRound = Math.ceil(prevRoundMatches / 2);
+            winnersBracketMatchesByRound[round] = [];
             
             for (let match = 1; match <= matchesInRound; match++) {
-                await client.query(`
+                const result = await client.query(`
                     INSERT INTO tournament_matches 
-                    (tournament_id, round, match_number)
-                    VALUES ($1, $2, $3)
-                `, [tournamentId, round, match]);
+                    (tournament_id, round, match_number, bracket_type)
+                    VALUES ($1, $2, $3, $4)
+                    RETURNING id
+                `, [tournamentId, round, match, 'winners']);
+                
+                winnersBracketMatchesByRound[round].push(result.rows[0].id);
             }
 
             prevRoundMatches = matchesInRound;
         }
 
-        // Link matches to their next matches
+        // Link winners bracket matches to their next matches
         await client.query(`
             WITH RankedMatches AS (
                 SELECT 
@@ -552,7 +646,7 @@ async function generateBracket(client, tournamentId, playerIds, isDoubleEliminat
                     CEIL(match_number::float / 2) as next_match_number,
                     round + 1 as next_round
                 FROM tournament_matches
-                WHERE tournament_id = $1
+                WHERE tournament_id = $1 AND bracket_type = 'winners'
             )
             UPDATE tournament_matches t1
             SET next_match_id = t2.id
@@ -560,16 +654,174 @@ async function generateBracket(client, tournamentId, playerIds, isDoubleEliminat
             JOIN tournament_matches t2 ON 
                 t2.round = r1.next_round AND 
                 t2.match_number = r1.next_match_number AND
-                t2.tournament_id = $1
+                t2.tournament_id = $1 AND
+                t2.bracket_type = 'winners'
             WHERE 
                 t1.id = r1.id AND 
                 t1.tournament_id = $1
         `, [tournamentId]);
 
-        // For double elimination, we would add losers bracket matches here
         if (isDoubleElimination) {
-            console.log('Double elimination brackets are not fully implemented yet');
-            // This would be the place to generate the losers bracket and finals
+            console.log('Generating double elimination bracket');
+            
+            // Create losers bracket matches
+            const losersBracketMatchesByRound = {};            // Calculate losers bracket rounds based on number of players
+            // For N players:
+            // - 4 players: 1 losers round
+            // - 8 players: 2 losers rounds
+            // - 16 players: 3 losers rounds
+            const loserRounds = rounds - 1;
+            
+            // For each winners round (except finals), create corresponding losers rounds
+            let loserMatchNumber = 1;
+            let loserRound = 1;
+              // Create initial losers bracket round for first-round losers
+            losersBracketMatchesByRound[loserRound] = [];            // Calculate first round matches in a way that ensures proper pairing
+            const firstRoundMatchCount = Math.ceil(playerIds.length / 2);
+            // Count how many real matches we have (excluding byes)
+            const realMatchCount = playerIds.length % 2 === 0 ? 
+                firstRoundMatchCount : 
+                firstRoundMatchCount - 1;
+            // Losers from real matches need to be paired in the losers bracket
+            const loserMatchesInFirstRound = Math.ceil(realMatchCount / 2);
+            
+            // Start with match number 1 since we have bracket_type in uniqueness constraint
+            // Use the maximum match number from the winners bracket + 1            // Start losers bracket with match number 1, since we now have a unique constraint that includes bracket_type
+            loserMatchNumber = 1;
+            
+            for (let i = 0; i < loserMatchesInFirstRound; i++) {
+                const result = await client.query(`
+                    INSERT INTO tournament_matches 
+                    (tournament_id, round, match_number, bracket_type)
+                    VALUES ($1, $2, $3, $4)
+                    RETURNING id
+                `, [tournamentId, loserRound, loserMatchNumber++, 'losers']);
+                
+                losersBracketMatchesByRound[loserRound].push(result.rows[0].id);
+            }            // Create remaining losers bracket rounds
+            for (let round = 2; round <= loserRounds; round++) {
+                loserRound++;
+                losersBracketMatchesByRound[loserRound] = [];
+                
+                // Every even round has the same number of matches as previous round
+                // Every odd round combines winners from two previous rounds                // In even-numbered rounds, we keep the same number of matches as the previous round
+                // because we're just waiting for winners bracket losers to join.
+                // In odd-numbered rounds, we combine the winners from the previous round into pairs.
+                const isIntermediateRound = round % 2 === 0;
+                let matchesInRound;
+                
+                if (isIntermediateRound) {
+                    // Keep same number of matches as previous round
+                    matchesInRound = losersBracketMatchesByRound[loserRound - 1].length;
+                } else {
+                    // Combine winners into pairs, accounting for odd numbers
+                    const prevRoundMatches = losersBracketMatchesByRound[loserRound - 1].length;
+                    matchesInRound = Math.ceil(prevRoundMatches / 2);
+                }
+                
+                // Reset match numbers for each round
+                loserMatchNumber = 1;
+                
+                for (let match = 1; match <= matchesInRound; match++) {
+                    const result = await client.query(`
+                        INSERT INTO tournament_matches 
+                        (tournament_id, round, match_number, bracket_type)
+                        VALUES ($1, $2, $3, $4)
+                        RETURNING id
+                    `, [tournamentId, loserRound, loserMatchNumber++, 'losers']);
+                    
+                    losersBracketMatchesByRound[loserRound].push(result.rows[0].id);
+                }
+            }
+            
+            // Link losers coming from winners bracket to losers bracket
+            // Start with first round losers
+            for (let i = 0; i < firstRoundMatchIds.length; i++) {
+                const winnerMatchId = firstRoundMatchIds[i];
+                const loserMatchIdx = Math.floor(i / 2);
+                
+                // Make sure we have enough matches in the losers bracket
+                if (loserMatchIdx < losersBracketMatchesByRound[1].length) {
+                    const loserMatchId = losersBracketMatchesByRound[1][loserMatchIdx];
+                    
+                    await client.query(`
+                        UPDATE tournament_matches 
+                        SET losers_match_id = $1
+                        WHERE id = $2
+                    `, [loserMatchId, winnerMatchId]);
+                }
+            }
+            
+            // Link remaining winners bracket losers to appropriate losers bracket matches
+            for (let round = 2; round <= remainingRounds; round++) {
+                const winnerMatches = winnersBracketMatchesByRound[round];
+                // Losers from round N of winners bracket go to round 2N-2 of losers bracket
+                const targetLoserRound = 2 * round - 2;
+                
+                if (losersBracketMatchesByRound[targetLoserRound]) {
+                    for (let i = 0; i < winnerMatches.length; i++) {
+                        const winnerMatchId = winnerMatches[i];
+                        const loserMatchIdx = Math.floor(i / 2);
+                        
+                        if (loserMatchIdx < losersBracketMatchesByRound[targetLoserRound].length) {
+                            const loserMatchId = losersBracketMatchesByRound[targetLoserRound][loserMatchIdx];
+                            
+                            await client.query(`
+                                UPDATE tournament_matches 
+                                SET losers_match_id = $1
+                                WHERE id = $2
+                            `, [loserMatchId, winnerMatchId]);
+                        }
+                    }
+                }
+            }
+            
+            // Link losers bracket matches to next losers bracket matches
+            for (let round = 1; round < loserRounds; round++) {
+                const currentMatches = losersBracketMatchesByRound[round];
+                const nextRound = round + 1;
+                
+                // Skip if no next round exists
+                if (!losersBracketMatchesByRound[nextRound]) continue;
+                
+                const nextMatches = losersBracketMatchesByRound[nextRound];
+                
+                for (let i = 0; i < currentMatches.length; i++) {
+                    const matchId = currentMatches[i];
+                    // For odd rounds, every 2 matches feed into 1 next match
+                    // For even rounds, each match feeds into its own next match
+                    const isOddRound = round % 2 !== 0;
+                    const nextMatchIdx = isOddRound ? Math.floor(i / 2) : i;
+                    
+                    if (nextMatchIdx < nextMatches.length) {
+                        await client.query(`
+                            UPDATE tournament_matches 
+                            SET next_match_id = $1
+                            WHERE id = $2
+                        `, [nextMatches[nextMatchIdx], matchId]);
+                    }
+                }
+            }
+            
+            // Create grand finals match
+            const winnersFinalsId = winnersBracketMatchesByRound[rounds][0];
+            const losersFinalsId = losersBracketMatchesByRound[loserRounds][0];
+            
+            const grandFinalsResult = await client.query(`
+                INSERT INTO tournament_matches 
+                (tournament_id, round, match_number, bracket_type, is_grand_finals)
+                VALUES ($1, $2, $3, $4, $5)
+                RETURNING id
+            `, [tournamentId, rounds + 1, 1, 'finals', true]);
+            
+            const grandFinalsId = grandFinalsResult.rows[0].id;
+            
+            // Link winners/losers finals to grand finals
+            await client.query(`
+                UPDATE tournament_matches 
+                SET next_match_id = $1
+                WHERE id IN ($2, $3)
+            `, [grandFinalsId, winnersFinalsId, losersFinalsId]);
         }
 
     } catch (err) {

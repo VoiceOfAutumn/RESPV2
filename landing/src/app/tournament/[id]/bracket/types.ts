@@ -9,10 +9,11 @@ export interface Match {
   id: number;
   round: number;
   match_number: number;
-  player1_id: number | null;
-  player2_id: number | null;
+  player1_id: number | null;  player2_id: number | null;
   player1_name: string | null;
   player2_name: string | null;
+  player1_picture: string | null;
+  player2_picture: string | null;
   player1_score: number | null;
   player2_score: number | null;
   winner_id: number | null;

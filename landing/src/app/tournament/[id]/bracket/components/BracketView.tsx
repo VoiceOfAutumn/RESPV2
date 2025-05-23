@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Match, Tournament } from '../types';
 import MatchCard from './MatchCard';
 
@@ -9,70 +9,20 @@ interface BracketProps {
   tournament: Tournament;
   isStaff?: boolean;
   onMatchUpdate?: (matchId: number, player1Score: number, player2Score: number) => Promise<void>;
-  activeBracketType?: 'all' | 'winners' | 'losers' | 'finals';
+  bracketType?: 'all' | 'winners' | 'losers' | 'finals';
 }
 
-export default function Bracket({ matches, tournament, isStaff = false, onMatchUpdate, activeBracketType: externalActiveBracket = 'all' }: BracketProps) {
-  // Convert 'all' from parent to null for internal state
-  const internalBracketType = externalActiveBracket === 'all' ? null : externalActiveBracket;
+export default function BracketView({ matches, tournament, isStaff = false, onMatchUpdate, bracketType = 'all' }: BracketProps) {  // Convert 'all' to null for internal state
+  const initialBracketType = bracketType === 'all' ? null : bracketType;
   
   // State to track which bracket view is active (null for all brackets)
-  const [activeBracketType, setActiveBracketType] = useState<'winners' | 'losers' | 'finals' | null>(internalBracketType);
+  const [activeBracketType, setActiveBracketType] = useState<'winners' | 'losers' | 'finals' | null>(initialBracketType);
   
-  // Tab controls for bracket view
-  const BracketViewSelector = () => {
-    return (
-      <div className="flex mb-6 gap-3">
-        <button
-          className={`px-4 py-2 rounded-lg transition-colors ${
-            activeBracketType === null 
-              ? 'bg-purple-500/20 text-white' 
-              : 'bg-gray-800/50 text-gray-400 hover:text-white'
-          }`}
-          onClick={() => setActiveBracketType(null)}
-        >
-          All Brackets
-        </button>
-        <button
-          className={`px-4 py-2 rounded-lg transition-colors ${
-            activeBracketType === 'winners' 
-              ? 'bg-green-500/20 text-green-400' 
-              : 'bg-gray-800/50 text-gray-400 hover:text-green-400'
-          }`}
-          onClick={() => setActiveBracketType('winners')}
-        >
-          Winners Bracket
-        </button>
-        {tournament.format === 'DOUBLE_ELIMINATION' && (
-          <>
-            <button
-              className={`px-4 py-2 rounded-lg transition-colors ${
-                activeBracketType === 'losers' 
-                  ? 'bg-red-500/20 text-red-400' 
-                  : 'bg-gray-800/50 text-gray-400 hover:text-red-400'
-              }`}
-              onClick={() => setActiveBracketType('losers')}
-            >
-              Losers Bracket
-            </button>
-            {matchesByBracket.finals.length > 0 && (
-              <button
-                className={`px-4 py-2 rounded-lg transition-colors ${
-                  activeBracketType === 'finals' 
-                    ? 'bg-purple-500/20 text-purple-400' 
-                    : 'bg-gray-800/50 text-gray-400 hover:text-purple-400'
-                }`}
-                onClick={() => setActiveBracketType('finals')}
-              >
-                Finals
-              </button>
-            )}
-          </>
-        )}
-      </div>
-    );
-  // State to track which bracket view is active (null for all brackets)
-  const [activeBracketType, setActiveBracketType] = useState<'winners' | 'losers' | 'finals' | null>(null);
+  // Update internal state when prop changes
+  useEffect(() => {
+    const newBracketType = bracketType === 'all' ? null : bracketType;
+    setActiveBracketType(newBracketType);
+  }, [bracketType]);
   
   // Group matches by bracket type and round
   const matchesByBracket = matches.reduce<{
@@ -267,6 +217,7 @@ export default function Bracket({ matches, tournament, isStaff = false, onMatchU
             )}
           </>
         )}
+      </div>
     </div>
   );
 }

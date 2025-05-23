@@ -6,7 +6,7 @@ import { useRouter } from 'next/navigation';
 import { createPortal } from 'react-dom';
 import Navbar from '../components/Navbar';
 import TopBar from '../components/TopBar';
-import { Search, Calendar, Users, TrendingUp } from 'lucide-react';
+import { Search, Calendar, Users, TrendingUp, ChevronLeft, ChevronRight } from 'lucide-react';
 
 interface Tournament {
   id: number;
@@ -15,6 +15,7 @@ interface Tournament {
   status: string;
   format: 'SINGLE_ELIMINATION' | 'DOUBLE_ELIMINATION';
   participant_count: number;
+  image: string | null;
 }
 
 interface User {
@@ -61,11 +62,10 @@ export default function TournamentsPage() {
   const router = useRouter();
   const [tournaments, setTournaments] = useState<Tournament[]>([]);
   const [loading, setLoading] = useState(true);
-  const [currentPage, setCurrentPage] = useState(1);
-  const [searchTerm, setSearchTerm] = useState('');
+  const [currentPage, setCurrentPage] = useState(1);  const [searchTerm, setSearchTerm] = useState('');
   const [user, setUser] = useState<User | null>(null);
   const [showActionMenu, setShowActionMenu] = useState<number | null>(null);
-  const itemsPerPage = 10;
+  const itemsPerPage = 6;
 
   const isStaff = user?.role === 'staff' || user?.role === 'admin';
   const actionButtonRefs = useRef<{ [key: number]: HTMLButtonElement | null }>({});
@@ -320,7 +320,6 @@ export default function TournamentsPage() {
                   <th className="px-6 py-3 text-left text-sm font-semibold text-gray-300">Tournament</th>
                   <th className="px-6 py-3 text-left text-sm font-semibold text-gray-300">Date</th>
                   <th className="px-6 py-3 text-left text-sm font-semibold text-gray-300">Format</th>
-                  <th className="px-6 py-3 text-left text-sm font-semibold text-gray-300">Participants</th>
                   <th className="px-6 py-3 text-left text-sm font-semibold text-gray-300">Status</th>
                   <th className="px-6 py-3 text-right text-sm font-semibold text-gray-300">Actions</th>
                 </tr>
@@ -332,7 +331,16 @@ export default function TournamentsPage() {
                     className="bg-neutral-800/30 backdrop-blur hover:bg-neutral-700/30 transition-colors duration-200"
                   >
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm font-medium text-white">{tournament.name}</div>
+                      <div className="flex items-center gap-3">
+                        <div className="w-12 h-12 flex-shrink-0 rounded-lg overflow-hidden">
+                          <img
+                            src={tournament.image || '/images/default-avatar.png'}
+                            alt={tournament.name}
+                            className="w-full h-full object-cover"
+                          />
+                        </div>
+                        <div className="text-sm font-medium text-white">{tournament.name}</div>
+                      </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="text-sm text-gray-300">
@@ -345,18 +353,12 @@ export default function TournamentsPage() {
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm text-gray-300">
-                        {tournament.participant_count}
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
                       <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusColor(tournament.status)}`}>
                         {getStatusText(tournament.status)}
                       </span>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                      <div className="flex justify-end gap-2 items-center">
-                        <Link
+                      <div className="flex justify-end gap-2 items-center">                        <Link
                           href={`/tournaments/${tournament.id}`}
                           className="bg-purple-500/10 text-purple-400 hover:bg-purple-500/20 px-3 py-1 rounded-lg 
                             transition-all duration-300 transform hover:scale-105 active:scale-95"
@@ -364,15 +366,13 @@ export default function TournamentsPage() {
                           Details
                         </Link>
 
-                        {tournament.status === 'in_progress' && (
-                          <Link
-                            href={`/tournaments/${tournament.id}/bracket`}
-                            className="bg-purple-500/10 text-purple-400 hover:bg-purple-500/20 px-3 py-1 rounded-lg 
-                              transition-all duration-300 transform hover:scale-105 active:scale-95"
-                          >
-                            Bracket
-                          </Link>
-                        )}
+                        <Link
+                          href={`/tournaments/${tournament.id}/bracket`}
+                          className="bg-purple-500/10 text-purple-400 hover:bg-purple-500/20 px-3 py-1 rounded-lg 
+                            transition-all duration-300 transform hover:scale-105 active:scale-95"
+                        >
+                          Bracket
+                        </Link>
 
                         {isStaff && (
                           <div className="relative">
@@ -418,8 +418,7 @@ export default function TournamentsPage() {
                                     >
                                       Complete Tournament
                                     </button>
-                                    
-                                    {/* Bracket Management */}
+                                      {/* Bracket Management */}
                                     {tournament.status === 'registration_closed' && (
                                       <button
                                         onClick={() => handleGenerateBrackets(tournament.id)}
@@ -429,14 +428,12 @@ export default function TournamentsPage() {
                                       </button>
                                     )}
                                     
-                                    {tournament.status === 'in_progress' && (
-                                      <Link
-                                        href={`/tournaments/${tournament.id}/bracket`}
-                                        className="block w-full px-4 py-2 text-left text-sm text-gray-300 hover:bg-gray-700/50"
-                                      >
-                                        Manage Matches
-                                      </Link>
-                                    )}
+                                    <Link
+                                      href={`/tournaments/${tournament.id}/bracket`}
+                                      className="block w-full px-4 py-2 text-left text-sm text-gray-300 hover:bg-gray-700/50"
+                                    >
+                                      {tournament.status === 'in_progress' ? 'Manage Matches' : 'View Bracket'}
+                                    </Link>
                                     
                                     {/* Cancel Tournament */}
                                     <button
@@ -465,40 +462,29 @@ export default function TournamentsPage() {
           </div>
         )}
 
+        {/* Pagination Controls */}
         {totalPages > 1 && (
-          <div className="flex justify-center mt-6 gap-2">
+          <div className="flex items-center justify-center gap-4 mt-6">
             <button
               onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
               disabled={currentPage === 1}
               className="p-2 rounded-lg bg-purple-500/10 text-purple-400 hover:bg-purple-500/20 disabled:opacity-50 
                 disabled:hover:bg-purple-500/10 transition-all duration-300"
             >
-              Previous
+              <ChevronLeft size={20} />
             </button>
-            
-            <div className="flex gap-2">
-              {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => (
-                <button
-                  key={page}
-                  onClick={() => setCurrentPage(page)}
-                  className={`px-4 py-2 rounded-lg transition-all duration-300 ${
-                    currentPage === page
-                      ? 'bg-purple-500 text-white'
-                      : 'bg-purple-500/10 text-purple-400 hover:bg-purple-500/20'
-                  }`}
-                >
-                  {page}
-                </button>
-              ))}
-            </div>
+
+            <span className="text-gray-400 text-sm font-medium">
+              Page {currentPage} of {totalPages}
+            </span>
 
             <button
               onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
-              disabled={currentPage === totalPages}
+              disabled={currentPage === totalPages} 
               className="p-2 rounded-lg bg-purple-500/10 text-purple-400 hover:bg-purple-500/20 disabled:opacity-50 
                 disabled:hover:bg-purple-500/10 transition-all duration-300"
             >
-              Next
+              <ChevronRight size={20} />
             </button>
           </div>
         )}

@@ -10,34 +10,32 @@ interface FormData {
   name: string;
   description: string;
   date: string;
-  game: string;
   rules: string;
+  image: string;
   format: 'SINGLE_ELIMINATION' | 'DOUBLE_ELIMINATION';
-  maxParticipants: number;
   seedType: 'RANDOM' | 'MANUAL';
-  externalLinks: {
-    discord?: string;
-    twitch?: string;
-  };
 }
 
 export default function CreateTournamentPage() {
   const router = useRouter();
-  const { showToast } = useToast();
-  const [formData, setFormData] = useState<FormData>({
+  const { showToast } = useToast();  const [formData, setFormData] = useState<FormData>({
     name: '',
     description: '',
     date: '',
-    game: '',
     rules: '',
+    image: '',
     format: 'SINGLE_ELIMINATION',
-    maxParticipants: 8,
-    seedType: 'RANDOM',
-    externalLinks: {}
+    seedType: 'RANDOM'
   });
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Create a copy of the form data to sanitize before submission
+    const submissionData = {
+      ...formData,
+      // Ensure date is in ISO format
+      date: new Date(formData.date).toISOString(),
+    };
 
     try {
       const res = await fetch('http://localhost:3000/tournaments', {
@@ -46,7 +44,7 @@ export default function CreateTournamentPage() {
           'Content-Type': 'application/json',
         },
         credentials: 'include',
-        body: JSON.stringify(formData),
+        body: JSON.stringify(submissionData),
       });
 
       if (res.ok) {
@@ -73,19 +71,18 @@ export default function CreateTournamentPage() {
       });
     }
   };
-
   return (
-    <div className="min-h-screen bg-gray-100">
+    <main className="min-h-screen bg-gradient-to-br from-black via-gray-800 to-black text-white pt-16 pl-64">
       <Navbar />
       <TopBar />
       
-      <main className="container mx-auto px-4 py-8">
-        <div className="max-w-2xl mx-auto bg-white rounded-lg shadow-md p-6">
-          <h1 className="text-3xl font-bold mb-6">Create Tournament</h1>
+      <div className="p-8">
+        <div className="max-w-4xl mx-auto bg-neutral-800/50 backdrop-blur rounded-xl shadow-lg p-8 border border-gray-700/50">
+          <h1 className="text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-white to-gray-300 mb-6">Create Tournament</h1>
           
           <form onSubmit={handleSubmit} className="space-y-6">
             <div>
-              <label htmlFor="name" className="block text-sm font-medium text-gray-700">
+              <label htmlFor="name" className="block text-sm font-medium text-gray-300">
                 Tournament Name
               </label>
               <input
@@ -94,12 +91,12 @@ export default function CreateTournamentPage() {
                 required
                 value={formData.name}
                 onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
-                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                className="mt-1 block w-full bg-gray-900/50 text-white rounded-lg border border-gray-700/50 focus:outline-none focus:ring-2 focus:ring-purple-500/50 focus:border-transparent transition-all duration-300 px-4 py-2"
               />
             </div>
-
+            
             <div>
-              <label htmlFor="description" className="block text-sm font-medium text-gray-700">
+              <label htmlFor="description" className="block text-sm font-medium text-gray-300">
                 Description
               </label>
               <textarea
@@ -108,12 +105,12 @@ export default function CreateTournamentPage() {
                 value={formData.description}
                 onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
                 rows={4}
-                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                className="mt-1 block w-full bg-gray-900/50 text-white rounded-lg border border-gray-700/50 focus:outline-none focus:ring-2 focus:ring-purple-500/50 focus:border-transparent transition-all duration-300 px-4 py-2"
               />
             </div>
-
+            
             <div>
-              <label htmlFor="date" className="block text-sm font-medium text-gray-700">
+              <label htmlFor="date" className="block text-sm font-medium text-gray-300">
                 Tournament Date
               </label>
               <input
@@ -122,26 +119,30 @@ export default function CreateTournamentPage() {
                 required
                 value={formData.date}
                 onChange={(e) => setFormData(prev => ({ ...prev, date: e.target.value }))}
-                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                className="mt-1 block w-full bg-gray-900/50 text-white rounded-lg border border-gray-700/50 focus:outline-none focus:ring-2 focus:ring-purple-500/50 focus:border-transparent transition-all duration-300 px-4 py-2"
               />
             </div>
 
             <div>
-              <label htmlFor="game" className="block text-sm font-medium text-gray-700">
-                Game
+              <label htmlFor="image" className="block text-sm font-medium text-gray-300">
+                Tournament Image URL
               </label>
               <input
-                type="text"
-                id="game"
+                type="url"
+                id="image"
                 required
-                value={formData.game}
-                onChange={(e) => setFormData(prev => ({ ...prev, game: e.target.value }))}
-                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                value={formData.image}
+                pattern=".*\.(jpg|jpeg|png)$"
+                onChange={(e) => setFormData(prev => ({ ...prev, image: e.target.value }))}
+                className="mt-1 block w-full bg-gray-900/50 text-white rounded-lg border border-gray-700/50 focus:outline-none focus:ring-2 focus:ring-purple-500/50 focus:border-transparent transition-all duration-300 px-4 py-2"
               />
+              <p className="mt-1 text-sm text-gray-400">
+                Must be a direct link to an image ending in .jpg, .jpeg, or .png
+              </p>
             </div>
-
+            
             <div>
-              <label htmlFor="rules" className="block text-sm font-medium text-gray-700">
+              <label htmlFor="rules" className="block text-sm font-medium text-gray-300">
                 Tournament Rules
               </label>
               <textarea
@@ -149,12 +150,12 @@ export default function CreateTournamentPage() {
                 value={formData.rules}
                 onChange={(e) => setFormData(prev => ({ ...prev, rules: e.target.value }))}
                 rows={4}
-                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                className="mt-1 block w-full bg-gray-900/50 text-white rounded-lg border border-gray-700/50 focus:outline-none focus:ring-2 focus:ring-purple-500/50 focus:border-transparent transition-all duration-300 px-4 py-2"
               />
             </div>
-
+            
             <div>
-              <label htmlFor="format" className="block text-sm font-medium text-gray-700">
+              <label htmlFor="format" className="block text-sm font-medium text-gray-300">
                 Tournament Format
               </label>
               <select
@@ -164,36 +165,15 @@ export default function CreateTournamentPage() {
                   ...prev, 
                   format: e.target.value as 'SINGLE_ELIMINATION' | 'DOUBLE_ELIMINATION'
                 }))}
-                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                className="mt-1 block w-full bg-gray-900/50 text-white rounded-lg border border-gray-700/50 focus:outline-none focus:ring-2 focus:ring-purple-500/50 focus:border-transparent transition-all duration-300 px-4 py-2"
               >
-                <option value="SINGLE_ELIMINATION">Single Elimination</option>
-                <option value="DOUBLE_ELIMINATION">Double Elimination</option>
+                <option value="SINGLE_ELIMINATION" className="bg-gray-900 text-white">Single Elimination</option>
+                <option value="DOUBLE_ELIMINATION" className="bg-gray-900 text-white">Double Elimination</option>
               </select>
             </div>
-
+            
             <div>
-              <label htmlFor="maxParticipants" className="block text-sm font-medium text-gray-700">
-                Maximum Participants
-              </label>
-              <input
-                type="number"
-                id="maxParticipants"
-                min={2}
-                required
-                value={formData.maxParticipants}
-                onChange={(e) => setFormData(prev => ({ 
-                  ...prev, 
-                  maxParticipants: parseInt(e.target.value) 
-                }))}
-                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-              />
-              <p className="mt-1 text-sm text-gray-500">
-                Recommended: 4, 8, 16, 32, 64, etc. for optimal bracket structure
-              </p>
-            </div>
-
-            <div>
-              <label htmlFor="seedType" className="block text-sm font-medium text-gray-700">
+              <label htmlFor="seedType" className="block text-sm font-medium text-gray-300">
                 Seeding Method
               </label>
               <select
@@ -203,66 +183,33 @@ export default function CreateTournamentPage() {
                   ...prev, 
                   seedType: e.target.value as 'RANDOM' | 'MANUAL'
                 }))}
-                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                className="mt-1 block w-full bg-gray-900/50 text-white rounded-lg border border-gray-700/50 focus:outline-none focus:ring-2 focus:ring-purple-500/50 focus:border-transparent transition-all duration-300 px-4 py-2"
               >
-                <option value="RANDOM">Random</option>
-                <option value="MANUAL">Manual</option>
+                <option value="RANDOM" className="bg-gray-900 text-white">Random</option>
+                <option value="MANUAL" className="bg-gray-900 text-white">Manual</option>
               </select>
-              <p className="mt-1 text-sm text-gray-500">
+              <p className="mt-1 text-sm text-gray-400">
                 Manual seeding allows you to set player positions after registration closes
               </p>
             </div>
-
-            <div>
-              <label htmlFor="discord" className="block text-sm font-medium text-gray-700">
-                Discord Link (Optional)
-              </label>
-              <input
-                type="url"
-                id="discord"
-                value={formData.externalLinks.discord || ''}
-                onChange={(e) => setFormData(prev => ({ 
-                  ...prev, 
-                  externalLinks: { ...prev.externalLinks, discord: e.target.value }
-                }))}
-                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-              />
-            </div>
-
-            <div>
-              <label htmlFor="twitch" className="block text-sm font-medium text-gray-700">
-                Twitch Channel (Optional)
-              </label>
-              <input
-                type="url"
-                id="twitch"
-                value={formData.externalLinks.twitch || ''}
-                onChange={(e) => setFormData(prev => ({ 
-                  ...prev, 
-                  externalLinks: { ...prev.externalLinks, twitch: e.target.value }
-                }))}
-                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-              />
-            </div>
-
+            
             <div className="flex justify-end space-x-4">
               <button
                 type="button"
                 onClick={() => router.back()}
-                className="px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                className="px-4 py-2 border border-gray-700/50 rounded-lg shadow-sm text-sm font-medium text-gray-300 bg-gray-900/50 hover:bg-gray-800/80 focus:outline-none focus:ring-2 focus:ring-purple-500/50 focus:border-transparent transition-all duration-300"
               >
                 Cancel
               </button>
               <button
                 type="submit"
-                className="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                className="px-4 py-2 border border-purple-500/30 rounded-lg shadow-sm text-sm font-medium text-white bg-purple-600/80 hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-purple-500/50 focus:border-transparent transition-all duration-300"
               >
                 Create Tournament
               </button>
             </div>
-          </form>
-        </div>
-      </main>
-    </div>
+          </form>        </div>
+      </div>
+    </main>
   );
 }

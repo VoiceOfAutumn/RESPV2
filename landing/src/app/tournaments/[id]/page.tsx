@@ -240,18 +240,14 @@ export default function TournamentDetailPage() {
                     <span className="text-gray-400">Seeding Method:</span>{' '}
                     <span className="font-medium">{tournament.seedType === 'MANUAL' ? 'Manual Seeding' : 'Random Seeding'}</span>
                   </div>
-                </div>
-
-                <div className="flex gap-3 pt-4">
-                  {tournament.status === 'in_progress' && (
-                    <button
-                      onClick={() => router.push(`/tournaments/${id}/bracket`)}
-                      className="bg-purple-500/10 text-purple-400 hover:bg-purple-500/20 font-semibold py-2 px-6 rounded-lg 
-                        transition-all duration-300 transform hover:scale-105 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
-                    >
-                      View Bracket
-                    </button>
-                  )}
+                </div>                <div className="flex gap-3 pt-4">
+                  <button
+                    onClick={() => router.push(`/tournaments/${id}/bracket`)}
+                    className="bg-purple-500/10 text-purple-400 hover:bg-purple-500/20 font-semibold py-2 px-6 rounded-lg 
+                      transition-all duration-300 transform hover:scale-105 active:scale-95"
+                  >
+                    View Bracket
+                  </button>
 
                   {canSignUp && (
                     <button
@@ -341,33 +337,42 @@ export default function TournamentDetailPage() {
                   )}
                 </tbody>
               </table>
-            </div>
+            </div>            {/* Pagination Controls */}
+            <div className="flex items-center justify-center gap-4 p-4 border-t border-gray-700/50">
+              <button
+                onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                disabled={currentPage === 1}
+                className="p-2 rounded-lg bg-purple-500/10 text-purple-400 hover:bg-purple-500/20 disabled:opacity-50 
+                  disabled:hover:bg-purple-500/10 transition-all duration-300"
+              >
+                <ChevronLeft size={20} />
+              </button>
 
-            {totalPages > 1 && (
-              <div className="flex items-center justify-center gap-4 p-4 border-t border-gray-700/50">
-                <button
-                  onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
-                  disabled={currentPage === 1}
-                  className="p-2 rounded-lg bg-purple-500/10 text-purple-400 hover:bg-purple-500/20 disabled:opacity-50 
-                    disabled:hover:bg-purple-500/10 transition-all duration-300"
-                >
-                  <ChevronLeft size={20} />
-                </button>
-
-                <span className="text-gray-400 text-sm font-medium">
-                  Page {currentPage} of {totalPages}
-                </span>
-
-                <button
-                  onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
-                  disabled={currentPage === totalPages}
-                  className="p-2 rounded-lg bg-purple-500/10 text-purple-400 hover:bg-purple-500/20 disabled:opacity-50 
-                    disabled:hover:bg-purple-500/10 transition-all duration-300"
-                >
-                  <ChevronRight size={20} />
-                </button>
+              <div className="flex gap-2">
+                {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => (
+                  <button
+                    key={page}
+                    onClick={() => setCurrentPage(page)}
+                    className={`px-4 py-2 rounded-lg transition-all duration-300 ${
+                      currentPage === page
+                        ? 'bg-purple-500 text-white'
+                        : 'bg-purple-500/10 text-purple-400 hover:bg-purple-500/20'
+                    }`}
+                  >
+                    {page}
+                  </button>
+                ))}
               </div>
-            )}
+
+              <button
+                onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                disabled={currentPage === totalPages}
+                className="p-2 rounded-lg bg-purple-500/10 text-purple-400 hover:bg-purple-500/20 disabled:opacity-50 
+                  disabled:hover:bg-purple-500/10 transition-all duration-300"
+              >
+                <ChevronRight size={20} />
+              </button>
+            </div>
           </div>
         </div>
       </div>

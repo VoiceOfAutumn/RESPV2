@@ -24,22 +24,31 @@ function LoadingSkeleton() {
 }
 
 export default function UserProfile() {
-  const { displayname } = useParams();
-  const [user, setUser] = useState(null);
+  const { displayname } = useParams();  const [user, setUser] = useState(null);
+  const [userRank, setUserRank] = useState(null);
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (!displayname) return;
-
-    const fetchUserProfile = async () => {
+    if (!displayname) return;    const fetchUserProfile = async () => {
       try {
-        const res = await fetch(`http://localhost:3000/user/${displayname}`);
-        if (!res.ok) {
+        // Fetch user profile
+        const userRes = await fetch(`http://localhost:3000/user/${displayname}`);
+        if (!userRes.ok) {
           throw new Error("User not found");
         }
-        const data = await res.json();
-        setUser(data);
+        const userData = await userRes.json();
+        setUser(userData);
+
+        // Fetch leaderboard to determine rank
+        const leaderboardRes = await fetch('http://localhost:3000/leaderboard');
+        if (leaderboardRes.ok) {
+          const leaderboardData = await leaderboardRes.json();
+          const userRankIndex = leaderboardData.findIndex(entry => entry.display_name === displayname);
+          if (userRankIndex !== -1) {
+            setUserRank(userRankIndex + 1);
+          }
+        }
       } catch (err) {
         setError(err.message);
       } finally {
@@ -119,12 +128,23 @@ export default function UserProfile() {
               <div className="flex flex-col items-center md:items-start">
                 <h1 className="text-4xl font-bold bg-gradient-to-r from-white to-purple-400 bg-clip-text text-transparent">
                   {user.display_name}
-                </h1>
-                <div className="flex items-center gap-2 mt-2">
-                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h.5A2.5 2.5 0 0020 5.5V3.935M12 7v6m0 0v6m0-6h.01M12 13h.01" />
-                  </svg>
-                  <span className="text-gray-300">{user.country || 'Unknown Location'}</span>
+                </h1>                <div className="flex items-center gap-2 mt-2">
+                  {user.country_code ? (
+                    <>
+                      <img
+                        src={`https://flagcdn.com/w40/${user.country_code.toLowerCase()}.png`}
+                        alt={user.country_name}
+                        className="w-6 h-4 object-cover rounded-sm"
+                        loading="lazy"
+                      />
+                      <span className="text-gray-300">{user.country_name}</span>
+                    </>
+                  ) : (
+                    <>
+                      <span role="img" aria-label="Globe" className="text-xl">🌍</span>
+                      <span className="text-gray-300">Unknown Location</span>
+                    </>
+                  )}
                 </div>
               </div>
 
@@ -138,10 +158,11 @@ export default function UserProfile() {
             </div>
 
             {/* Additional Stats/Badges Section */}
-            <div className="mt-8 grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="bg-gray-900/30 rounded-lg p-4 border border-gray-700 transition-all duration-300 hover:border-purple-500/50">
+            <div className="mt-8 grid grid-cols-1 md:grid-cols-2 gap-4">              <div className="bg-gray-900/30 rounded-lg p-4 border border-gray-700 transition-all duration-300 hover:border-purple-500/50">
                 <p className="text-gray-400 text-sm">Rank</p>
-                <p className="text-2xl font-semibold text-white">#1</p>
+                <p className="text-2xl font-semibold text-white">
+                  {userRank ? `#${userRank}` : '-'}
+                </p>
               </div>
               <div className="bg-gray-900/30 rounded-lg p-4 border border-gray-700 transition-all duration-300 hover:border-purple-500/50">
                 <p className="text-gray-400 text-sm">Member Since</p>
