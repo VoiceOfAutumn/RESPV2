@@ -319,7 +319,6 @@ export default function TournamentsPage() {
                 <tr className="bg-gray-800/50">
                   <th className="px-6 py-3 text-left text-sm font-semibold text-gray-300">Tournament</th>
                   <th className="px-6 py-3 text-left text-sm font-semibold text-gray-300">Date</th>
-                  <th className="px-6 py-3 text-left text-sm font-semibold text-gray-300">Format</th>
                   <th className="px-6 py-3 text-left text-sm font-semibold text-gray-300">Status</th>
                   <th className="px-6 py-3 text-right text-sm font-semibold text-gray-300">Actions</th>
                 </tr>
@@ -345,11 +344,6 @@ export default function TournamentsPage() {
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="text-sm text-gray-300">
                         {new Date(tournament.date).toLocaleDateString()}
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm text-gray-300">
-                        {tournament.format.replace('_', ' ')}
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">

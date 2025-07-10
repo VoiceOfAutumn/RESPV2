@@ -12,8 +12,6 @@ interface FormData {
   date: string;
   rules: string;
   image: string;
-  format: 'SINGLE_ELIMINATION' | 'DOUBLE_ELIMINATION';
-  seedType: 'RANDOM' | 'MANUAL';
 }
 
 export default function CreateTournamentPage() {
@@ -23,9 +21,7 @@ export default function CreateTournamentPage() {
     description: '',
     date: '',
     rules: '',
-    image: '',
-    format: 'SINGLE_ELIMINATION',
-    seedType: 'RANDOM'
+    image: ''
   });
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -152,45 +148,6 @@ export default function CreateTournamentPage() {
                 rows={4}
                 className="mt-1 block w-full bg-gray-900/50 text-white rounded-lg border border-gray-700/50 focus:outline-none focus:ring-2 focus:ring-purple-500/50 focus:border-transparent transition-all duration-300 px-4 py-2"
               />
-            </div>
-            
-            <div>
-              <label htmlFor="format" className="block text-sm font-medium text-gray-300">
-                Tournament Format
-              </label>
-              <select
-                id="format"
-                value={formData.format}
-                onChange={(e) => setFormData(prev => ({ 
-                  ...prev, 
-                  format: e.target.value as 'SINGLE_ELIMINATION' | 'DOUBLE_ELIMINATION'
-                }))}
-                className="mt-1 block w-full bg-gray-900/50 text-white rounded-lg border border-gray-700/50 focus:outline-none focus:ring-2 focus:ring-purple-500/50 focus:border-transparent transition-all duration-300 px-4 py-2"
-              >
-                <option value="SINGLE_ELIMINATION" className="bg-gray-900 text-white">Single Elimination</option>
-                <option value="DOUBLE_ELIMINATION" className="bg-gray-900 text-white">Double Elimination</option>
-              </select>
-            </div>
-            
-            <div>
-              <label htmlFor="seedType" className="block text-sm font-medium text-gray-300">
-                Seeding Method
-              </label>
-              <select
-                id="seedType"
-                value={formData.seedType}
-                onChange={(e) => setFormData(prev => ({ 
-                  ...prev, 
-                  seedType: e.target.value as 'RANDOM' | 'MANUAL'
-                }))}
-                className="mt-1 block w-full bg-gray-900/50 text-white rounded-lg border border-gray-700/50 focus:outline-none focus:ring-2 focus:ring-purple-500/50 focus:border-transparent transition-all duration-300 px-4 py-2"
-              >
-                <option value="RANDOM" className="bg-gray-900 text-white">Random</option>
-                <option value="MANUAL" className="bg-gray-900 text-white">Manual</option>
-              </select>
-              <p className="mt-1 text-sm text-gray-400">
-                Manual seeding allows you to set player positions after registration closes
-              </p>
             </div>
             
             <div className="flex justify-end space-x-4">

@@ -27,43 +27,40 @@ router.post('/', authMiddleware, isStaff, [
     body('name').isLength({ min: 3, max: 100 }).withMessage('Tournament name must be between 3 and 100 characters'),
     body('description').optional(),
     body('date').isISO8601().withMessage('Date must be a valid ISO date'),
-    body('format').isIn(['SINGLE_ELIMINATION', 'DOUBLE_ELIMINATION']).withMessage('Invalid tournament format'),
-    body('maxParticipants').isInt({ min: 2 }).withMessage('Maximum participants must be at least 2'),
-    body('seedType').isIn(['RANDOM', 'MANUAL']).withMessage('Invalid seed type'),
+    body('rules').optional(),
+    body('image').optional().isURL().withMessage('Image must be a valid URL'),
 ], async (req, res) => {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
         return res.status(400).json({ errors: errors.array() });
-    }
-
-    const { 
+    }    const { 
         name, 
         description, 
-        date, 
-        game, 
+        date,
         rules, 
-        format, 
-        maxParticipants, 
-        seedType,
-        externalLinks
+        image
     } = req.body;
+
+    // Set default value for format
+    const format = 'SINGLE_ELIMINATION';
 
     const userId = req.session.userId;
 
-    try {        const result = await pool.query(`
+    try {
+        const result = await pool.query(`
             INSERT INTO tournaments 
-            (name, description, date, format, max_participants, rules, created_by, status) 
+            (name, description, date, format, rules, created_by, status, image) 
             VALUES ($1, $2, $3, $4, $5, $6, $7, $8) 
             RETURNING id
         `, [
             name, 
             description, 
             date, 
-            format, 
-            maxParticipants, 
+            format,
             rules || null,
             userId,
-            'registration_open'
+            'registration_open',
+            image || null
         ]);
 
         // If there are external links, could store them in a related table
@@ -223,8 +220,8 @@ router.delete('/:id/signup', authMiddleware, async (req, res) => {
     }
 });
 
-// GET /tournaments/:id/participants - Get tournament participants (staff only)
-router.get('/:id/participants', authMiddleware, isStaff, async (req, res) => {
+// GET /tournaments/:id/participants - Get tournament participants (public access for bracket viewing)
+router.get('/:id/participants', async (req, res) => {
     try {
         const result = await pool.query(`
             SELECT 
@@ -270,32 +267,6 @@ router.put('/:id/status', authMiddleware, isStaff,
 
             if (currentStatus.rows.length === 0) {
                 throw new Error('Tournament not found');
-            }            // If starting tournament, check if brackets exist first
-            if (status === 'in_progress') {
-                // Check if brackets already exist
-                const existingBrackets = await client.query(
-                    'SELECT COUNT(*) FROM tournament_matches WHERE tournament_id = $1',
-                    [id]
-                );
-
-                if (parseInt(existingBrackets.rows[0].count) === 0) {
-                    // Get participants with seeds
-                    const participants = await client.query(
-                        'SELECT user_id FROM tournament_participants WHERE tournament_id = $1 ORDER BY seed NULLS LAST, RANDOM()',
-                        [id]
-                    );
-
-                    const playerIds = participants.rows.map(p => p.user_id);
-                    
-                    if (playerIds.length < 2) {
-                        throw new Error('Not enough participants to start tournament (minimum 2 required)');
-                    }
-
-                    const format = currentStatus.rows[0].format;
-                    await generateBracket(client, id, playerIds, format === 'DOUBLE_ELIMINATION');
-                } else {
-                    console.log(`Brackets already exist for tournament ${id}, skipping generation`);
-                }
             }
 
             await client.query(
@@ -321,7 +292,7 @@ router.get('/:id/bracket', async (req, res) => {
     try {
         // Get tournament info first
         const tournamentResult = await pool.query(`
-            SELECT id, format, status
+            SELECT id, name, format, status
             FROM tournaments
             WHERE id = $1
         `, [req.params.id]);
@@ -368,24 +339,30 @@ router.put('/:id/matches/:matchId', authMiddleware, isStaff, async (req, res) =>
     const { id, matchId } = req.params;
     const { player1_score, player2_score, winner_id } = req.body;
 
-    try {        // Verify match exists and belongs to tournament
-        const matchCheck = await pool.query(
-            'SELECT player1_id, player2_id, next_match_id, losers_match_id, bracket_type FROM tournament_matches WHERE id = $1 AND tournament_id = $2',
+    const client = await pool.connect();
+    try {
+        await client.query('BEGIN');
+
+        // Verify match exists and belongs to tournament
+        const matchCheck = await client.query(
+            'SELECT player1_id, player2_id, next_match_id, losers_match_id, bracket_type, round FROM tournament_matches WHERE id = $1 AND tournament_id = $2',
             [matchId, id]
         );
 
         if (matchCheck.rows.length === 0) {
+            await client.query('ROLLBACK');
             return res.status(404).json({ error: 'Match not found' });
         }
 
-        const { player1_id, player2_id, next_match_id, losers_match_id, bracket_type } = matchCheck.rows[0];
+        const { player1_id, player2_id, next_match_id, losers_match_id, bracket_type, round } = matchCheck.rows[0];
         
         if (winner_id && winner_id !== player1_id && winner_id !== player2_id) {
+            await client.query('ROLLBACK');
             return res.status(400).json({ error: 'Winner must be one of the match participants' });
         }
 
         // Update match result
-        await pool.query(`
+        await client.query(`
             UPDATE tournament_matches 
             SET player1_score = $1, player2_score = $2, winner_id = $3, updated_at = CURRENT_TIMESTAMP
             WHERE id = $4
@@ -393,47 +370,125 @@ router.put('/:id/matches/:matchId', authMiddleware, isStaff, async (req, res) =>
 
         // If there's no winner set, we don't need to update other matches
         if (!winner_id) {
+            await client.query('COMMIT');
             return res.json({ message: 'Match result updated' });
         }
 
         // If there's a next match and we have a winner, update the next match
         if (next_match_id && winner_id) {
-            const nextMatch = await pool.query(
-                'SELECT player1_id, player2_id FROM tournament_matches WHERE id = $1',
+            console.log(`Processing winner advancement for match ${matchId}:`);
+            console.log(`  Winner ID: ${winner_id}`);
+            console.log(`  Next Match ID: ${next_match_id}`);
+            console.log(`  Current Round: ${round}`);
+            
+            const nextMatch = await client.query(
+                'SELECT player1_id, player2_id, round, match_number FROM tournament_matches WHERE id = $1',
                 [next_match_id]
             );
 
-            // Determine which slot to fill in the next match
-            const isFirstPlayer = !nextMatch.rows[0].player1_id;
-            await pool.query(`
-                UPDATE tournament_matches 
-                SET ${isFirstPlayer ? 'player1_id' : 'player2_id'} = $1
-                WHERE id = $2
-            `, [winner_id, next_match_id]);
+            if (nextMatch.rows.length > 0) {
+                const nextMatchData = nextMatch.rows[0];
+                console.log(`  Next match current state:`, nextMatchData);
+                
+                let targetSlot = null;
+                
+                /**
+                 * IMPROVED WINNER ADVANCEMENT LOGIC
+                 * 
+                 * For Round 1 -> Round 2 advancement with custom BYE distribution:
+                 * We need to determine which specific slot this winner should fill
+                 * based on the advancement mapping we created during bracket generation.
+                 * 
+                 * For Round 2+ advancement: Use standard first-available-slot logic.
+                 */
+                
+                if (round === 1 && nextMatchData.round === 2) {
+                    // Round 1 -> Round 2: Check if we have specific slot assignments
+                    // We'll determine the slot based on which one is intended for Round 1 winners
+                    
+                    // Strategy: Fill the slot that doesn't already have a BYE recipient
+                    // BYE recipients are pre-populated during bracket creation
+                    if (!nextMatchData.player1_id) {
+                        targetSlot = 'player1_id';
+                    } else if (!nextMatchData.player2_id) {
+                        targetSlot = 'player2_id';
+                    } else {
+                        // Both slots might be filled if this is an error condition
+                        console.warn(`  Round 2 match already has both players. P1: ${nextMatchData.player1_id}, P2: ${nextMatchData.player2_id}`);
+                        targetSlot = null;
+                    }
+                } else {
+                    // Standard advancement for Round 2+ matches
+                    if (!nextMatchData.player1_id) {
+                        targetSlot = 'player1_id';
+                    } else if (!nextMatchData.player2_id) {
+                        targetSlot = 'player2_id';
+                    } else {
+                        console.warn(`  Both slots occupied in next match. P1: ${nextMatchData.player1_id}, P2: ${nextMatchData.player2_id}`);
+                        targetSlot = null;
+                    }
+                }
+                
+                if (targetSlot) {
+                    console.log(`  Filling ${targetSlot} slot in next match`);
+                    await client.query(
+                        `UPDATE tournament_matches SET ${targetSlot} = $1 WHERE id = $2`,
+                        [winner_id, next_match_id]
+                    );
+                    
+                    // Verify the update worked
+                    const verifyUpdate = await client.query(
+                        'SELECT player1_id, player2_id FROM tournament_matches WHERE id = $1',
+                        [next_match_id]
+                    );
+                    console.log(`  Next match after update:`, verifyUpdate.rows[0]);
+                } else {
+                    console.warn(`  No available slot in next match ${next_match_id}:`, nextMatchData);
+                }
+            } else {
+                console.warn(`Next match ${next_match_id} not found`);
+            }
+        } else {
+            if (!next_match_id) {
+                console.log(`No next_match_id set for match ${matchId} (possibly final match)`);
+            }
+            if (!winner_id) {
+                console.log(`No winner_id provided for match ${matchId}`);
+            }
         }
         
         // For double elimination, handle the loser going to losers bracket
         if (losers_match_id && player1_id && player2_id) {
             const loserId = (winner_id === player1_id) ? player2_id : player1_id;
             
-            const losersMatch = await pool.query(
+            const losersMatch = await client.query(
                 'SELECT player1_id, player2_id FROM tournament_matches WHERE id = $1',
                 [losers_match_id]
             );
             
-            // Determine which slot to fill in the losers match
-            const isFirstPlayer = !losersMatch.rows[0].player1_id;
-            await pool.query(`
-                UPDATE tournament_matches 
-                SET ${isFirstPlayer ? 'player1_id' : 'player2_id'} = $1
-                WHERE id = $2
-            `, [loserId, losers_match_id]);
+            if (losersMatch.rows.length > 0) {
+                // Determine which slot to fill in the losers match
+                const isFirstPlayer = !losersMatch.rows[0].player1_id;
+                await client.query(`
+                    UPDATE tournament_matches 
+                    SET ${isFirstPlayer ? 'player1_id' : 'player2_id'} = $1
+                    WHERE id = $2
+                `, [loserId, losers_match_id]);
+            }
         }
 
-        res.json({ message: 'Match result updated' });
+        await client.query('COMMIT');
+        res.json({ 
+            message: 'Match result updated',
+            winner_advanced: !!next_match_id,
+            next_match_id: next_match_id
+        });
     } catch (err) {
-        console.error(err);
+        await client.query('ROLLBACK');
+        console.error('Error updating match result:', err);
         res.status(500).json({ error: 'Internal server error' });
+    } finally {
+        client.release();
     }
 });
 
@@ -468,63 +523,586 @@ router.put('/:id/seeds', authMiddleware, isStaff, async (req, res) => {
     }
 });
 
-// POST /tournaments/:id/bracket/generate - Generate brackets for a tournament (staff only)
+/**
+ * Single Elimination Tournament Bracket Generator
+ * 
+ * This component generates a tournament bracket for any number of participants,
+ * properly handling BYEs and ensuring clean advancement through rounds.
+ */
+
+/**
+ * Shuffles an array using Fisher-Yates algorithm for random participant seeding
+ * @param {Array} array - Array to shuffle
+ * @returns {Array} - Shuffled array
+ */
+function shuffleArray(array) {
+    const shuffled = [...array];
+    for (let i = shuffled.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+    }
+    return shuffled;
+}
+
+/**
+ * Generates a single-elimination tournament bracket
+ * @param {Array} participants - Array of participant objects with {id, display_name}
+ * @param {number} tournamentId - Tournament ID for database reference
+ * @returns {Object} - Complete bracket structure with rounds and matches
+ */
+function generateSingleEliminationBracket(participants, tournamentId) {
+    // Validate input
+    if (!participants || participants.length < 2) {
+        throw new Error('At least 2 participants are required for a tournament');
+    }
+
+    const numParticipants = participants.length;
+    
+    /**
+     * CORRECT BRACKET CALCULATION
+     * 
+     * For a single-elimination tournament:
+     * 1. bracketSize = 2^ceil(log2(N)) - the smallest power of 2 that fits all participants
+     * 2. numberOfByes = bracketSize - N - how many top seeds skip Round 1
+     * 3. round1MatchCount = (bracketSize / 2) - numberOfByes - actual matches in Round 1
+     * 
+     * Example: 6 participants in 8-size bracket
+     * - bracketSize = 8, numberOfByes = 2, round1MatchCount = 2
+     * - Top 2 seeds skip Round 1, remaining 4 play in 2 matches
+     * - Round 2: 2 BYE seeds + 2 Round 1 winners = 4 participants in 2 matches
+     */
+    const bracketSize = Math.pow(2, Math.ceil(Math.log2(numParticipants)));
+    const numberOfByes = bracketSize - numParticipants;
+    const round1MatchCount = (bracketSize / 2) - numberOfByes;
+    const totalRounds = Math.ceil(Math.log2(bracketSize));
+    
+    console.log(`Bracket Generator: ${numParticipants} participants, ${bracketSize} bracket size, ${numberOfByes} BYEs, ${round1MatchCount} Round 1 matches, ${totalRounds} total rounds`);
+
+    // Shuffle participants randomly before seeding to prevent predictable matchups
+    const shuffledParticipants = shuffleArray(participants);
+    
+    /**
+     * PARTICIPANT SEEDING
+     * 
+     * Top seeds (numberOfByes) skip Round 1 entirely
+     * Remaining participants play in Round 1 matches
+     */
+    const byeSeeds = shuffledParticipants.slice(0, numberOfByes); // Top seeds get BYEs
+    const round1Participants = shuffledParticipants.slice(numberOfByes); // Remaining play Round 1
+    
+    console.log(`BYE Recipients (${byeSeeds.length}):`, byeSeeds.map(p => p.display_name));
+    console.log(`Round 1 Players (${round1Participants.length}):`, round1Participants.map(p => p.display_name));
+    
+    // Create bracket structure
+    const bracket = {
+        tournamentId: tournamentId,
+        totalRounds: totalRounds,
+        bracketSize: bracketSize,
+        numberOfByes: numberOfByes,
+        byeSeeds: byeSeeds,
+        round1Participants: round1Participants,
+        rounds: []
+    };
+
+    /**
+     * ROUND 1 GENERATION
+     * 
+     * Only create actual matches between participants who must play.
+     * Do NOT create BYE vs BYE matches or empty matches.
+     * BYE recipients skip this round entirely.
+     */
+    const firstRound = [];
+    
+    for (let matchNum = 1; matchNum <= round1MatchCount; matchNum++) {
+        const player1Index = (matchNum - 1) * 2;
+        const player2Index = player1Index + 1;
+        
+        const player1 = round1Participants[player1Index] || null;
+        const player2 = round1Participants[player2Index] || null;
+        
+        // Only create matches where both participants exist (or one if odd number)
+        if (player1) {
+            const isBye = !player2;
+            let winner = null;
+            
+            if (isBye) {
+                // Single participant gets automatic advancement
+                winner = player1;
+            }
+            
+            const match = {
+                id: `r1-m${matchNum}`,
+                round: 1,
+                matchNumber: matchNum,
+                player1: player1,
+                player2: player2,
+                winner: winner,
+                isBye: isBye,
+                status: isBye ? 'completed' : 'pending'
+            };
+            
+            firstRound.push(match);
+        }
+    }
+    
+    // Only add Round 1 if there are actual matches to play
+    if (firstRound.length > 0) {
+        bracket.rounds.push(firstRound);
+        console.log(`Round 1 created with ${firstRound.length} matches`);
+    }
+    
+    /**
+     * SUBSEQUENT ROUNDS GENERATION WITH IMPROVED BYE DISTRIBUTION
+     * 
+     * Round 2 participants = BYE seeds + Round 1 winners
+     * We now pre-populate Round 2 with BYE seeds distributed evenly
+     * to match the frontend preview logic exactly.
+     */
+    
+    // Start with the correct round number
+    let startRound = (firstRound.length > 0 ? 2 : 1);
+    
+    for (let round = startRound; round <= totalRounds; round++) {
+        const roundMatches = [];
+        const matchesInRound = Math.pow(2, totalRounds - round);
+        
+        if (round === 2 && numberOfByes > 0 && firstRound.length > 0) {
+            /**
+             * IMPROVED ROUND 2 GENERATION WITH BYE DISTRIBUTION
+             * 
+             * Instead of placing all BYEs at the beginning, we spread them evenly
+             * across the Round 2 bracket positions to create more balanced matches.
+             * 
+             * For example, with 6 participants (2 BYEs, 2 Round 1 matches):
+             * - Round 2 has 4 positions [0, 1, 2, 3]
+             * - Instead of [BYE1, BYE2, R1W1, R1W2]
+             * - We distribute as [BYE1, R1W1, BYE2, R1W2] for better spacing
+             */
+            console.log(`Round 2 Generation - BYEs: ${numberOfByes}, R1 Matches: ${round1MatchCount}`);
+            
+            const round2Size = Math.pow(2, totalRounds - 1); // Participants in Round 2
+            const round2Participants = new Array(round2Size).fill(null);
+            
+            // Distribute BYEs evenly across Round 2 positions
+            if (numberOfByes > 0 && round1MatchCount > 0) {
+                // Mixed distribution: spread BYEs evenly across positions to avoid BYE vs BYE
+                const totalSlots = round2Size;
+                
+                // Calculate optimal spacing to minimize BYE vs BYE matches
+                const idealSpacing = totalSlots / numberOfByes;
+                
+                // If we have fewer BYEs than matches, space them out evenly
+                if (numberOfByes <= matchesInRound) {
+                    // Place BYEs at evenly spaced positions
+                    for (let i = 0; i < numberOfByes; i++) {
+                        const position = Math.floor(i * idealSpacing);
+                        if (position < totalSlots && !round2Participants[position]) {
+                            round2Participants[position] = byeSeeds[i];
+                        }
+                    }
+                } else {
+                    // More BYEs than Round 2 matches - use different strategy
+                    // Fill alternating positions as much as possible
+                    let byeIndex = 0;
+                    for (let pos = 0; pos < totalSlots && byeIndex < numberOfByes; pos += 2) {
+                        round2Participants[pos] = byeSeeds[byeIndex++];
+                    }
+                    // Fill remaining BYEs in remaining slots
+                    for (let pos = 1; pos < totalSlots && byeIndex < numberOfByes; pos += 2) {
+                        if (!round2Participants[pos]) {
+                            round2Participants[pos] = byeSeeds[byeIndex++];
+                        }
+                    }
+                    // If still have BYEs, fill sequentially
+                    for (let pos = 0; pos < totalSlots && byeIndex < numberOfByes; pos++) {
+                        if (!round2Participants[pos]) {
+                            round2Participants[pos] = byeSeeds[byeIndex++];
+                        }
+                    }
+                }
+                
+                // Fill remaining positions with Round 1 winner placeholders
+                let round1Index = 0;
+                for (let pos = 0; pos < round2Size; pos++) {
+                    if (!round2Participants[pos] && round1Index < round1MatchCount) {
+                        round2Participants[pos] = { isPlaceholder: true, fromMatch: round1Index + 1 };
+                        round1Index++;
+                    }
+                }
+            } else {
+                // Single type distribution: all BYEs or all Round 1 participants
+                for (let i = 0; i < numberOfByes; i++) {
+                    round2Participants[i] = byeSeeds[i];
+                }
+                for (let i = 0; i < round1MatchCount; i++) {
+                    round2Participants[numberOfByes + i] = { isPlaceholder: true, fromMatch: i + 1 };
+                }
+            }
+            
+            console.log(`Round 2 Distribution:`, round2Participants.map((p, i) => 
+                `Pos ${i}: ${p ? (p.isPlaceholder ? `R1M${p.fromMatch} Winner` : p.display_name) : 'Empty'}`
+            ));
+            
+            // Create Round 2 matches with the distributed participants
+            for (let matchNum = 1; matchNum <= matchesInRound; matchNum++) {
+                const player1Index = (matchNum - 1) * 2;
+                const player2Index = player1Index + 1;
+                
+                const participant1 = round2Participants[player1Index] || null;
+                const participant2 = round2Participants[player2Index] || null;
+                
+                const match = {
+                    id: `r${round}-m${matchNum}`,
+                    round: round,
+                    matchNumber: matchNum,
+                    player1: participant1 && !participant1.isPlaceholder ? participant1 : null,
+                    player2: participant2 && !participant2.isPlaceholder ? participant2 : null,
+                    winner: null,
+                    isBye: false,
+                    status: 'pending',
+                    // Store advancement mapping for later use
+                    advancementInfo: {
+                        player1Source: participant1?.isPlaceholder ? `r1-m${participant1.fromMatch}` : null,
+                        player2Source: participant2?.isPlaceholder ? `r1-m${participant2.fromMatch}` : null
+                    }
+                };
+                
+                roundMatches.push(match);
+            }
+        } else {
+            // For all other rounds, create empty match structure
+            for (let matchNum = 1; matchNum <= matchesInRound; matchNum++) {
+                const match = {
+                    id: `r${round}-m${matchNum}`,
+                    round: round,
+                    matchNumber: matchNum,
+                    player1: null, // Will be filled by match results from previous round
+                    player2: null, // Will be filled by match results from previous round
+                    winner: null,
+                    isBye: false, // No BYEs in subsequent rounds
+                    status: 'pending'
+                };
+                
+                roundMatches.push(match);
+            }
+        }
+        
+        bracket.rounds.push(roundMatches);
+        console.log(`Round ${round} created with ${roundMatches.length} matches`);
+    }
+    
+    return bracket;
+}
+
+/**
+ * Formats bracket data for React frontend consumption
+ * @param {Object} bracket - Raw bracket from generateSingleEliminationBracket
+ * @returns {Object} - Formatted bracket optimized for React rendering
+ */
+function formatBracketForReact(bracket) {
+    return {
+        tournamentId: bracket.tournamentId,
+        metadata: {
+            totalRounds: bracket.totalRounds,
+            bracketSize: bracket.bracketSize,
+            numberOfByes: bracket.numberOfByes,
+            totalMatches: bracket.rounds.reduce((sum, round) => sum + round.length, 0)
+        },
+        rounds: bracket.rounds.map((round, roundIndex) => ({
+            roundNumber: roundIndex + 1,
+            roundName: getRoundName(roundIndex + 1, bracket.totalRounds),
+            matches: round.map(match => ({
+                id: match.id,
+                round: match.round,
+                matchNumber: match.matchNumber,
+                players: {
+                    player1: match.player1 ? {
+                        id: match.player1.id,
+                        name: match.player1.display_name,
+                        profilePicture: match.player1.profile_picture
+                    } : null,
+                    player2: match.player2 ? {
+                        id: match.player2.id,
+                        name: match.player2.display_name,
+                        profilePicture: match.player2.profile_picture
+                    } : null
+                },
+                winner: match.winner ? {
+                    id: match.winner.id,
+                    name: match.winner.display_name
+                } : null,
+                status: match.status,
+                isBye: match.isBye
+            }))
+        }))
+    };
+}
+
+/**
+ * Helper function to get round names
+ * @param {number} roundNumber - Current round number
+ * @param {number} totalRounds - Total number of rounds
+ * @returns {string} - Round name
+ */
+function getRoundName(roundNumber, totalRounds) {
+    if (roundNumber === totalRounds) return 'Final';
+    if (roundNumber === totalRounds - 1) return 'Semifinal';
+    if (roundNumber === totalRounds - 2) return 'Quarterfinal';
+    return `Round ${roundNumber}`;
+}
+
+/**
+ * Saves bracket structure to database
+ * @param {Object} bracket - Bracket from generateSingleEliminationBracket
+ * @param {Object} client - Database client for transaction
+ * @returns {Promise<Array>} - Array of created match records
+ */
+async function saveBracketToDatabase(bracket, client) {
+    const createdMatches = [];
+    
+    try {
+        // Clear any existing matches for this tournament
+        await client.query(
+            'DELETE FROM tournament_matches WHERE tournament_id = $1',
+            [bracket.tournamentId]
+        );
+
+        // First pass: Save all matches without next_match_id relationships
+        const matchIdMap = new Map(); // Maps "r{round}-m{match}" to actual database ID
+        
+        for (const round of bracket.rounds) {
+            for (const match of round) {
+                const result = await client.query(`
+                    INSERT INTO tournament_matches 
+                    (tournament_id, round, match_number, player1_id, player2_id, winner_id, bye_match, bracket_type)
+                    VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+                    RETURNING *
+                `, [
+                    bracket.tournamentId,
+                    match.round,
+                    match.matchNumber,
+                    match.player1?.id || null,
+                    match.player2?.id || null,
+                    match.winner?.id || null,
+                    match.isBye,
+                    'winners'
+                ]);
+
+                const savedMatch = result.rows[0];
+                createdMatches.push(savedMatch);
+                matchIdMap.set(match.id, savedMatch.id);
+            }
+        }
+
+        // Second pass: Update next_match_id relationships with custom mapping for Round 2
+        console.log('Setting up next_match_id relationships...');
+        
+        // Create custom advancement mapping for Round 1 -> Round 2 based on our BYE distribution
+        const round1Matches = bracket.rounds.find(r => r[0]?.round === 1);
+        const round2Matches = bracket.rounds.find(r => r[0]?.round === 2);
+        
+        if (round1Matches && round2Matches) {
+            console.log('Creating custom Round 1 -> Round 2 advancement mapping...');
+            console.log(`Round 1 matches: ${round1Matches.length}, Round 2 matches: ${round2Matches.length}`);
+            
+            // Debug: Show Round 2 advancement info
+            round2Matches.forEach(r2Match => {
+                console.log(`  ${r2Match.id}: advancementInfo =`, r2Match.advancementInfo);
+            });
+            
+            // Map Round 1 matches to their corresponding Round 2 slots
+            for (const r1Match of round1Matches) {
+                console.log(`\nProcessing ${r1Match.id}...`);
+                // Find which Round 2 match this Round 1 winner should go to
+                let targetR2Match = null;
+                let targetSlot = null;
+                
+                for (const r2Match of round2Matches) {
+                    console.log(`  Checking ${r2Match.id}: advancementInfo =`, r2Match.advancementInfo);
+                    if (r2Match.advancementInfo) {
+                        if (r2Match.advancementInfo.player1Source === r1Match.id) {
+                            targetR2Match = r2Match;
+                            targetSlot = 'player1';
+                            console.log(`    ✓ MATCH FOUND: ${r1Match.id} -> ${r2Match.id} (player1 slot)`);
+                            break;
+                        } else if (r2Match.advancementInfo.player2Source === r1Match.id) {
+                            targetR2Match = r2Match;
+                            targetSlot = 'player2';
+                            console.log(`    ✓ MATCH FOUND: ${r1Match.id} -> ${r2Match.id} (player2 slot)`);
+                            break;
+                        }
+                    }
+                }
+                
+                if (targetR2Match) {
+                    const r1DatabaseId = matchIdMap.get(r1Match.id);
+                    const r2DatabaseId = matchIdMap.get(targetR2Match.id);
+                    
+                    console.log(`  Database IDs: ${r1Match.id}=${r1DatabaseId}, ${targetR2Match.id}=${r2DatabaseId}`);
+                    
+                    if (r1DatabaseId && r2DatabaseId) {
+                        await client.query(
+                            'UPDATE tournament_matches SET next_match_id = $1 WHERE id = $2',
+                            [r2DatabaseId, r1DatabaseId]
+                        );
+                        console.log(`  ✓ MAPPED: ${r1Match.id} (DB:${r1DatabaseId}) -> ${targetR2Match.id} (DB:${r2DatabaseId}) [${targetSlot} slot]`);
+                    }
+                } else {
+                    console.warn(`  ✗ ERROR: No Round 2 destination found for ${r1Match.id}`);
+                }
+            }
+        }
+        
+        // Standard advancement mapping for Round 2 onwards
+        for (const round of bracket.rounds) {
+            if (round.length === 0) continue;
+            
+            const currentRoundNumber = round[0].round;
+            if (currentRoundNumber === bracket.totalRounds) continue; // Skip final round
+            if (currentRoundNumber === 1) continue; // Skip Round 1 (handled above)
+            
+            for (const match of round) {
+                // Use standard tournament advancement formula for Round 2+
+                const nextRound = match.round + 1;
+                const nextMatchNumber = Math.ceil(match.matchNumber / 2);
+                const nextMatchId = `r${nextRound}-m${nextMatchNumber}`;
+                
+                const databaseMatchId = matchIdMap.get(match.id);
+                const nextDatabaseMatchId = matchIdMap.get(nextMatchId);
+                
+                console.log(`  ${match.id} (DB ID: ${databaseMatchId}) -> ${nextMatchId} (DB ID: ${nextDatabaseMatchId})`);
+                
+                if (databaseMatchId && nextDatabaseMatchId) {
+                    await client.query(
+                        'UPDATE tournament_matches SET next_match_id = $1 WHERE id = $2',
+                        [nextDatabaseMatchId, databaseMatchId]
+                    );
+                } else {
+                    console.warn(`  Failed to set next_match_id: missing DB IDs`);
+                }
+            }
+        }
+        console.log('Finished setting up next_match_id relationships');
+
+        // Third pass: Automatically advance BYE winners to next round
+        console.log('Advancing BYE winners to next round...');
+        for (const round of bracket.rounds) {
+            if (round.length === 0) continue;
+            
+            const currentRoundNumber = round[0].round;
+            if (currentRoundNumber === bracket.totalRounds) continue; // Skip final round
+            
+            for (const match of round) {
+                // If this is a BYE match with a winner, advance them
+                if (match.isBye && match.winner) {
+                    const winnerId = match.winner.id;
+                    const databaseMatchId = matchIdMap.get(match.id);
+                    
+                    // Get the next_match_id for this match
+                    const nextMatchQuery = await client.query(
+                        'SELECT next_match_id FROM tournament_matches WHERE id = $1',
+                        [databaseMatchId]
+                    );
+                    
+                    if (nextMatchQuery.rows.length > 0 && nextMatchQuery.rows[0].next_match_id) {
+                        const nextMatchId = nextMatchQuery.rows[0].next_match_id;
+                        
+                        // Check current state of next match
+                        const nextMatchState = await client.query(
+                            'SELECT player1_id, player2_id FROM tournament_matches WHERE id = $1',
+                            [nextMatchId]
+                        );
+                        
+                        if (nextMatchState.rows.length > 0) {
+                            const nextMatch = nextMatchState.rows[0];
+                            
+                            // Place BYE winner in the first available slot
+                            if (!nextMatch.player1_id) {
+                                console.log(`  Advancing BYE winner ${winnerId} to next match ${nextMatchId} (player1_id slot)`);
+                                await client.query(
+                                    'UPDATE tournament_matches SET player1_id = $1 WHERE id = $2',
+                                    [winnerId, nextMatchId]
+                                );
+                            } else if (!nextMatch.player2_id) {
+                                console.log(`  Advancing BYE winner ${winnerId} to next match ${nextMatchId} (player2_id slot)`);
+                                await client.query(
+                                    'UPDATE tournament_matches SET player2_id = $1 WHERE id = $2',
+                                    [winnerId, nextMatchId]
+                                );
+                            } else {
+                                console.warn(`  Next match ${nextMatchId} already has both players filled`);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        console.log('Finished advancing BYE winners');
+
+        return createdMatches;
+    } catch (error) {
+        console.error('Error saving bracket to database:', error);
+        throw error;
+    }
+}
+
+// POST /tournaments/:id/bracket/generate - Generate single-elimination bracket (staff only)
 router.post('/:id/bracket/generate', authMiddleware, isStaff, async (req, res) => {
     const { id } = req.params;
-    console.log(`Attempting to generate brackets for tournament ${id}`);
     
     const client = await pool.connect();
     try {
-        await client.query('BEGIN');        // Check tournament exists and is in correct state
-        console.log('Checking tournament status...');
+        await client.query('BEGIN');
+
+        // Validate tournament state
         const tournament = await client.query(
             'SELECT status, format, (SELECT COUNT(*) FROM tournament_participants WHERE tournament_id = $1) as participant_count FROM tournaments WHERE id = $1',
             [id]
         );
-        console.log('Tournament query result:', tournament.rows[0]);
 
         if (tournament.rows.length === 0) {
-            console.log('Tournament not found');
             throw new Error('Tournament not found');
         }
-        
+
+        const { status, format, participant_count } = tournament.rows[0];
+
+        if (status !== 'registration_closed') {
+            throw new Error('Tournament must be in registration_closed state to generate brackets');
+        }
+
+        if (format !== 'SINGLE_ELIMINATION') {
+            throw new Error('This endpoint only supports single elimination tournaments');
+        }
+
+        if (participant_count < 2) {
+            throw new Error('At least 2 participants are required to generate brackets');
+        }
+
         // Check if brackets already exist
         const existingBrackets = await client.query(
             'SELECT COUNT(*) FROM tournament_matches WHERE tournament_id = $1',
             [id]
         );
-        
+
         if (parseInt(existingBrackets.rows[0].count) > 0) {
-            console.log(`Brackets already exist for tournament ${id}`);
             throw new Error('Tournament brackets have already been generated');
         }
 
-        if (tournament.rows[0].status !== 'registration_closed') {
-            console.log(`Invalid tournament status: ${tournament.rows[0].status}`);
-            throw new Error('Tournament must be in registration_closed state to generate brackets');
-        }
-
-        // Get participants with seeds
-        console.log('Getting participants...');
+        // Get participants
         const participants = await client.query(
-            'SELECT user_id FROM tournament_participants WHERE tournament_id = $1 ORDER BY seed NULLS LAST, RANDOM()',
+            'SELECT u.id, u.display_name, u.profile_picture FROM tournament_participants tp JOIN users u ON tp.user_id = u.id WHERE tp.tournament_id = $1 ORDER BY tp.seed NULLS LAST, RANDOM()',
             [id]
         );
-        console.log(`Found ${participants.rows.length} participants`);
 
-        const playerIds = participants.rows.map(p => p.user_id);
-        
-        if (playerIds.length < 2) {
-            console.log('Not enough participants');
-            throw new Error('Not enough participants to generate brackets (minimum 2 required)');
-        }        // Generate brackets
-        console.log('Generating brackets...');
-        try {
-            await generateBracket(client, id, playerIds, tournament.rows[0].format === 'DOUBLE_ELIMINATION');
-        } catch (bracketErr) {
-            console.error('Error in bracket generation:', bracketErr);
-            throw new Error(`Failed to generate brackets: ${bracketErr.message}`);
+        if (participants.rows.length < 2) {
+            throw new Error('Not enough participants to generate brackets');
         }
+
+        // Generate the bracket
+        const bracket = generateSingleEliminationBracket(participants.rows, parseInt(id));
+        
+        // Save to database
+        const createdMatches = await saveBracketToDatabase(bracket, client);
         
         // Update tournament status to in_progress
         await client.query(
@@ -533,301 +1111,137 @@ router.post('/:id/bracket/generate', authMiddleware, isStaff, async (req, res) =
         );
 
         await client.query('COMMIT');
-        console.log('Bracket generation successful');
-        res.json({ message: 'Tournament brackets generated successfully' });
+
+        // Format response for frontend
+        const formattedBracket = formatBracketForReact(bracket);
+        
+        res.json({
+            message: 'Single-elimination bracket generated successfully',
+            bracket: formattedBracket,
+            matchesCreated: createdMatches.length
+        });
 
     } catch (err) {
         await client.query('ROLLBACK');
-        console.error('Error generating brackets:', err);
-        res.status(err.message.includes('not found') ? 404 : 500)
+        console.error('Error generating bracket:', err);
+        res.status(err.message.includes('not found') ? 404 : 400)
            .json({ error: err.message || 'Internal server error' });
     } finally {
         client.release();
     }
 });
 
-// POST /tournaments/:id/brackets/generate - Backward compatibility route
-router.post('/:id/brackets/generate', authMiddleware, isStaff, async (req, res) => {
-    // Redirect to the new endpoint for backward compatibility
-    req.url = req.url.replace('/brackets/generate', '/bracket/generate');
-    router.handle(req, res);
-});
-
-// Helper function to generate tournament bracket
-async function generateBracket(client, tournamentId, playerIds, isDoubleElimination) {
+// GET /tournaments/:id/bracket/structure - Get bracket structure for frontend rendering
+router.get('/:id/bracket/structure', async (req, res) => {
+    const { id } = req.params;
+    
     try {
-        // First, check if any matches already exist and clear them if necessary
-        const existingMatches = await client.query(
-            'SELECT COUNT(*) FROM tournament_matches WHERE tournament_id = $1',
-            [tournamentId]
+        // Get tournament info
+        const tournament = await pool.query(
+            'SELECT id, format, status FROM tournaments WHERE id = $1',
+            [id]
         );
-        
-        if (parseInt(existingMatches.rows[0].count) > 0) {
-            console.log(`Found existing matches for tournament ${tournamentId}, clearing them first`);
-            await client.query('DELETE FROM tournament_matches WHERE tournament_id = $1', [tournamentId]);
-        }
-        
-        const rounds = Math.ceil(Math.log2(playerIds.length));
-        let matchNumber = 1;
-        let currentRound = 1;
 
-        // Calculate number of byes needed
-        const totalSlots = Math.pow(2, rounds);
-        const byeCount = totalSlots - playerIds.length;
-
-        console.log(`Generating ${isDoubleElimination ? 'double' : 'single'} elimination bracket with ${rounds} rounds, ${playerIds.length} players`);
-
-        // Store first-round match IDs to use when creating losers bracket
-        const firstRoundMatchIds = [];
-
-        // Winners bracket - First round matches
-        for (let i = 0; i < playerIds.length; i += 2) {
-            const player1Id = playerIds[i];
-            const player2Id = i + 1 < playerIds.length ? playerIds[i + 1] : null;
-            
-            const result = await client.query(`
-                INSERT INTO tournament_matches 
-                (tournament_id, round, match_number, player1_id, player2_id, bye_match, bracket_type)
-                VALUES ($1, $2, $3, $4, $5, $6, $7)
-                RETURNING id
-            `, [
-                tournamentId,
-                currentRound,
-                matchNumber++,
-                player1Id,
-                player2Id,
-                !player2Id,  // bye_match is true if there's no player2
-                'winners'    // Mark as winners bracket
-            ]);
-            
-            const matchId = result.rows[0].id;
-            firstRoundMatchIds.push(matchId);
-
-            // If it's a bye match, automatically advance player1
-            if (!player2Id) {
-                await client.query(`
-                    UPDATE tournament_matches
-                    SET winner_id = $1
-                    WHERE id = $2
-                `, [player1Id, matchId]);
-            }
+        if (tournament.rows.length === 0) {
+            return res.status(404).json({ error: 'Tournament not found' });
         }
 
-        // Winners bracket - Create empty matches for subsequent rounds
-        const remainingRounds = rounds - 1;
-        let prevRoundMatches = Math.ceil(playerIds.length / 2);
-        const winnersBracketMatchesByRound = { 1: firstRoundMatchIds };
+        // Get all matches for this tournament
+        const matches = await pool.query(`
+            SELECT 
+                m.id,
+                m.round,
+                m.match_number,
+                m.player1_id,
+                m.player2_id,
+                m.winner_id,
+                m.bye_match,
+                p1.display_name as player1_name,
+                p1.profile_picture as player1_picture,
+                p2.display_name as player2_name,
+                p2.profile_picture as player2_picture,
+                w.display_name as winner_name
+            FROM tournament_matches m
+            LEFT JOIN users p1 ON m.player1_id = p1.id
+            LEFT JOIN users p2 ON m.player2_id = p2.id
+            LEFT JOIN users w ON m.winner_id = w.id
+            WHERE m.tournament_id = $1
+            ORDER BY m.round, m.match_number
+        `, [id]);
 
-        for (let round = 2; round <= remainingRounds + 1; round++) {
-            const matchesInRound = Math.ceil(prevRoundMatches / 2);
-            winnersBracketMatchesByRound[round] = [];
-            
-            for (let match = 1; match <= matchesInRound; match++) {
-                const result = await client.query(`
-                    INSERT INTO tournament_matches 
-                    (tournament_id, round, match_number, bracket_type)
-                    VALUES ($1, $2, $3, $4)
-                    RETURNING id
-                `, [tournamentId, round, match, 'winners']);
-                
-                winnersBracketMatchesByRound[round].push(result.rows[0].id);
-            }
-
-            prevRoundMatches = matchesInRound;
+        if (matches.rows.length === 0) {
+            return res.json({
+                tournament: tournament.rows[0],
+                bracket: null,
+                message: 'No brackets generated yet'
+            });
         }
 
-        // Link winners bracket matches to their next matches
-        await client.query(`
-            WITH RankedMatches AS (
-                SELECT 
-                    id,
-                    round,
-                    match_number,
-                    CEIL(match_number::float / 2) as next_match_number,
-                    round + 1 as next_round
-                FROM tournament_matches
-                WHERE tournament_id = $1 AND bracket_type = 'winners'
-            )
-            UPDATE tournament_matches t1
-            SET next_match_id = t2.id
-            FROM RankedMatches r1
-            JOIN tournament_matches t2 ON 
-                t2.round = r1.next_round AND 
-                t2.match_number = r1.next_match_number AND
-                t2.tournament_id = $1 AND
-                t2.bracket_type = 'winners'
-            WHERE 
-                t1.id = r1.id AND 
-                t1.tournament_id = $1
-        `, [tournamentId]);
+        // Group matches by round
+        const roundsMap = new Map();
+        let maxRound = 0;
 
-        if (isDoubleElimination) {
-            console.log('Generating double elimination bracket');
-            
-            // Create losers bracket matches
-            const losersBracketMatchesByRound = {};            // Calculate losers bracket rounds based on number of players
-            // For N players:
-            // - 4 players: 1 losers round
-            // - 8 players: 2 losers rounds
-            // - 16 players: 3 losers rounds
-            const loserRounds = rounds - 1;
-            
-            // For each winners round (except finals), create corresponding losers rounds
-            let loserMatchNumber = 1;
-            let loserRound = 1;
-              // Create initial losers bracket round for first-round losers
-            losersBracketMatchesByRound[loserRound] = [];            // Calculate first round matches in a way that ensures proper pairing
-            const firstRoundMatchCount = Math.ceil(playerIds.length / 2);
-            // Count how many real matches we have (excluding byes)
-            const realMatchCount = playerIds.length % 2 === 0 ? 
-                firstRoundMatchCount : 
-                firstRoundMatchCount - 1;
-            // Losers from real matches need to be paired in the losers bracket
-            const loserMatchesInFirstRound = Math.ceil(realMatchCount / 2);
-            
-            // Start with match number 1 since we have bracket_type in uniqueness constraint
-            // Use the maximum match number from the winners bracket + 1            // Start losers bracket with match number 1, since we now have a unique constraint that includes bracket_type
-            loserMatchNumber = 1;
-            
-            for (let i = 0; i < loserMatchesInFirstRound; i++) {
-                const result = await client.query(`
-                    INSERT INTO tournament_matches 
-                    (tournament_id, round, match_number, bracket_type)
-                    VALUES ($1, $2, $3, $4)
-                    RETURNING id
-                `, [tournamentId, loserRound, loserMatchNumber++, 'losers']);
-                
-                losersBracketMatchesByRound[loserRound].push(result.rows[0].id);
-            }            // Create remaining losers bracket rounds
-            for (let round = 2; round <= loserRounds; round++) {
-                loserRound++;
-                losersBracketMatchesByRound[loserRound] = [];
-                
-                // Every even round has the same number of matches as previous round
-                // Every odd round combines winners from two previous rounds                // In even-numbered rounds, we keep the same number of matches as the previous round
-                // because we're just waiting for winners bracket losers to join.
-                // In odd-numbered rounds, we combine the winners from the previous round into pairs.
-                const isIntermediateRound = round % 2 === 0;
-                let matchesInRound;
-                
-                if (isIntermediateRound) {
-                    // Keep same number of matches as previous round
-                    matchesInRound = losersBracketMatchesByRound[loserRound - 1].length;
-                } else {
-                    // Combine winners into pairs, accounting for odd numbers
-                    const prevRoundMatches = losersBracketMatchesByRound[loserRound - 1].length;
-                    matchesInRound = Math.ceil(prevRoundMatches / 2);
-                }
-                
-                // Reset match numbers for each round
-                loserMatchNumber = 1;
-                
-                for (let match = 1; match <= matchesInRound; match++) {
-                    const result = await client.query(`
-                        INSERT INTO tournament_matches 
-                        (tournament_id, round, match_number, bracket_type)
-                        VALUES ($1, $2, $3, $4)
-                        RETURNING id
-                    `, [tournamentId, loserRound, loserMatchNumber++, 'losers']);
-                    
-                    losersBracketMatchesByRound[loserRound].push(result.rows[0].id);
-                }
+        matches.rows.forEach(match => {
+            if (!roundsMap.has(match.round)) {
+                roundsMap.set(match.round, []);
             }
             
-            // Link losers coming from winners bracket to losers bracket
-            // Start with first round losers
-            for (let i = 0; i < firstRoundMatchIds.length; i++) {
-                const winnerMatchId = firstRoundMatchIds[i];
-                const loserMatchIdx = Math.floor(i / 2);
-                
-                // Make sure we have enough matches in the losers bracket
-                if (loserMatchIdx < losersBracketMatchesByRound[1].length) {
-                    const loserMatchId = losersBracketMatchesByRound[1][loserMatchIdx];
-                    
-                    await client.query(`
-                        UPDATE tournament_matches 
-                        SET losers_match_id = $1
-                        WHERE id = $2
-                    `, [loserMatchId, winnerMatchId]);
-                }
-            }
+            roundsMap.get(match.round).push({
+                id: match.id,
+                round: match.round,
+                matchNumber: match.match_number,
+                players: {
+                    player1: match.player1_id ? {
+                        id: match.player1_id,
+                        name: match.player1_name,
+                        profilePicture: match.player1_picture
+                    } : null,
+                    player2: match.player2_id ? {
+                        id: match.player2_id,
+                        name: match.player2_name,
+                        profilePicture: match.player2_picture
+                    } : null
+                },
+                winner: match.winner_id ? {
+                    id: match.winner_id,
+                    name: match.winner_name
+                } : null,
+                status: match.bye_match ? 'bye' : match.winner_id ? 'completed' : 'pending',
+                isBye: match.bye_match
+            });
             
-            // Link remaining winners bracket losers to appropriate losers bracket matches
-            for (let round = 2; round <= remainingRounds; round++) {
-                const winnerMatches = winnersBracketMatchesByRound[round];
-                // Losers from round N of winners bracket go to round 2N-2 of losers bracket
-                const targetLoserRound = 2 * round - 2;
-                
-                if (losersBracketMatchesByRound[targetLoserRound]) {
-                    for (let i = 0; i < winnerMatches.length; i++) {
-                        const winnerMatchId = winnerMatches[i];
-                        const loserMatchIdx = Math.floor(i / 2);
-                        
-                        if (loserMatchIdx < losersBracketMatchesByRound[targetLoserRound].length) {
-                            const loserMatchId = losersBracketMatchesByRound[targetLoserRound][loserMatchIdx];
-                            
-                            await client.query(`
-                                UPDATE tournament_matches 
-                                SET losers_match_id = $1
-                                WHERE id = $2
-                            `, [loserMatchId, winnerMatchId]);
-                        }
-                    }
-                }
-            }
-            
-            // Link losers bracket matches to next losers bracket matches
-            for (let round = 1; round < loserRounds; round++) {
-                const currentMatches = losersBracketMatchesByRound[round];
-                const nextRound = round + 1;
-                
-                // Skip if no next round exists
-                if (!losersBracketMatchesByRound[nextRound]) continue;
-                
-                const nextMatches = losersBracketMatchesByRound[nextRound];
-                
-                for (let i = 0; i < currentMatches.length; i++) {
-                    const matchId = currentMatches[i];
-                    // For odd rounds, every 2 matches feed into 1 next match
-                    // For even rounds, each match feeds into its own next match
-                    const isOddRound = round % 2 !== 0;
-                    const nextMatchIdx = isOddRound ? Math.floor(i / 2) : i;
-                    
-                    if (nextMatchIdx < nextMatches.length) {
-                        await client.query(`
-                            UPDATE tournament_matches 
-                            SET next_match_id = $1
-                            WHERE id = $2
-                        `, [nextMatches[nextMatchIdx], matchId]);
-                    }
-                }
-            }
-            
-            // Create grand finals match
-            const winnersFinalsId = winnersBracketMatchesByRound[rounds][0];
-            const losersFinalsId = losersBracketMatchesByRound[loserRounds][0];
-            
-            const grandFinalsResult = await client.query(`
-                INSERT INTO tournament_matches 
-                (tournament_id, round, match_number, bracket_type, is_grand_finals)
-                VALUES ($1, $2, $3, $4, $5)
-                RETURNING id
-            `, [tournamentId, rounds + 1, 1, 'finals', true]);
-            
-            const grandFinalsId = grandFinalsResult.rows[0].id;
-            
-            // Link winners/losers finals to grand finals
-            await client.query(`
-                UPDATE tournament_matches 
-                SET next_match_id = $1
-                WHERE id IN ($2, $3)
-            `, [grandFinalsId, winnersFinalsId, losersFinalsId]);
+            maxRound = Math.max(maxRound, match.round);
+        });
+
+        // Convert to array format
+        const rounds = [];
+        for (let i = 1; i <= maxRound; i++) {
+            const roundMatches = roundsMap.get(i) || [];
+            rounds.push({
+                roundNumber: i,
+                roundName: getRoundName(i, maxRound),
+                matches: roundMatches
+            });
         }
+
+        res.json({
+            tournament: tournament.rows[0],
+            metadata: {
+                totalRounds: maxRound,
+                totalMatches: matches.rows.length,
+                bracketSize: Math.pow(2, maxRound)
+            },
+            rounds: rounds
+        });
 
     } catch (err) {
-        console.error('Error generating bracket:', err);
-        throw err;
+        console.error('Error fetching bracket structure:', err);
+        res.status(500).json({ error: 'Internal server error' });
     }
-}
+});
 
 module.exports = router;
+
+// Export functions for testing
+module.exports.generateSingleEliminationBracket = generateSingleEliminationBracket;
+module.exports.saveBracketToDatabase = saveBracketToDatabase;

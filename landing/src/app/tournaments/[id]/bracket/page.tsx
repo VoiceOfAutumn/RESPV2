@@ -4,7 +4,7 @@ import React, { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
 import Navbar from '../../../components/Navbar';
 import TopBar from '../../../components/TopBar';
-import BracketView from '@/app/tournament/[id]/bracket/components/BracketView';
+import HybridBracket from '@/components/HybridBracket';
 import { useToast } from '@/app/components/ToastContext';
 import { BracketData, Match, Tournament } from '@/app/tournament/[id]/bracket/types';
 
@@ -149,9 +149,12 @@ export default function TournamentBracketPage() {
         const bracketData = await res.json();
         
         // Validate the bracket data structure
-        if (!bracketData || !Array.isArray(bracketData.matches)) {
+        if (!bracketData || !bracketData.tournament) {
           throw new Error('Invalid bracket data format');
         }
+        
+        // Ensure matches is always an array
+        bracketData.matches = bracketData.matches || [];
         
         setData(bracketData);
         setLoading(false);
@@ -193,6 +196,15 @@ export default function TournamentBracketPage() {
                       player2Score > player1Score ? match.player2_id :
                       null;
 
+      console.log('Submitting score update:', {
+        matchId,
+        player1Score,
+        player2Score,
+        winnerId,
+        player1_name: match.player1_name,
+        player2_name: match.player2_name
+      });
+
       const res = await fetch(`http://localhost:3000/tournaments/${id}/matches/${matchId}`, {
         method: 'PUT',
         headers: {
@@ -207,10 +219,14 @@ export default function TournamentBracketPage() {
       });
 
       if (!res.ok) {
-        throw new Error('Failed to update match');
+        const errorData = await res.json();
+        throw new Error(errorData.error || 'Failed to update match');
       }
 
-      // Refresh bracket data
+      const responseData = await res.json();
+      console.log('Score update response:', responseData);
+
+      // Refresh bracket data to show the updated results
       const bracketRes = await fetch(`http://localhost:3000/tournaments/${id}/bracket`, {
         credentials: 'include'
       });
@@ -218,17 +234,27 @@ export default function TournamentBracketPage() {
       
       const newData = await bracketRes.json();
       // Validate the new data
-      if (!newData || !Array.isArray(newData.matches)) {
+      if (!newData || !newData.tournament) {
         throw new Error('Invalid bracket data format');
       }
       
+      // Ensure matches is always an array
+      newData.matches = newData.matches || [];
+      
       setData(newData);
+      
+      // Show success message with advancement info
+      const successMessage = responseData.winner_advanced 
+        ? `Match result updated successfully! Winner advanced to next round.`
+        : 'Match result updated successfully';
+        
       showToast({
         title: 'Success',
-        message: 'Match result updated successfully',
+        message: successMessage,
         type: 'success'
       });
     } catch (err) {
+      console.error('Error updating match:', err);
       showToast({
         title: 'Error',
         message: err instanceof Error ? err.message : 'Failed to update match',
@@ -253,9 +279,9 @@ export default function TournamentBracketPage() {
     );
   }
   // Check if this is a "no brackets yet" situation vs an actual error
-  const isBracketNotGeneratedYet = !error && data && (!data.matches || data.matches.length === 0);
+  const isBracketNotGeneratedYet = !error && data && data.tournament && (!data.matches || data.matches.length === 0);
   
-  if (error || !data || !data.matches || data.matches.length === 0) {
+  if (error || !data || !data.tournament) {
     return (
       <main className="min-h-screen bg-gradient-to-br from-black via-gray-800 to-black text-white pt-16 pl-64">
         <TopBar />
@@ -321,11 +347,12 @@ export default function TournamentBracketPage() {
             
             <div className="overflow-x-auto p-6">
               <div className="min-w-max">
-                {/* Only render BracketView when we have valid data */}
-                {data.tournament && data.matches && (
-                  <BracketView
-                    matches={data.matches}
+                {/* Use the hybrid bracket component that can handle both scenarios */}
+                {data.tournament && (
+                  <HybridBracket
+                    tournamentId={id as string}
                     tournament={data.tournament}
+                    matches={data.matches || []}
                     isStaff={user?.role === 'staff' || user?.role === 'admin'}
                     onMatchUpdate={handleScoreSubmit}
                     bracketType={activeBracketType}

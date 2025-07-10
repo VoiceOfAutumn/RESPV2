@@ -9,7 +9,8 @@ export interface Match {
   id: number;
   round: number;
   match_number: number;
-  player1_id: number | null;  player2_id: number | null;
+  player1_id: number | null;
+  player2_id: number | null;
   player1_name: string | null;
   player2_name: string | null;
   player1_picture: string | null;
@@ -20,11 +21,12 @@ export interface Match {
   winner_name: string | null;
   next_match_id: number | null;
   bye_match: boolean;
-  bracket: 'winners' | 'losers' | 'finals';
+  bracket?: 'winners' | 'losers' | 'finals'; // Optional for single elimination
 }
 
 export interface Tournament {
   id: number;
+  name: string;
   format: 'SINGLE_ELIMINATION' | 'DOUBLE_ELIMINATION';
   status: string;
 }

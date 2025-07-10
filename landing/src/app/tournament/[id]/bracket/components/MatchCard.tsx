@@ -7,10 +7,10 @@ interface MatchCardProps {
   match: Match;
   isStaff?: boolean;
   onScoreUpdate?: (matchId: number, player1Score: number, player2Score: number) => Promise<void>;
-  bracketType: 'winners' | 'losers' | 'finals';
+  bracketType?: 'winners' | 'losers' | 'finals';
 }
 
-export default function MatchCard({ match, isStaff = false, onScoreUpdate, bracketType }: MatchCardProps) {
+export default function MatchCard({ match, isStaff = false, onScoreUpdate, bracketType = 'winners' }: MatchCardProps) {
   const [isEditing, setIsEditing] = useState(false);
   const [player1Score, setPlayer1Score] = useState(match.player1_score || 0);
   const [player2Score, setPlayer2Score] = useState(match.player2_score || 0);

@@ -223,10 +223,6 @@ export default function TournamentDetailPage() {
                     <span className="font-medium">{new Date(tournament.date).toLocaleString()}</span>
                   </div>
                   <div>
-                    <span className="text-gray-400">Format:</span>{' '}
-                    <span className="font-medium">{tournament.format.replace('_', ' ')}</span>
-                  </div>
-                  <div>
                     <span className="text-gray-400">Status:</span>{' '}
                     <span className={`font-medium ${getStatusColor(tournament.status)}`}>
                       {tournament.status.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase())}
@@ -235,10 +231,6 @@ export default function TournamentDetailPage() {
                   <div>
                     <span className="text-gray-400">Participants:</span>{' '}
                     <span className="font-medium">{tournament.participant_count}</span>
-                  </div>
-                  <div>
-                    <span className="text-gray-400">Seeding Method:</span>{' '}
-                    <span className="font-medium">{tournament.seedType === 'MANUAL' ? 'Manual Seeding' : 'Random Seeding'}</span>
                   </div>
                 </div>                <div className="flex gap-3 pt-4">
                   <button

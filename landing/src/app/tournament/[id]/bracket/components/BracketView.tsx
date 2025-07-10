@@ -24,20 +24,30 @@ export default function BracketView({ matches, tournament, isStaff = false, onMa
     setActiveBracketType(newBracketType);
   }, [bracketType]);
   
-  // Group matches by bracket type and round
+  // For single elimination, all matches are in the "winners" bracket
+  // For double elimination, group matches by bracket type and round
   const matchesByBracket = matches.reduce<{
     winners: { [key: number]: Match[] };
     losers: { [key: number]: Match[] };
     finals: Match[];
   }>((acc, match) => {
-    if (match.bracket === 'finals') {
-      acc.finals.push(match);
-    } else {
-      const bracketType = match.bracket || 'winners';
-      if (!acc[bracketType][match.round]) {
-        acc[bracketType][match.round] = [];
+    if (tournament.format === 'SINGLE_ELIMINATION') {
+      // For single elimination, all matches go to winners bracket
+      if (!acc.winners[match.round]) {
+        acc.winners[match.round] = [];
       }
-      acc[bracketType][match.round].push(match);
+      acc.winners[match.round].push(match);
+    } else {
+      // For double elimination, use bracket property
+      if (match.bracket === 'finals') {
+        acc.finals.push(match);
+      } else {
+        const bracketType = match.bracket || 'winners';
+        if (!acc[bracketType][match.round]) {
+          acc[bracketType][match.round] = [];
+        }
+        acc[bracketType][match.round].push(match);
+      }
     }
     return acc;
   }, { winners: {}, losers: {}, finals: [] });
@@ -51,6 +61,17 @@ export default function BracketView({ matches, tournament, isStaff = false, onMa
     const baseSpacing = 16; // 4rem
     const multiplier = Math.pow(2, round - 1);
     return `${baseSpacing * multiplier}px`;
+  };
+
+  const getRoundName = (roundNumber: number) => {
+    if (tournament.format === 'SINGLE_ELIMINATION') {
+      if (roundNumber === maxRounds) return 'Final';
+      if (roundNumber === maxRounds - 1) return 'Semifinal';
+      if (roundNumber === maxRounds - 2) return 'Quarterfinal';
+      return `Round ${roundNumber}`;
+    } else {
+      return `Round ${roundNumber}`;
+    }
   };
   
   // Tab controls for bracket view
@@ -117,7 +138,7 @@ export default function BracketView({ matches, tournament, isStaff = false, onMa
         {(activeBracketType === null || activeBracketType === 'winners' || tournament.format === 'SINGLE_ELIMINATION') && (
           <div id="winners-bracket" className="flex-shrink-0">
             <h2 className="text-xl font-semibold mb-6 bg-clip-text text-transparent bg-gradient-to-r from-green-400 to-teal-300 pb-1 border-b border-green-500/20">
-              Winners Bracket
+              {tournament.format === 'SINGLE_ELIMINATION' ? 'Tournament Bracket' : 'Winners Bracket'}
             </h2>
             <div className="flex gap-12">
               {Object.entries(matchesByBracket.winners)
@@ -125,8 +146,7 @@ export default function BracketView({ matches, tournament, isStaff = false, onMa
                 .map(([round, roundMatches]) => (
                   <div key={`winners-${round}`} className="flex-shrink-0 w-72">
                     <div className="text-sm font-medium text-gray-400 mb-4 px-2 py-1 bg-green-500/10 rounded-lg inline-block">
-                      Round {round}
-                      {Number(round) === maxRounds && tournament.format === 'SINGLE_ELIMINATION' && ' (Final)'}
+                      {getRoundName(Number(round))}
                     </div>
                     <div className="space-y-6">
                       {roundMatches
@@ -143,7 +163,7 @@ export default function BracketView({ matches, tournament, isStaff = false, onMa
                               match={match}
                               isStaff={isStaff}
                               onScoreUpdate={onMatchUpdate}
-                              bracketType="winners"
+                              bracketType={tournament.format === 'SINGLE_ELIMINATION' ? 'winners' : 'winners'}
                             />
                           </div>
                         ))}

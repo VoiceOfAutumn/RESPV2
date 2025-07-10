@@ -1,7 +1,6 @@
 'use client';
 
 import { useState } from 'react';
-import TournamentSeeding from './TournamentSeeding';
 import { useToast } from '@/app/components/ToastContext';
 
 import { Tournament, TournamentUpdate } from '@/types/tournament';
@@ -51,15 +50,6 @@ export default function TournamentStaffControls({ tournament, setTournament }: P
     }
   };
   const generateBracket = async () => {
-    if (tournament.seedType === 'MANUAL' && tournament.status === 'registration_closed') {
-      showToast({
-        title: 'Info',
-        message: 'Please set up participant seeding before generating the bracket',
-        type: 'info'
-      });
-      return;
-    }
-
     setIsUpdating(true);
 
     try {
@@ -69,7 +59,6 @@ export default function TournamentStaffControls({ tournament, setTournament }: P
           'Content-Type': 'application/json',
         },
         credentials: 'include',
-        body: JSON.stringify({ format: tournament.format }),
       });
 
       if (res.ok) {
@@ -118,33 +107,13 @@ export default function TournamentStaffControls({ tournament, setTournament }: P
 
         {tournament.status === 'registration_closed' && (
           <div className="space-y-6">
-            {tournament.seedType === 'MANUAL' && (
-              <TournamentSeeding
-                tournamentId={tournament.id}
-                participants={tournament.participants}
-                onSeedingComplete={generateBracket}
-              />
-            )}
-            
-            {tournament.seedType === 'RANDOM' && (
-              <button
-                onClick={generateBracket}
-                disabled={isUpdating}
-                className="px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600 disabled:bg-green-400"
-              >
-                Generate Bracket
-              </button>
-            )}
-          </div>
-        )}
-
-        {tournament.status === 'in_progress' && tournament.format === 'DOUBLE_ELIMINATION' && (
-          <div className="bg-blue-50 p-4 rounded">
-            <h3 className="font-medium text-blue-800 mb-2">Double Elimination Format</h3>
-            <p className="text-blue-600 text-sm">
-              Players who lose in the winner's bracket will move to the loser's bracket.
-              The tournament ends when a player from either bracket wins the final match.
-            </p>
+            <button
+              onClick={generateBracket}
+              disabled={isUpdating}
+              className="px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600 disabled:bg-green-400"
+            >
+              Generate Bracket
+            </button>
           </div>
         )}
 
