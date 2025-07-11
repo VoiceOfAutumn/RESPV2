@@ -1,6 +1,9 @@
 'use client'; 
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
+import { useToast } from '../components/ToastContext';
+import { apiRequest } from '@/lib/api';
 
 export default function LoginPage() {
   const [formData, setFormData] = useState({
@@ -8,6 +11,23 @@ export default function LoginPage() {
     password: ''
   });
   const [message, setMessage] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const { showToast } = useToast();
+
+  // Check if user was redirected from successful registration
+  useEffect(() => {
+    if (searchParams.get('registered') === 'true') {
+      showToast({
+        title: 'Welcome!',
+        message: 'Your account has been created successfully. Please log in below.',
+        type: 'success'
+      });
+      // Clean up the URL parameter
+      router.replace('/login');
+    }
+  }, [searchParams, showToast, router]);
 
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -16,25 +36,41 @@ export default function LoginPage() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setMessage('');
+    setIsLoading(true);
 
-    try {      const res = await fetch('https://backend-6wqj.onrender.com/login', {
+    try {
+      const res = await apiRequest('/login', {
         method: 'POST',
-        credentials: 'include',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify(formData),
-      });      const data = await res.json();      if (res.status === 200) {
-        setMessage('✅ Login successful!');
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        showToast({
+          title: 'Login Successful!',
+          message: `Welcome back, ${data.user.display_name}!`,
+          type: 'success'
+        });
+        
         // Store the display name before redirecting
-        localStorage.setItem('justLoggedIn', data.display_name);
-        window.location.href = '/'; // 🔁 Redirect to homepage
+        localStorage.setItem('justLoggedIn', data.user.display_name);
+        
+        // Redirect to homepage after a short delay
+        setTimeout(() => {
+          window.location.href = '/';
+        }, 1000);
       } else {
+        const data = await res.json();
         setMessage(`❌ ${data.message}`);
       }
     } catch (err) {
-      console.error(err);
-      setMessage('❌ Something went wrong.');
+      console.error('Login error:', err);
+      setMessage('❌ Something went wrong. Please try again.');
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -73,9 +109,10 @@ export default function LoginPage() {
 
           <button
             type="submit"
-            className="w-full bg-gradient-to-r from-pink-500 to-purple-500 hover:from-purple-500 hover:to-pink-500 text-white py-3 rounded-lg shadow-lg font-bold transition duration-300"
+            disabled={isLoading}
+            className="w-full bg-gradient-to-r from-pink-500 to-purple-500 hover:from-purple-500 hover:to-pink-500 text-white py-3 rounded-lg shadow-lg font-bold transition duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            Log In
+            {isLoading ? 'Logging In...' : 'Log In'}
           </button>
 
           <p className="mt-4 text-center text-gray-300 text-sm">

@@ -1,7 +1,10 @@
 'use client'; 
 
 import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { AiOutlineInfoCircle } from 'react-icons/ai'; // Import a tooltip icon
+import { useToast } from '../components/ToastContext';
+import { apiRequest } from '@/lib/api';
 
 export default function SignupPage() {
   const [formData, setFormData] = useState({
@@ -11,6 +14,9 @@ export default function SignupPage() {
     country_id: ''
   });
   const [message, setMessage] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+  const router = useRouter();
+  const { showToast } = useToast();
 
    // Country list
    const countries = [
@@ -217,9 +223,10 @@ export default function SignupPage() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setMessage('');
+    setIsLoading(true);
 
     try {
-      const res = await fetch('https://backend-6wqj.onrender.com/signup', {
+      const res = await apiRequest('/signup', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -230,16 +237,27 @@ export default function SignupPage() {
         }),
       });
 
-      const data = await res.json();
-
-      if (res.status === 201) {
-        setMessage('✅ Signup successful!');
+      if (res.ok) {
+        // Show success toast
+        showToast({
+          title: 'Registration Successful!',
+          message: 'Your account has been created. Please log in to continue.',
+          type: 'success'
+        });
+        
+        // Redirect to login page after a short delay
+        setTimeout(() => {
+          router.push('/login?registered=true');
+        }, 1000);
       } else {
+        const data = await res.json();
         setMessage(`❌ ${data.message}`);
       }
     } catch (err) {
-      console.error(err);
-      setMessage('❌ Something went wrong.');
+      console.error('Signup error:', err);
+      setMessage('❌ Something went wrong. Please try again.');
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -311,9 +329,10 @@ export default function SignupPage() {
 
           <button
             type="submit"
-            className="w-full bg-gradient-to-r from-pink-500 to-purple-500 hover:from-purple-500 hover:to-pink-500 text-white py-3 rounded-lg shadow-lg font-bold transition duration-300"
+            disabled={isLoading}
+            className="w-full bg-gradient-to-r from-pink-500 to-purple-500 hover:from-purple-500 hover:to-pink-500 text-white py-3 rounded-lg shadow-lg font-bold transition duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            Create Account
+            {isLoading ? 'Creating Account...' : 'Create Account'}
           </button>
 
           {/* Add this below your <button> */}
