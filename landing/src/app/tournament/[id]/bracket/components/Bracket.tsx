@@ -71,9 +71,8 @@ export default function Bracket({ matches, tournament, isStaff = false, onMatchU
         )}
       </div>
     );
-  // State to track which bracket view is active (null for all brackets)
-  const [activeBracketType, setActiveBracketType] = useState<'winners' | 'losers' | 'finals' | null>(null);
-  
+  };
+
   // Group matches by bracket type and round
   const matchesByBracket = matches.reduce<{
     winners: { [key: number]: Match[] };
@@ -258,15 +257,4 @@ export default function Bracket({ matches, tournament, isStaff = false, onMatchU
                                   bracketType="losers"
                                 />
                               </div>
-                            ))}
-                        </div>
-                      </div>
-                    ))}
-                </div>
-              </div>
-            )}
-          </>
-        )}
-    </div>
-  );
 }

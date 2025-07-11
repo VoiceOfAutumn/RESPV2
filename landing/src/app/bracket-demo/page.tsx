@@ -156,6 +156,7 @@ export default function BracketDemo() {
   // Mock tournament object
   const mockTournament: Tournament = {
     id: 999999, // Demo tournament ID
+    name: "Demo Tournament",
     format: tournamentFormat,
     status: tournamentStatus
   };
