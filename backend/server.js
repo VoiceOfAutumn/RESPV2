@@ -54,11 +54,13 @@ app.use(session({
   secret: process.env.SESSION_SECRET,
   resave: false,
   saveUninitialized: false, // Don't save empty sessions
+  name: 'connect.sid', // Explicit session cookie name
   cookie: {
     maxAge: 24 * 60 * 60 * 1000, // 24 hours (1 day) for session persistence
     secure: process.env.NODE_ENV === 'production', // Use secure cookies in production
     sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax', // Allow cross-site cookies in production
-    httpOnly: true // Prevent XSS attacks
+    httpOnly: true, // Prevent XSS attacks
+    domain: process.env.NODE_ENV === 'production' ? '.onrender.com' : undefined // Allow domain sharing in production
   }
 }));
 
@@ -199,13 +201,22 @@ app.post('/login', async (req, res) => {
     console.log('- Email:', req.session.email);
     console.log('- Full session:', req.session);
 
-    res.status(200).json({
-      message: "Login successful",
-      user: {
-        email: user.email,
-        display_name: user.display_name,
-        profile_picture: user.profile_picture || null // <-- Added here
+    // Explicitly save the session
+    req.session.save((err) => {
+      if (err) {
+        console.error('❌ Session save error:', err);
+        return res.status(500).json({ message: "Session save failed" });
       }
+      
+      console.log('✅ Session saved successfully');
+      res.status(200).json({
+        message: "Login successful",
+        user: {
+          email: user.email,
+          display_name: user.display_name,
+          profile_picture: user.profile_picture || null
+        }
+      });
     });
 
   } catch (err) {
