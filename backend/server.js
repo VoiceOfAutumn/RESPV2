@@ -193,7 +193,11 @@ app.post('/login', async (req, res) => {
     req.session.userId = user.id;
     req.session.email = user.email;
 
-    console.log('Session after login:', req.session);  // Log session details
+    console.log('🔐 Session created after login:');
+    console.log('- Session ID:', req.sessionID);
+    console.log('- User ID:', req.session.userId);
+    console.log('- Email:', req.session.email);
+    console.log('- Full session:', req.session);
 
     res.status(200).json({
       message: "Login successful",
@@ -218,6 +222,23 @@ app.post('/logout', (req, res) => {
     }
     res.clearCookie('connect.sid');
     res.status(200).json({ message: "Logged out successfully" });
+  });
+});
+
+// ================== SESSION TEST (for debugging) ==================
+app.get('/session-test', (req, res) => {
+  console.log('\n=== SESSION TEST ===');
+  console.log('Session ID:', req.sessionID);
+  console.log('Session exists:', !!req.session);
+  console.log('Session data:', req.session);
+  console.log('Cookie header:', req.headers.cookie);
+  console.log('User agent:', req.headers['user-agent']);
+  
+  res.json({
+    sessionId: req.sessionID,
+    sessionData: req.session,
+    hasUserId: !!req.session?.userId,
+    userId: req.session?.userId
   });
 });
 
@@ -383,11 +404,21 @@ app.put('/user/update', authMiddleware, async (req, res) => {
 // =================== GET user/me ==================
 
 app.get('/user/me', async (req, res) => {
+  console.log('\n=== /user/me endpoint hit ===');
+  console.log('Session ID:', req.sessionID);
+  console.log('Session data:', req.session);
+  console.log('User ID from session:', req.session?.userId);
+  console.log('Session store status:', req.session ? 'exists' : 'missing');
+  console.log('Headers:', req.headers);
+  console.log('Cookies:', req.headers.cookie);
+  
   if (!req.session.userId) {
+    console.log('❌ No userId in session - returning 401');
     return res.status(401).json({ message: 'Not logged in' });
   }
 
   try {
+    console.log('✅ Found userId in session:', req.session.userId);
     const result = await pool.query(
       'SELECT display_name, profile_picture, role FROM users WHERE id = $1',
       [req.session.userId]
@@ -395,16 +426,18 @@ app.get('/user/me', async (req, res) => {
 
     const user = result.rows[0];
     if (!user) {
+      console.log('❌ User not found in database for ID:', req.session.userId);
       return res.status(404).json({ message: 'User not found' });
     }
 
+    console.log('✅ User found, returning data for:', user.display_name);
     res.json({
       displayName: user.display_name,
       profile_picture: user.profile_picture,
       role: user.role
     });
   } catch (err) {
-    console.error('Error in /user/me:', err);
+    console.error('❌ Error in /user/me:', err);
     res.status(500).json({ message: 'Internal Server Error' });
   }
 });
