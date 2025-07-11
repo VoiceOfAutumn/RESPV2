@@ -24,7 +24,7 @@ const PORT = 3000;
 // Test database connection on startup
 pool.query('SELECT NOW()').then(() => {
   console.log('✅ Database connected successfully');
-  console.log('✅ PostgreSQL session store configured');
+  console.log('🔧 Using MemoryStore for session debugging (PostgreSQL store disabled)');
 }).catch(err => {
   console.error('❌ Database connection failed:', err.message);
 });
@@ -44,16 +44,16 @@ app.use(cors({
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// Session config
+// Session config - Temporarily using MemoryStore for debugging
 app.use(session({
-  store: new pgSession({
-    pool: pool, // Use the existing database connection pool
-    tableName: 'session', // Session table name (will be created automatically)
-    createTableIfMissing: true, // Automatically create the session table
-    errorLog: (err) => {
-      console.error('❌ PostgreSQL session store error:', err);
-    }
-  }),
+  // store: new pgSession({
+  //   pool: pool, // Use the existing database connection pool
+  //   tableName: 'session', // Session table name (will be created automatically)
+  //   createTableIfMissing: true, // Automatically create the session table
+  //   errorLog: (err) => {
+  //     console.error('❌ PostgreSQL session store error:', err);
+  //   }
+  // }),
   secret: process.env.SESSION_SECRET,
   resave: false,
   saveUninitialized: false, // Don't save empty sessions
@@ -217,17 +217,7 @@ app.post('/login', async (req, res) => {
       console.log('- Session ID after save:', req.sessionID);
       console.log('- Full session after save:', req.session);
       console.log('- Setting Set-Cookie header for domain:', req.get('host'));
-      
-      // Verify session was actually saved to database
-      try {
-        const sessionCheck = await pool.query('SELECT * FROM session WHERE sid = $1', [req.sessionID]);
-        console.log('📋 Session in database:', sessionCheck.rows.length > 0 ? 'YES' : 'NO');
-        if (sessionCheck.rows.length > 0) {
-          console.log('📋 Session data in DB:', sessionCheck.rows[0]);
-        }
-      } catch (dbErr) {
-        console.error('❌ Error checking session in DB:', dbErr);
-      }
+      console.log('� Using MemoryStore - session will persist until server restart');
       
       res.status(200).json({
         message: "Login successful",
@@ -238,7 +228,8 @@ app.post('/login', async (req, res) => {
         },
         debug: {
           sessionId: req.sessionID,
-          userId: req.session.userId
+          userId: req.session.userId,
+          storeType: 'MemoryStore'
         }
       });
     });
