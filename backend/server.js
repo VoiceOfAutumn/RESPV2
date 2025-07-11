@@ -20,9 +20,14 @@ const cors = require('cors');
 const app = express();
 const PORT = 3000;
 
-// Use CORS with a specific origin (your frontend URL)
+// Use CORS with production and development origins
+const allowedOrigins = [
+  'http://localhost:3001', // Development frontend
+  process.env.FRONTEND_URL || 'https://respv2.onrender.com' // Production frontend
+].filter(Boolean);
+
 app.use(cors({ 
-  origin: 'http://localhost:3001', // replace with the URL of your frontend if different
+  origin: allowedOrigins,
   credentials: true, // Allow cookies to be sent if you're using sessions
 }));
 
@@ -37,7 +42,9 @@ app.use(session({
   saveUninitialized: true,
   cookie: {
     maxAge: null, // Session expires on browser close unless "remember me"
-    secure: false // Set to true if using HTTPS
+    secure: process.env.NODE_ENV === 'production', // Use secure cookies in production
+    sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax', // Allow cross-site cookies in production
+    httpOnly: true // Prevent XSS attacks
   }
 }));
 
@@ -229,7 +236,8 @@ app.post('/forgot-password', async (req, res) => {
       [token, email]
     );
 
-    const resetLink = `http://localhost:3000/reset-password?token=${token}`;
+    const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3001';
+    const resetLink = `${frontendUrl}/reset-password?token=${token}`;
 
     const { error } = await resend.emails.send({
       from: 'onboarding@resend.dev',
