@@ -1,7 +1,7 @@
 // API configuration for frontend
 // This will use the environment variable or fallback to localhost for development
 
-export const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://retrosports-backend.onrender.com';
+export const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://backend-6wqj.onrender.com';
 
 // Helper function for making API requests with proper error handling
 export async function apiRequest(endpoint: string, options: RequestInit = {}) {

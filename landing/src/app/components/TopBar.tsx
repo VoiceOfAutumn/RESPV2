@@ -50,7 +50,7 @@ export default function TopBar() {
 
   const handleLogout = async () => {
     try {
-      const res = await fetch('https://retrosports-backend.onrender.com/logout', {
+      const res = await fetch('https://backend-6wqj.onrender.com/logout', {
         method: 'POST',
         credentials: 'include',
       });

@@ -23,7 +23,7 @@ const Leaderboard = () => {
   useEffect(() => {
     const fetchLeaderboardData = async () => {
       try {
-        const response = await fetch('https://retrosports-backend.onrender.com/leaderboard', {
+        const response = await fetch('https://backend-6wqj.onrender.com/leaderboard', {
           method: 'GET',
           headers: {
             'Content-Type': 'application/json',

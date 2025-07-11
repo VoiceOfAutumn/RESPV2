@@ -42,7 +42,7 @@ export default function HybridBracket({
       setError(null);
       
       try {
-        const res = await fetch(`https://retrosports-backend.onrender.com/tournaments/${tournamentId}/participants`, {
+        const res = await fetch(`https://backend-6wqj.onrender.com/tournaments/${tournamentId}/participants`, {
           credentials: 'include'
         });
         

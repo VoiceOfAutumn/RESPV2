@@ -34,7 +34,7 @@ All frontend API calls have been successfully updated from `http://localhost:300
 
 ## Total Changes:
 - **29 API endpoints** updated across **16 files**
-- All `http://localhost:3000/` references changed to `https://retrosports-backend.onrender.com/`
+- All `http://localhost:3000/` references changed to `https://backend-6wqj.onrender.com/`
 - Environment configuration updated for production deployment
 
 ## Verification:
@@ -42,4 +42,4 @@ All frontend API calls have been successfully updated from `http://localhost:300
 ✅ All frontend API calls now point to production backend  
 ✅ Environment variables properly configured  
 
-The frontend is now ready for deployment and will communicate with the live backend at `https://retrosports-backend.onrender.com/`.
+The frontend is now ready for deployment and will communicate with the live backend at `https://backend-6wqj.onrender.com/`.

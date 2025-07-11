@@ -35,7 +35,7 @@ export default function TournamentDetailPage() {
   useEffect(() => {
     const fetchUser = async () => {
       try {
-        const res = await fetch('https://retrosports-backend.onrender.com/user/me', {
+        const res = await fetch('https://backend-6wqj.onrender.com/user/me', {
           credentials: 'include'
         });
         if (res.ok) {
@@ -49,7 +49,7 @@ export default function TournamentDetailPage() {
 
     const fetchTournament = async () => {
       try {
-        const res = await fetch(`https://retrosports-backend.onrender.com/tournaments/${id}`, {
+        const res = await fetch(`https://backend-6wqj.onrender.com/tournaments/${id}`, {
           credentials: 'include'
         });
         if (res.ok) {
@@ -71,7 +71,7 @@ export default function TournamentDetailPage() {
 
   const handleSignup = async () => {
     try {
-      const res = await fetch(`https://retrosports-backend.onrender.com/tournaments/${id}/signup`, {
+      const res = await fetch(`https://backend-6wqj.onrender.com/tournaments/${id}/signup`, {
         method: 'POST',
         credentials: 'include',
       });
@@ -106,7 +106,7 @@ export default function TournamentDetailPage() {
 
   const handleCancelSignup = async () => {
     try {
-      const res = await fetch(`https://retrosports-backend.onrender.com/tournaments/${id}/signup`, {
+      const res = await fetch(`https://backend-6wqj.onrender.com/tournaments/${id}/signup`, {
         method: 'DELETE',
         credentials: 'include',
       });

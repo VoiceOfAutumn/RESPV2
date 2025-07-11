@@ -125,7 +125,7 @@ export default function TournamentBracketPage() {
     // Fetch user data for permissions
     const fetchUser = async () => {
       try {
-        const res = await fetch('https://retrosports-backend.onrender.com/user/me', {
+        const res = await fetch('https://backend-6wqj.onrender.com/user/me', {
           credentials: 'include'
         });
         if (res.ok) {
@@ -140,7 +140,7 @@ export default function TournamentBracketPage() {
     // Fetch bracket data
     const fetchBracket = async () => {
       try {
-        const res = await fetch(`https://retrosports-backend.onrender.com/tournaments/${id}/bracket`, {
+        const res = await fetch(`https://backend-6wqj.onrender.com/tournaments/${id}/bracket`, {
           credentials: 'include'
         });
         
@@ -205,7 +205,7 @@ export default function TournamentBracketPage() {
         player2_name: match.player2_name
       });
 
-      const res = await fetch(`https://retrosports-backend.onrender.com/tournaments/${id}/matches/${matchId}`, {
+      const res = await fetch(`https://backend-6wqj.onrender.com/tournaments/${id}/matches/${matchId}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -227,7 +227,7 @@ export default function TournamentBracketPage() {
       console.log('Score update response:', responseData);
 
       // Refresh bracket data to show the updated results
-      const bracketRes = await fetch(`https://retrosports-backend.onrender.com/tournaments/${id}/bracket`, {
+      const bracketRes = await fetch(`https://backend-6wqj.onrender.com/tournaments/${id}/bracket`, {
         credentials: 'include'
       });
       if (!bracketRes.ok) throw new Error('Failed to refresh bracket');

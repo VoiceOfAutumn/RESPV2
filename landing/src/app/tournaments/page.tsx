@@ -74,7 +74,7 @@ export default function TournamentsPage() {
     const fetchUser = async () => {
       try {
         console.log('Fetching user data...');
-        const res = await fetch('https://retrosports-backend.onrender.com/user/me', {
+        const res = await fetch('https://backend-6wqj.onrender.com/user/me', {
           credentials: 'include'
         });
         console.log('Response status:', res.status);
@@ -100,7 +100,7 @@ export default function TournamentsPage() {
 
   useEffect(() => {
     setLoading(true);
-    fetch('https://retrosports-backend.onrender.com/tournaments', {
+    fetch('https://backend-6wqj.onrender.com/tournaments', {
       credentials: 'include'
     })
       .then(res => res.json())
@@ -120,7 +120,7 @@ export default function TournamentsPage() {
   const handleStatusChange = async (tournamentId: number, newStatus: string) => {
     try {
       console.log(`Attempting to change tournament ${tournamentId} status to ${newStatus}`);
-      const response = await fetch(`https://retrosports-backend.onrender.com/tournaments/${tournamentId}/status`, {
+      const response = await fetch(`https://backend-6wqj.onrender.com/tournaments/${tournamentId}/status`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -159,7 +159,7 @@ export default function TournamentsPage() {
   };  const handleGenerateBrackets = async (tournamentId: number) => {
     try {
       console.log(`Attempting to generate brackets for tournament ${tournamentId}`);
-      const response = await fetch(`https://retrosports-backend.onrender.com/tournaments/${tournamentId}/bracket/generate`, {
+      const response = await fetch(`https://backend-6wqj.onrender.com/tournaments/${tournamentId}/bracket/generate`, {
         method: 'POST',
         credentials: 'include',
       });
