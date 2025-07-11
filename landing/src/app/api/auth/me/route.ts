@@ -5,12 +5,28 @@ export async function GET(request: NextRequest) {
     // Get all cookies from the request
     const cookies = request.headers.get('cookie') || '';
     
+    // Get authorization header for token-based auth
+    const authorization = request.headers.get('authorization') || '';
+    
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+    };
+    
+    // Add cookies if they exist
+    if (cookies) {
+      headers['Cookie'] = cookies;
+    }
+    
+    // Add authorization header if it exists
+    if (authorization) {
+      headers['Authorization'] = authorization;
+    }
+    
+    console.log('API route forwarding headers:', headers);
+    
     const res = await fetch('https://backend-6wqj.onrender.com/user/me', {
       method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-        'Cookie': cookies
-      }
+      headers
     });
 
     if (!res.ok) {

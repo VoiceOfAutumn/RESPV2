@@ -20,9 +20,19 @@ export default function TopBar() {
         console.log('Document cookies:', document.cookie);
         console.log('Current domain:', window.location.hostname);
         
+        // Try auth token as backup if cookies don't work
+        const authToken = localStorage.getItem('authToken');
+        console.log('Auth token from storage:', authToken);
+        
+        const headers: Record<string, string> = {};
+        if (authToken) {
+          headers['Authorization'] = `Bearer ${authToken}`;
+        }
+        
         // Use the Next.js API route instead of direct backend call
         const response = await fetch('/api/auth/me', {
-          credentials: 'include'
+          credentials: 'include',
+          headers
         });
         
         console.log('Auth API response status:', response.status);
@@ -74,10 +84,11 @@ export default function TopBar() {
         method: 'POST',
       });
 
-      // Clear user state and redirect
+      // Clear user state and auth data
       setUser(null);
       localStorage.removeItem('user');
       localStorage.removeItem('justLoggedIn');
+      localStorage.removeItem('authToken'); // Clear auth token
       
       // Refresh the page after logging out
       window.location.href = '/';

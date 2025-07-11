@@ -218,10 +218,14 @@ app.post('/login', async (req, res) => {
     req.session.userId = user.id;
     req.session.email = user.email;
 
+    // Generate a simple auth token as backup for cross-origin authentication
+    const authToken = `${user.id}.${Date.now()}.${crypto.randomBytes(16).toString('hex')}`;
+
     console.log('🔐 Session created after login:');
     console.log('- Session ID:', req.sessionID);
     console.log('- User ID:', req.session.userId);
     console.log('- Email:', req.session.email);
+    console.log('- Auth token generated:', authToken);
     console.log('- Full session before save:', req.session);
     console.log('- Request headers:', req.headers);
     console.log('- Cookie before save:', req.headers.cookie);
@@ -240,13 +244,17 @@ app.post('/login', async (req, res) => {
       console.log('✅ Using PostgreSQL session store');
       
       // Manually set the session cookie if Express isn't doing it automatically
-      const cookieValue = `connect.sid=${req.sessionID}; Max-Age=86400; Path=/; HttpOnly; Secure; SameSite=None`;
-      res.setHeader('Set-Cookie', cookieValue);
+      // Try setting the cookie for both domains to see which one works
+      const cookieValueNoDomain = `connect.sid=${req.sessionID}; Max-Age=86400; Path=/; HttpOnly; Secure; SameSite=None`;
+      const cookieValueWithDomain = `connect.sid=${req.sessionID}; Max-Age=86400; Path=/; HttpOnly; Secure; SameSite=None; Domain=.onrender.com`;
+      
+      // Set multiple Set-Cookie headers to test both approaches
+      res.setHeader('Set-Cookie', [cookieValueNoDomain, cookieValueWithDomain]);
       
       // Manually check what headers are being set
       console.log('📤 Response headers being sent:');
-      console.log('- Set-Cookie:', res.getHeaders()['set-cookie']);
-      console.log('- Manual cookie value:', cookieValue);
+      console.log('- Set-Cookie (no domain):', cookieValueNoDomain);
+      console.log('- Set-Cookie (with domain):', cookieValueWithDomain);
       console.log('- All headers:', res.getHeaders());
       
       res.status(200).json({
@@ -255,7 +263,8 @@ app.post('/login', async (req, res) => {
           email: user.email,
           display_name: user.display_name,
           profile_picture: user.profile_picture || null
-        }
+        },
+        authToken: authToken // Backup token for cross-origin authentication
       });
     });
 
@@ -443,21 +452,53 @@ app.get('/user/me', async (req, res) => {
   console.log('- Session data:', req.session);
   console.log('- Request cookies:', req.headers.cookie);
   console.log('- User ID from session:', req.session.userId);
+  console.log('- Authorization header:', req.headers.authorization);
 
-  if (!req.session.userId) {
-    console.log('❌ No userId in session - returning 401');
+  let userId = null;
+
+  // Try session first
+  if (req.session.userId) {
+    userId = req.session.userId;
+    console.log('✅ Using session authentication, userId:', userId);
+  } 
+  // Try auth token as backup
+  else if (req.headers.authorization) {
+    const authToken = req.headers.authorization.replace('Bearer ', '');
+    console.log('🔑 Trying token authentication:', authToken);
+    
+    // Parse token (format: userId.timestamp.randomHex)
+    const tokenParts = authToken.split('.');
+    if (tokenParts.length === 3) {
+      const tokenUserId = parseInt(tokenParts[0]);
+      const timestamp = parseInt(tokenParts[1]);
+      const now = Date.now();
+      
+      // Check if token is not older than 24 hours
+      if (!isNaN(tokenUserId) && !isNaN(timestamp) && (now - timestamp) < 24 * 60 * 60 * 1000) {
+        userId = tokenUserId;
+        console.log('✅ Using token authentication, userId:', userId);
+      } else {
+        console.log('❌ Token expired or invalid');
+      }
+    } else {
+      console.log('❌ Token format invalid');
+    }
+  }
+
+  if (!userId) {
+    console.log('❌ No valid authentication found - returning 401');
     return res.status(401).json({ message: 'Not logged in' });
   }
 
   try {
     const result = await pool.query(
       'SELECT display_name, profile_picture, role FROM users WHERE id = $1',
-      [req.session.userId]
+      [userId]
     );
 
     const user = result.rows[0];
     if (!user) {
-      console.log('❌ User not found in database for ID:', req.session.userId);
+      console.log('❌ User not found in database for ID:', userId);
       return res.status(404).json({ message: 'User not found' });
     }
 

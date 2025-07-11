@@ -62,6 +62,12 @@ function LoginForm() {
       console.log('Login response:', data);
       console.log('Document cookies after login:', document.cookie);
 
+      // Store auth token as backup for cross-origin authentication
+      if (data.authToken) {
+        localStorage.setItem('authToken', data.authToken);
+        console.log('Auth token stored:', data.authToken);
+      }
+
       if (!response.ok) {
         throw new Error(data.message || 'Login failed');
       }
