@@ -45,7 +45,7 @@ function LoginForm() {
     setIsLoading(true);
 
     try {
-      const res = await apiRequest('/login', {
+      const data = await apiRequest('/login', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -53,28 +53,22 @@ function LoginForm() {
         body: JSON.stringify(formData),
       });
 
-      if (res.ok) {
-        const data = await res.json();
-        showToast({
-          title: 'Login Successful!',
-          message: `Welcome back, ${data.user.display_name}!`,
-          type: 'success'
-        });
-        
-        // Store the display name before redirecting
-        localStorage.setItem('justLoggedIn', data.user.display_name);
-        
-        // Redirect to homepage after a short delay
-        setTimeout(() => {
-          window.location.href = '/';
-        }, 1000);
-      } else {
-        const data = await res.json();
-        setMessage(`❌ ${data.message}`);
-      }
+      showToast({
+        title: 'Login Successful!',
+        message: `Welcome back, ${data.user.display_name}!`,
+        type: 'success'
+      });
+      
+      // Store the display name before redirecting
+      localStorage.setItem('justLoggedIn', data.user.display_name);
+      
+      // Redirect to homepage after a short delay
+      setTimeout(() => {
+        window.location.href = '/';
+      }, 1000);
     } catch (err) {
       console.error('Login error:', err);
-      setMessage('❌ Something went wrong. Please try again.');
+      setMessage(`❌ ${err.message || 'Something went wrong. Please try again.'}`);
     } finally {
       setIsLoading(false);
     }

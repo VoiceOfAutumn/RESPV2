@@ -226,7 +226,7 @@ export default function SignupPage() {
     setIsLoading(true);
 
     try {
-      const res = await apiRequest('/signup', {
+      const data = await apiRequest('/signup', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -237,25 +237,20 @@ export default function SignupPage() {
         }),
       });
 
-      if (res.ok) {
-        // Show success toast
-        showToast({
-          title: 'Registration Successful!',
-          message: 'Your account has been created. Please log in to continue.',
-          type: 'success'
-        });
-        
-        // Redirect to login page after a short delay
-        setTimeout(() => {
-          router.push('/login?registered=true');
-        }, 1000);
-      } else {
-        const data = await res.json();
-        setMessage(`❌ ${data.message}`);
-      }
+      // Show success toast
+      showToast({
+        title: 'Registration Successful!',
+        message: 'Your account has been created. Please log in to continue.',
+        type: 'success'
+      });
+      
+      // Redirect to login page after a short delay
+      setTimeout(() => {
+        router.push('/login?registered=true');
+      }, 1000);
     } catch (err) {
       console.error('Signup error:', err);
-      setMessage('❌ Something went wrong. Please try again.');
+      setMessage(`❌ ${err.message || 'Something went wrong. Please try again.'}`);
     } finally {
       setIsLoading(false);
     }
