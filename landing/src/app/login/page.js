@@ -1,22 +1,16 @@
 'use client'; 
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useToast } from '../components/ToastContext';
 import { apiRequest } from '@/lib/api';
 
-export default function LoginPage() {
-  const [formData, setFormData] = useState({
-    email: '',
-    password: ''
-  });
-  const [message, setMessage] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
-  const router = useRouter();
+// Separate component for handling search params
+function LoginSuccessHandler() {
   const searchParams = useSearchParams();
+  const router = useRouter();
   const { showToast } = useToast();
 
-  // Check if user was redirected from successful registration
   useEffect(() => {
     if (searchParams.get('registered') === 'true') {
       showToast({
@@ -28,6 +22,18 @@ export default function LoginPage() {
       router.replace('/login');
     }
   }, [searchParams, showToast, router]);
+
+  return null; // This component doesn't render anything
+}
+
+function LoginForm() {
+  const [formData, setFormData] = useState({
+    email: '',
+    password: ''
+  });
+  const [message, setMessage] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+  const { showToast } = useToast();
 
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -126,5 +132,14 @@ export default function LoginPage() {
         {message && <p className="mt-4 text-center text-white">{message}</p>}
       </div>
     </div>
+  );
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <LoginSuccessHandler />
+      <LoginForm />
+    </Suspense>
   );
 }
