@@ -64,6 +64,16 @@ app.use(session({
   }
 }));
 
+// Debug middleware to log all session activity
+app.use((req, res, next) => {
+  console.log(`🚦 ${req.method} ${req.path}`);
+  console.log('- Session ID:', req.sessionID);
+  console.log('- Session exists:', !!req.session);
+  console.log('- Session userId:', req.session?.userId);
+  console.log('- Request cookies:', req.headers.cookie);
+  next();
+});
+
 // ✅ Serve uploaded files statically
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
@@ -214,7 +224,7 @@ app.post('/login', async (req, res) => {
       console.log('- Session ID after save:', req.sessionID);
       console.log('- Full session after save:', req.session);
       console.log('- Setting Set-Cookie header for domain:', req.get('host'));
-      console.log('� Using MemoryStore - session will persist until server restart');
+      console.log('✅ Using PostgreSQL session store');
       
       res.status(200).json({
         message: "Login successful",
@@ -222,11 +232,6 @@ app.post('/login', async (req, res) => {
           email: user.email,
           display_name: user.display_name,
           profile_picture: user.profile_picture || null
-        },
-        debug: {
-          sessionId: req.sessionID,
-          userId: req.session.userId,
-          storeType: 'MemoryStore'
         }
       });
     });
@@ -410,7 +415,14 @@ app.put('/user/update', authMiddleware, async (req, res) => {
 // =================== GET user/me ==================
 
 app.get('/user/me', async (req, res) => {
+  console.log('🔍 /user/me endpoint called');
+  console.log('- Session ID:', req.sessionID);
+  console.log('- Session data:', req.session);
+  console.log('- Request cookies:', req.headers.cookie);
+  console.log('- User ID from session:', req.session.userId);
+
   if (!req.session.userId) {
+    console.log('❌ No userId in session - returning 401');
     return res.status(401).json({ message: 'Not logged in' });
   }
 
@@ -422,9 +434,11 @@ app.get('/user/me', async (req, res) => {
 
     const user = result.rows[0];
     if (!user) {
+      console.log('❌ User not found in database for ID:', req.session.userId);
       return res.status(404).json({ message: 'User not found' });
     }
 
+    console.log('✅ Auth check successful for user:', user.display_name);
     res.json({
       displayName: user.display_name,
       profile_picture: user.profile_picture,
