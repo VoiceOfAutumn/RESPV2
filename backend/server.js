@@ -45,7 +45,7 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 // Session config - Testing without domain restriction
-app.use(session({
+const sessionConfig = {
   store: new pgSession({
     pool: pool,
     tableName: 'session',
@@ -62,7 +62,19 @@ app.use(session({
     httpOnly: true
     // Temporarily remove domain to test if cookies get set at all
   }
-}));
+};
+
+console.log('📋 Session config:', sessionConfig);
+app.use(session(sessionConfig));
+
+// Test middleware to verify session middleware is working
+app.use((req, res, next) => {
+  console.log('🔧 Session middleware check:');
+  console.log('- Session object exists:', !!req.session);
+  console.log('- Session ID:', req.sessionID);
+  console.log('- Session store:', !!req.sessionStore);
+  next();
+});
 
 // Debug middleware to log session activity for /user/me and /login
 app.use((req, res, next) => {
@@ -227,9 +239,14 @@ app.post('/login', async (req, res) => {
       console.log('- Setting Set-Cookie header for domain:', req.get('host'));
       console.log('✅ Using PostgreSQL session store');
       
+      // Manually set the session cookie if Express isn't doing it automatically
+      const cookieValue = `connect.sid=${req.sessionID}; Max-Age=86400; Path=/; HttpOnly; Secure; SameSite=None`;
+      res.setHeader('Set-Cookie', cookieValue);
+      
       // Manually check what headers are being set
       console.log('📤 Response headers being sent:');
       console.log('- Set-Cookie:', res.getHeaders()['set-cookie']);
+      console.log('- Manual cookie value:', cookieValue);
       console.log('- All headers:', res.getHeaders());
       
       res.status(200).json({
