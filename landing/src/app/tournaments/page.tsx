@@ -134,11 +134,20 @@ export default function TournamentsPage() {
   const handleStatusChange = async (tournamentId: number, newStatus: string) => {
     try {
       console.log(`Attempting to change tournament ${tournamentId} status to ${newStatus}`);
+      
+      // Get auth token for authentication
+      const authToken = localStorage.getItem('authToken');
+      const headers: HeadersInit = {
+        'Content-Type': 'application/json',
+      };
+      
+      if (authToken) {
+        headers['Authorization'] = `Bearer ${authToken}`;
+      }
+
       const response = await fetch(`https://backend-6wqj.onrender.com/tournaments/${tournamentId}/status`, {
         method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers,
         credentials: 'include',
         body: JSON.stringify({ status: newStatus })
       });      console.log('Status change response:', response.status);
@@ -173,8 +182,18 @@ export default function TournamentsPage() {
   };  const handleGenerateBrackets = async (tournamentId: number) => {
     try {
       console.log(`Attempting to generate brackets for tournament ${tournamentId}`);
+      
+      // Get auth token for authentication
+      const authToken = localStorage.getItem('authToken');
+      const headers: HeadersInit = {};
+      
+      if (authToken) {
+        headers['Authorization'] = `Bearer ${authToken}`;
+      }
+
       const response = await fetch(`https://backend-6wqj.onrender.com/tournaments/${tournamentId}/bracket/generate`, {
         method: 'POST',
+        headers,
         credentials: 'include',
       });
 

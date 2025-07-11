@@ -48,11 +48,19 @@ export default function TournamentSeeding({
     setIsSubmitting(true);
 
     try {
+      // Get auth token for authentication
+      const authToken = localStorage.getItem('authToken');
+      const headers: HeadersInit = {
+        'Content-Type': 'application/json',
+      };
+      
+      if (authToken) {
+        headers['Authorization'] = `Bearer ${authToken}`;
+      }
+
       const res = await fetch(`https://backend-6wqj.onrender.com/tournaments/${tournamentId}/seeds`, {
         method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers,
         credentials: 'include',        body: JSON.stringify({
           seeds: Object.fromEntries(participants.map(p => [p.id, p.seed]))
         }),

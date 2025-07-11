@@ -17,11 +17,19 @@ export default function TournamentStaffControls({ tournament, setTournament }: P
     setIsUpdating(true);
 
     try {
+      // Get auth token for authentication
+      const authToken = localStorage.getItem('authToken');
+      const headers: HeadersInit = {
+        'Content-Type': 'application/json',
+      };
+      
+      if (authToken) {
+        headers['Authorization'] = `Bearer ${authToken}`;
+      }
+
       const res = await fetch(`https://backend-6wqj.onrender.com/tournaments/${tournament.id}/status`, {
         method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers,
         credentials: 'include',
         body: JSON.stringify({ status: newStatus }),
       });      if (res.ok) {
@@ -53,11 +61,19 @@ export default function TournamentStaffControls({ tournament, setTournament }: P
     setIsUpdating(true);
 
     try {
+      // Get auth token for authentication
+      const authToken = localStorage.getItem('authToken');
+      const headers: HeadersInit = {
+        'Content-Type': 'application/json',
+      };
+      
+      if (authToken) {
+        headers['Authorization'] = `Bearer ${authToken}`;
+      }
+
       const res = await fetch(`https://backend-6wqj.onrender.com/tournaments/${tournament.id}/bracket/generate`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers,
         credentials: 'include',
       });
 

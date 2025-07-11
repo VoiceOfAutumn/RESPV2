@@ -102,9 +102,19 @@ export default function UserSettings() {
         }
       }
 
+      // Get auth token for authentication
+      const authToken = localStorage.getItem('authToken');
+      const headers: HeadersInit = {
+        'Content-Type': 'application/json',
+      };
+      
+      if (authToken) {
+        headers['Authorization'] = `Bearer ${authToken}`;
+      }
+
       const res = await fetch('https://backend-6wqj.onrender.com/user/update', {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
+        headers,
         body: JSON.stringify({ [field]: userData[field] }),
         credentials: 'include',
       });

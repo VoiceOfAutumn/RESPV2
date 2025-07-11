@@ -85,8 +85,17 @@ export default function TournamentDetailPage() {
 
   const handleSignup = async () => {
     try {
+      // Get auth token for authentication
+      const authToken = localStorage.getItem('authToken');
+      const headers: HeadersInit = {};
+      
+      if (authToken) {
+        headers['Authorization'] = `Bearer ${authToken}`;
+      }
+
       const res = await fetch(`https://backend-6wqj.onrender.com/tournaments/${id}/signup`, {
         method: 'POST',
+        headers,
         credentials: 'include',
       });
       
@@ -120,8 +129,17 @@ export default function TournamentDetailPage() {
 
   const handleCancelSignup = async () => {
     try {
+      // Get auth token for authentication
+      const authToken = localStorage.getItem('authToken');
+      const headers: HeadersInit = {};
+      
+      if (authToken) {
+        headers['Authorization'] = `Bearer ${authToken}`;
+      }
+
       const res = await fetch(`https://backend-6wqj.onrender.com/tournaments/${id}/signup`, {
         method: 'DELETE',
+        headers,
         credentials: 'include',
       });
       
