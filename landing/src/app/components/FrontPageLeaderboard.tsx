@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
+import { apiRequest } from '@/lib/api';
 
 interface LeaderboardEntry {
   display_name: string;
@@ -18,18 +19,7 @@ const FrontPageLeaderboard = () => {
   useEffect(() => {
     const fetchLeaderboardData = async () => {
       try {
-        const response = await fetch('https://backend-6wqj.onrender.com/leaderboard', {
-          method: 'GET',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-        });
-
-        if (!response.ok) {
-          throw new Error('Failed to fetch leaderboard data');
-        }
-
-        const data = await response.json();
+        const data = await apiRequest('/leaderboard');
         setLeaderboardData(data.slice(0, 10));
         setLoading(false);
       } catch (err) {

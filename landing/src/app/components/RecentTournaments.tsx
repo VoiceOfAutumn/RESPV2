@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
+import { apiRequest } from '@/lib/api';
 
 interface Tournament {
   id: number;
@@ -19,11 +20,7 @@ const RecentTournaments = () => {
   useEffect(() => {
     const fetchTournaments = async () => {
       try {
-        const response = await fetch('https://backend-6wqj.onrender.com/tournaments');
-        if (!response.ok) {
-          throw new Error('Failed to fetch tournaments');
-        }
-        const data: Tournament[] = await response.json();
+        const data: Tournament[] = await apiRequest('/tournaments');
         // Sort by tournament ID (most recent first) and take the latest 3
         const sortedTournaments = data
           .sort((a, b) => b.id - a.id)

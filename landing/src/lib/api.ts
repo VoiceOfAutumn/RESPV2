@@ -18,17 +18,26 @@ export async function apiRequest(endpoint: string, options: RequestInit = {}) {
   const mergedOptions = { ...defaultOptions, ...options };
 
   try {
+    console.log(`Making API request to: ${url}`);
     const response = await fetch(url, mergedOptions);
     
+    console.log(`API response status: ${response.status} for ${endpoint}`);
+    
     if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
+      const errorText = await response.text();
+      console.error(`API error for ${endpoint}:`, errorText);
+      throw new Error(`HTTP error! status: ${response.status}, message: ${errorText}`);
     }
 
     // Try to parse as JSON, fall back to text if it fails
     try {
-      return await response.json();
+      const data = await response.json();
+      console.log(`API success for ${endpoint}:`, data);
+      return data;
     } catch {
-      return await response.text();
+      const text = await response.text();
+      console.log(`API success (text) for ${endpoint}:`, text);
+      return text;
     }
   } catch (error) {
     console.error(`API request failed for ${endpoint}:`, error);

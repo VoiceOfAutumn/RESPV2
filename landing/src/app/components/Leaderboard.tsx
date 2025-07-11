@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { apiRequest } from '@/lib/api';
 
 
 interface LeaderboardEntry {
@@ -23,18 +24,7 @@ const Leaderboard = () => {
   useEffect(() => {
     const fetchLeaderboardData = async () => {
       try {
-        const response = await fetch('https://backend-6wqj.onrender.com/leaderboard', {
-          method: 'GET',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-        });
-
-        if (!response.ok) {
-          throw new Error('Failed to fetch leaderboard data');
-        }
-
-        const data = await response.json();
+        const data = await apiRequest('/leaderboard');
         setLeaderboardData(data);
         setLoading(false);
       } catch (err) {
