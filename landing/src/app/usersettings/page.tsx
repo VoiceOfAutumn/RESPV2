@@ -32,7 +32,17 @@ export default function UserSettings() {
     if (!isClient) return; // Wait until we are on the client
 
     const fetchUserSettings = async () => {
-      try {        const res = await fetch('https://backend-6wqj.onrender.com/usersettings', {
+      try {
+        // Get auth token for authentication
+        const authToken = localStorage.getItem('authToken');
+        const headers: HeadersInit = {};
+        
+        if (authToken) {
+          headers['Authorization'] = `Bearer ${authToken}`;
+        }
+
+        const res = await fetch('https://backend-6wqj.onrender.com/usersettings', {
+          headers,
           credentials: 'include', // Ensure the session cookie is included
         });
 
@@ -56,7 +66,16 @@ export default function UserSettings() {
 
     const fetchCountries = async () => {
       try {
+        // Get auth token for authentication
+        const authToken = localStorage.getItem('authToken');
+        const headers: HeadersInit = {};
+        
+        if (authToken) {
+          headers['Authorization'] = `Bearer ${authToken}`;
+        }
+
         const res = await fetch('https://backend-6wqj.onrender.com/countries', {
+          headers,
           credentials: 'include',
         });
         if (!res.ok) throw new Error('Failed to fetch countries');
