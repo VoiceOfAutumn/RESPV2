@@ -18,6 +18,9 @@ export default function TopBar() {
       try {
         // Try direct backend call first to test
         console.log('Checking auth status...');
+        console.log('Document cookies:', document.cookie);
+        console.log('Current domain:', window.location.hostname);
+        
         const data = await apiRequest('/user/me');
         console.log('Direct backend response:', data);
         
@@ -31,6 +34,7 @@ export default function TopBar() {
         }
       } catch (error) {
         console.error('Auth check failed:', error);
+        console.log('Document cookies after error:', document.cookie);
         setUser(null);
       }
     };
