@@ -65,21 +65,10 @@ function LoginForm() {
       // Store the display name before redirecting
       localStorage.setItem('justLoggedIn', data.user.display_name);
       
-      // Test immediate auth check
-      setTimeout(async () => {
-        try {
-          console.log('Testing immediate auth check...');
-          const authData = await apiRequest('/user/me');
-          console.log('Immediate auth check result:', authData);
-        } catch (err) {
-          console.error('Immediate auth check failed:', err);
-        }
-      }, 500);
-      
-      // Redirect to homepage after a short delay
+      // Use router for navigation to preserve session cookies
       setTimeout(() => {
         window.location.href = '/';
-      }, 2000);
+      }, 1000);
     } catch (err) {
       console.error('Login error:', err);
       setMessage(`❌ ${err.message || 'Something went wrong. Please try again.'}`);

@@ -24,7 +24,7 @@ const PORT = 3000;
 // Test database connection on startup
 pool.query('SELECT NOW()').then(() => {
   console.log('✅ Database connected successfully');
-  console.log('🔧 Using MemoryStore for session debugging (PostgreSQL store disabled)');
+  console.log('✅ PostgreSQL session store configured');
 }).catch(err => {
   console.error('❌ Database connection failed:', err.message);
 });
@@ -44,7 +44,7 @@ app.use(cors({
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// Session config - Production fix
+// Session config - Fixed for cross-origin
 app.use(session({
   store: new pgSession({
     pool: pool,
@@ -59,8 +59,8 @@ app.use(session({
     maxAge: 24 * 60 * 60 * 1000,
     secure: process.env.NODE_ENV === 'production',
     sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
-    httpOnly: true,
-    domain: process.env.NODE_ENV === 'production' ? '.onrender.com' : undefined
+    httpOnly: true
+    // Removed domain restriction - let cookies work naturally
   }
 }));
 
@@ -246,64 +246,6 @@ app.post('/logout', (req, res) => {
     res.clearCookie('connect.sid');
     res.status(200).json({ message: "Logged out successfully" });
   });
-});
-
-// ================== SESSION TEST (for debugging) ==================
-app.get('/session-test', (req, res) => {
-  console.log('\n=== SESSION TEST ===');
-  console.log('Session ID:', req.sessionID);
-  console.log('Session exists:', !!req.session);
-  console.log('Session data:', req.session);
-  console.log('Cookie header:', req.headers.cookie);
-  console.log('User agent:', req.headers['user-agent']);
-  
-  // Test session storage
-  req.session.testData = 'test-value-' + Date.now();
-  req.session.save((err) => {
-    if (err) {
-      console.error('❌ Session save test failed:', err);
-      return res.status(500).json({ error: 'Session save failed', details: err.message });
-    }
-    
-    console.log('✅ Session test data saved successfully');
-    res.json({
-      sessionId: req.sessionID,
-      sessionData: req.session,
-      hasUserId: !!req.session?.userId,
-      userId: req.session?.userId,
-      testData: req.session.testData
-    });
-  });
-});
-
-// ================== SESSION DB TEST ==================
-app.get('/session-db-test', async (req, res) => {
-  try {
-    console.log('\n=== SESSION DB TEST ===');
-    
-    // Check if session table exists and has data
-    const tableCheck = await pool.query(`
-      SELECT table_name 
-      FROM information_schema.tables 
-      WHERE table_schema = 'public' AND table_name = 'session'
-    `);
-    
-    console.log('Session table exists:', tableCheck.rows.length > 0);
-    
-    if (tableCheck.rows.length > 0) {
-      const sessionData = await pool.query('SELECT * FROM session ORDER BY expire DESC LIMIT 5');
-      console.log('Recent sessions in DB:', sessionData.rows.length);
-      console.log('Session table data:', sessionData.rows);
-    }
-    
-    res.json({
-      tableExists: tableCheck.rows.length > 0,
-      recentSessions: tableCheck.rows.length > 0 ? await pool.query('SELECT sid, expire FROM session ORDER BY expire DESC LIMIT 5').then(r => r.rows) : []
-    });
-  } catch (err) {
-    console.error('❌ Session DB test error:', err);
-    res.status(500).json({ error: err.message });
-  }
 });
 
 // ================== FORGOT PASSWORD ==================
