@@ -285,6 +285,7 @@ app.post('/forgot-password', async (req, res) => {
   }
 
   email = email.toLowerCase();
+  console.log('🔍 Forgot password request for email:', email);
 
   try {
     const userResult = await pool.query(
@@ -295,35 +296,67 @@ app.post('/forgot-password', async (req, res) => {
     const user = userResult.rows[0];
 
     if (!user) {
+      console.log('❌ User not found for email:', email);
       return res.status(400).json({ message: "Email not found" });
     }
 
+    console.log('✅ User found:', user.display_name);
+
     const token = crypto.randomBytes(32).toString('hex');
+    console.log('🔑 Generated reset token:', token);
 
     await pool.query(
       'UPDATE users SET reset_token = $1, reset_token_expiry = NOW() + interval \'1 hour\' WHERE email = $2',
       [token, email]
     );
 
-    const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3001';
+    console.log('✅ Token saved to database');
+
+    const frontendUrl = process.env.FRONTEND_URL || 'https://respv2.onrender.com';
     const resetLink = `${frontendUrl}/reset-password?token=${token}`;
 
-    const { error } = await resend.emails.send({
+    console.log('📧 Attempting to send email to:', email);
+    console.log('🔗 Reset link:', resetLink);
+    console.log('📤 From address: onboarding@resend.dev');
+    console.log('🔑 Using Resend API key:', process.env.RESEND_API_KEY ? 'Present' : 'Missing');
+
+    const emailResult = await resend.emails.send({
       from: 'onboarding@resend.dev',
       to: email,
-      subject: 'Password Reset',
-      html: `<p>Click the link below to reset your password:</p><a href="${resetLink}">${resetLink}</a>`
+      subject: 'Password Reset - RESPV2',
+      html: `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+          <h2 style="color: #333;">Password Reset Request</h2>
+          <p>You requested a password reset for your RESPV2 account.</p>
+          <p>Click the link below to reset your password:</p>
+          <a href="${resetLink}" style="background-color: #7c3aed; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px;">Reset Password</a>
+          <p>This link will expire in 1 hour.</p>
+          <p>If you didn't request this, please ignore this email.</p>
+        </div>
+      `
     });
 
-    if (error) {
-      console.error(error);
-      return res.status(500).json({ message: "Failed to send email" });
+    console.log('📬 Resend API response:', emailResult);
+
+    if (emailResult.error) {
+      console.error('❌ Resend API error:', emailResult.error);
+      console.error('❌ Error details:', JSON.stringify(emailResult.error, null, 2));
+      console.error('❌ Error type:', typeof emailResult.error);
+      console.error('❌ Error message:', emailResult.error.message);
+      return res.status(500).json({ 
+        message: "Failed to send email", 
+        error: emailResult.error.message,
+        details: emailResult.error
+      });
     }
 
+    console.log('✅ Email sent successfully to:', email);
+    console.log('✅ Email ID:', emailResult.data?.id);
     res.status(200).json({ message: "Password reset email sent!" });
   } catch (err) {
-    console.error(err);
-    res.status(500).json({ message: "Internal server error" });
+    console.error('❌ Forgot password error:', err);
+    console.error('❌ Error stack:', err.stack);
+    res.status(500).json({ message: "Internal server error", error: err.message });
   }
 });
 
