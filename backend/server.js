@@ -49,7 +49,10 @@ app.use(session({
   store: new pgSession({
     pool: pool, // Use the existing database connection pool
     tableName: 'session', // Session table name (will be created automatically)
-    createTableIfMissing: true // Automatically create the session table
+    createTableIfMissing: true, // Automatically create the session table
+    errorLog: (err) => {
+      console.error('❌ PostgreSQL session store error:', err);
+    }
   }),
   secret: process.env.SESSION_SECRET,
   resave: false,
@@ -199,12 +202,12 @@ app.post('/login', async (req, res) => {
     console.log('- Session ID:', req.sessionID);
     console.log('- User ID:', req.session.userId);
     console.log('- Email:', req.session.email);
-    console.log('- Full session:', req.session);
+    console.log('- Full session before save:', req.session);
     console.log('- Request headers:', req.headers);
     console.log('- Cookie before save:', req.headers.cookie);
 
     // Explicitly save the session
-    req.session.save((err) => {
+    req.session.save(async (err) => {
       if (err) {
         console.error('❌ Session save error:', err);
         return res.status(500).json({ message: "Session save failed" });
@@ -212,7 +215,19 @@ app.post('/login', async (req, res) => {
       
       console.log('✅ Session saved successfully');
       console.log('- Session ID after save:', req.sessionID);
+      console.log('- Full session after save:', req.session);
       console.log('- Setting Set-Cookie header for domain:', req.get('host'));
+      
+      // Verify session was actually saved to database
+      try {
+        const sessionCheck = await pool.query('SELECT * FROM session WHERE sid = $1', [req.sessionID]);
+        console.log('📋 Session in database:', sessionCheck.rows.length > 0 ? 'YES' : 'NO');
+        if (sessionCheck.rows.length > 0) {
+          console.log('📋 Session data in DB:', sessionCheck.rows[0]);
+        }
+      } catch (dbErr) {
+        console.error('❌ Error checking session in DB:', dbErr);
+      }
       
       res.status(200).json({
         message: "Login successful",
@@ -254,12 +269,53 @@ app.get('/session-test', (req, res) => {
   console.log('Cookie header:', req.headers.cookie);
   console.log('User agent:', req.headers['user-agent']);
   
-  res.json({
-    sessionId: req.sessionID,
-    sessionData: req.session,
-    hasUserId: !!req.session?.userId,
-    userId: req.session?.userId
+  // Test session storage
+  req.session.testData = 'test-value-' + Date.now();
+  req.session.save((err) => {
+    if (err) {
+      console.error('❌ Session save test failed:', err);
+      return res.status(500).json({ error: 'Session save failed', details: err.message });
+    }
+    
+    console.log('✅ Session test data saved successfully');
+    res.json({
+      sessionId: req.sessionID,
+      sessionData: req.session,
+      hasUserId: !!req.session?.userId,
+      userId: req.session?.userId,
+      testData: req.session.testData
+    });
   });
+});
+
+// ================== SESSION DB TEST ==================
+app.get('/session-db-test', async (req, res) => {
+  try {
+    console.log('\n=== SESSION DB TEST ===');
+    
+    // Check if session table exists and has data
+    const tableCheck = await pool.query(`
+      SELECT table_name 
+      FROM information_schema.tables 
+      WHERE table_schema = 'public' AND table_name = 'session'
+    `);
+    
+    console.log('Session table exists:', tableCheck.rows.length > 0);
+    
+    if (tableCheck.rows.length > 0) {
+      const sessionData = await pool.query('SELECT * FROM session ORDER BY expire DESC LIMIT 5');
+      console.log('Recent sessions in DB:', sessionData.rows.length);
+      console.log('Session table data:', sessionData.rows);
+    }
+    
+    res.json({
+      tableExists: tableCheck.rows.length > 0,
+      recentSessions: tableCheck.rows.length > 0 ? await pool.query('SELECT sid, expire FROM session ORDER BY expire DESC LIMIT 5').then(r => r.rows) : []
+    });
+  } catch (err) {
+    console.error('❌ Session DB test error:', err);
+    res.status(500).json({ error: err.message });
+  }
 });
 
 // ================== FORGOT PASSWORD ==================
