@@ -44,7 +44,7 @@ app.use(cors({
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// Session config - Fixed for cross-origin
+// Session config - Fixed for cross-origin with specific domain
 app.use(session({
   store: new pgSession({
     pool: pool,
@@ -59,8 +59,8 @@ app.use(session({
     maxAge: 24 * 60 * 60 * 1000,
     secure: true, // Always secure in production (HTTPS required)
     sameSite: 'none', // Required for cross-origin cookies
-    httpOnly: true
-    // Removed domain restriction - let cookies work naturally
+    httpOnly: true,
+    domain: '.onrender.com' // Allow cookie to work across onrender.com subdomains
   }
 }));
 

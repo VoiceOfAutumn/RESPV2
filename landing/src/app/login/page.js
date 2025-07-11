@@ -65,7 +65,7 @@ function LoginForm() {
       // Store the display name before redirecting
       localStorage.setItem('justLoggedIn', data.user.display_name);
       
-      // Use router for navigation to preserve session cookies
+      // Force a page reload to ensure session cookies are properly recognized
       setTimeout(() => {
         window.location.href = '/';
       }, 1000);

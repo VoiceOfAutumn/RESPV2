@@ -16,20 +16,31 @@ export default function TopBar() {
     // Fetch authentication status from the API
     const checkAuth = async () => {
       try {
-        // Try direct backend call first to test
         console.log('Checking auth status...');
         console.log('Document cookies:', document.cookie);
         console.log('Current domain:', window.location.hostname);
         
-        const data = await apiRequest('/user/me');
-        console.log('Direct backend response:', data);
+        // Use the Next.js API route instead of direct backend call
+        const response = await fetch('/api/auth/me', {
+          credentials: 'include'
+        });
         
-        if (data && data.displayName) {
-          setUser({
-            displayName: data.displayName,
-            profile_picture: data.profile_picture,
-          });
+        console.log('Auth API response status:', response.status);
+        
+        if (response.ok) {
+          const data = await response.json();
+          console.log('Auth API response data:', data);
+          
+          if (data.isLoggedIn && data.user) {
+            setUser({
+              displayName: data.user.displayName,
+              profile_picture: data.user.profile_picture,
+            });
+          } else {
+            setUser(null);
+          }
         } else {
+          console.log('Auth check failed with status:', response.status);
           setUser(null);
         }
       } catch (error) {
@@ -58,6 +69,7 @@ export default function TopBar() {
 
   const handleLogout = async () => {
     try {
+      // Use direct backend call for logout since we need to destroy the session
       await apiRequest('/logout', {
         method: 'POST',
       });
