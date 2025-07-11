@@ -5,6 +5,7 @@ require('dotenv').config();
 const express = require('express');
 const bcrypt = require('bcryptjs');
 const session = require('express-session');
+const pgSession = require('connect-pg-simple')(session);
 const crypto = require('crypto');
 const { Resend } = require('resend');
 const pool = require('./db');
@@ -23,6 +24,7 @@ const PORT = 3000;
 // Test database connection on startup
 pool.query('SELECT NOW()').then(() => {
   console.log('✅ Database connected successfully');
+  console.log('✅ PostgreSQL session store configured');
 }).catch(err => {
   console.error('❌ Database connection failed:', err.message);
 });
@@ -44,11 +46,16 @@ app.use(express.urlencoded({ extended: true }));
 
 // Session config
 app.use(session({
+  store: new pgSession({
+    pool: pool, // Use the existing database connection pool
+    tableName: 'session', // Session table name (will be created automatically)
+    createTableIfMissing: true // Automatically create the session table
+  }),
   secret: process.env.SESSION_SECRET,
   resave: false,
-  saveUninitialized: true,
+  saveUninitialized: false, // Don't save empty sessions
   cookie: {
-    maxAge: null, // Session expires on browser close unless "remember me"
+    maxAge: 24 * 60 * 60 * 1000, // 24 hours (1 day) for session persistence
     secure: process.env.NODE_ENV === 'production', // Use secure cookies in production
     sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax', // Allow cross-site cookies in production
     httpOnly: true // Prevent XSS attacks
