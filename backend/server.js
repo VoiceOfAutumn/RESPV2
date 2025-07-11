@@ -57,20 +57,21 @@ app.use(session({
   name: 'connect.sid',
   cookie: {
     maxAge: 24 * 60 * 60 * 1000,
-    secure: process.env.NODE_ENV === 'production',
-    sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
+    secure: true, // Always secure in production (HTTPS required)
+    sameSite: 'none', // Required for cross-origin cookies
     httpOnly: true
     // Removed domain restriction - let cookies work naturally
   }
 }));
 
-// Debug middleware to log all session activity
+// Debug middleware to log session activity for /user/me and /login
 app.use((req, res, next) => {
-  console.log(`🚦 ${req.method} ${req.path}`);
-  console.log('- Session ID:', req.sessionID);
-  console.log('- Session exists:', !!req.session);
-  console.log('- Session userId:', req.session?.userId);
-  console.log('- Request cookies:', req.headers.cookie);
+  if (req.path === '/user/me' || req.path === '/login') {
+    console.log(`🚦 ${req.method} ${req.path}`);
+    console.log('- Session ID:', req.sessionID);
+    console.log('- Session userId:', req.session?.userId);
+    console.log('- Has cookies:', !!req.headers.cookie);
+  }
   next();
 });
 
