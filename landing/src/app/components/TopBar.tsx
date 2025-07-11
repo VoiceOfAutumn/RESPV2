@@ -16,11 +16,15 @@ export default function TopBar() {
     // Fetch authentication status from the API
     const checkAuth = async () => {
       try {
-        const data = await apiRequest('/api/auth/me');
-        if (data.isLoggedIn && data.user) {
+        // Try direct backend call first to test
+        console.log('Checking auth status...');
+        const data = await apiRequest('/user/me');
+        console.log('Direct backend response:', data);
+        
+        if (data && data.displayName) {
           setUser({
-            displayName: data.user.displayName,
-            profile_picture: data.user.profile_picture,
+            displayName: data.displayName,
+            profile_picture: data.profile_picture,
           });
         } else {
           setUser(null);
