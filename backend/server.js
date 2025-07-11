@@ -57,10 +57,10 @@ app.use(session({
   name: 'connect.sid', // Explicit session cookie name
   cookie: {
     maxAge: 24 * 60 * 60 * 1000, // 24 hours (1 day) for session persistence
-    secure: process.env.NODE_ENV === 'production', // Use secure cookies in production
-    sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax', // Allow cross-site cookies in production
+    secure: false, // Temporarily disable secure for testing
+    sameSite: 'lax', // Use lax instead of none for now
     httpOnly: true, // Prevent XSS attacks
-    domain: process.env.NODE_ENV === 'production' ? '.onrender.com' : undefined // Allow domain sharing in production
+    // Remove domain restriction for now to test
   }
 }));
 
@@ -200,6 +200,8 @@ app.post('/login', async (req, res) => {
     console.log('- User ID:', req.session.userId);
     console.log('- Email:', req.session.email);
     console.log('- Full session:', req.session);
+    console.log('- Request headers:', req.headers);
+    console.log('- Cookie before save:', req.headers.cookie);
 
     // Explicitly save the session
     req.session.save((err) => {
@@ -209,12 +211,19 @@ app.post('/login', async (req, res) => {
       }
       
       console.log('✅ Session saved successfully');
+      console.log('- Session ID after save:', req.sessionID);
+      console.log('- Setting Set-Cookie header for domain:', req.get('host'));
+      
       res.status(200).json({
         message: "Login successful",
         user: {
           email: user.email,
           display_name: user.display_name,
           profile_picture: user.profile_picture || null
+        },
+        debug: {
+          sessionId: req.sessionID,
+          userId: req.session.userId
         }
       });
     });
@@ -420,12 +429,24 @@ app.get('/user/me', async (req, res) => {
   console.log('Session data:', req.session);
   console.log('User ID from session:', req.session?.userId);
   console.log('Session store status:', req.session ? 'exists' : 'missing');
-  console.log('Headers:', req.headers);
-  console.log('Cookies:', req.headers.cookie);
+  console.log('All request headers:', req.headers);
+  console.log('Cookie header specifically:', req.headers.cookie);
+  console.log('Host header:', req.headers.host);
+  console.log('Origin header:', req.headers.origin);
+  console.log('Referer header:', req.headers.referer);
+  console.log('User-Agent:', req.headers['user-agent']);
   
   if (!req.session.userId) {
     console.log('❌ No userId in session - returning 401');
-    return res.status(401).json({ message: 'Not logged in' });
+    console.log('❌ Available session keys:', Object.keys(req.session || {}));
+    return res.status(401).json({ 
+      message: 'Not logged in',
+      debug: {
+        sessionId: req.sessionID,
+        sessionExists: !!req.session,
+        sessionKeys: Object.keys(req.session || {})
+      }
+    });
   }
 
   try {
