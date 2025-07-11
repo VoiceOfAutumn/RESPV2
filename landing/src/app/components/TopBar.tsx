@@ -7,7 +7,7 @@ import { useRouter } from 'next/navigation';
 import { apiRequest } from '@/lib/api';
 
 export default function TopBar() {
-  const [user, setUser] = useState<{ displayName: string; profile_picture?: string | null } | null>(null);
+  const [user, setUser] = useState<{ displayName: string; profile_picture?: string | null; role?: string } | null>(null);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement | null>(null);
   const router = useRouter();
@@ -45,7 +45,9 @@ export default function TopBar() {
             setUser({
               displayName: data.user.displayName,
               profile_picture: data.user.profile_picture,
+              role: data.user.role
             });
+            console.log('TopBar - User role set:', data.user.role);
           } else {
             setUser(null);
           }

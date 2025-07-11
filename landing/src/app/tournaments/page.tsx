@@ -74,14 +74,28 @@ export default function TournamentsPage() {
     const fetchUser = async () => {
       try {
         console.log('Fetching user data...');
-        const res = await fetch('https://backend-6wqj.onrender.com/user/me', {
-          credentials: 'include'
+        // Use the same auth method as TopBar - through Next.js API route
+        const authToken = localStorage.getItem('authToken');
+        const headers: Record<string, string> = {};
+        if (authToken) {
+          headers['Authorization'] = `Bearer ${authToken}`;
+        }
+        
+        const res = await fetch('/api/auth/me', {
+          credentials: 'include',
+          headers
         });
+        
         console.log('Response status:', res.status);
         if (res.ok) {
           const userData = await res.json();
           console.log('User data:', userData);
-          setUser(userData);
+          if (userData.isLoggedIn && userData.user) {
+            setUser({
+              role: userData.user.role
+            });
+            console.log('Tournaments page - User role:', userData.user.role);
+          }
         } else {
           console.log('Failed to fetch user data:', await res.text());
         }
