@@ -44,26 +44,23 @@ app.use(cors({
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// Session config - Temporarily using MemoryStore for debugging
+// Session config - Production fix
 app.use(session({
-  // store: new pgSession({
-  //   pool: pool, // Use the existing database connection pool
-  //   tableName: 'session', // Session table name (will be created automatically)
-  //   createTableIfMissing: true, // Automatically create the session table
-  //   errorLog: (err) => {
-  //     console.error('❌ PostgreSQL session store error:', err);
-  //   }
-  // }),
+  store: new pgSession({
+    pool: pool,
+    tableName: 'session',
+    createTableIfMissing: true
+  }),
   secret: process.env.SESSION_SECRET,
   resave: false,
-  saveUninitialized: false, // Don't save empty sessions
-  name: 'connect.sid', // Explicit session cookie name
+  saveUninitialized: false,
+  name: 'connect.sid',
   cookie: {
-    maxAge: 24 * 60 * 60 * 1000, // 24 hours (1 day) for session persistence
-    secure: false, // Temporarily disable secure for testing
-    sameSite: 'lax', // Use lax instead of none for now
-    httpOnly: true, // Prevent XSS attacks
-    // Remove domain restriction for now to test
+    maxAge: 24 * 60 * 60 * 1000,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
+    httpOnly: true,
+    domain: process.env.NODE_ENV === 'production' ? '.onrender.com' : undefined
   }
 }));
 
@@ -471,33 +468,11 @@ app.put('/user/update', authMiddleware, async (req, res) => {
 // =================== GET user/me ==================
 
 app.get('/user/me', async (req, res) => {
-  console.log('\n=== /user/me endpoint hit ===');
-  console.log('Session ID:', req.sessionID);
-  console.log('Session data:', req.session);
-  console.log('User ID from session:', req.session?.userId);
-  console.log('Session store status:', req.session ? 'exists' : 'missing');
-  console.log('All request headers:', req.headers);
-  console.log('Cookie header specifically:', req.headers.cookie);
-  console.log('Host header:', req.headers.host);
-  console.log('Origin header:', req.headers.origin);
-  console.log('Referer header:', req.headers.referer);
-  console.log('User-Agent:', req.headers['user-agent']);
-  
   if (!req.session.userId) {
-    console.log('❌ No userId in session - returning 401');
-    console.log('❌ Available session keys:', Object.keys(req.session || {}));
-    return res.status(401).json({ 
-      message: 'Not logged in',
-      debug: {
-        sessionId: req.sessionID,
-        sessionExists: !!req.session,
-        sessionKeys: Object.keys(req.session || {})
-      }
-    });
+    return res.status(401).json({ message: 'Not logged in' });
   }
 
   try {
-    console.log('✅ Found userId in session:', req.session.userId);
     const result = await pool.query(
       'SELECT display_name, profile_picture, role FROM users WHERE id = $1',
       [req.session.userId]
@@ -505,18 +480,16 @@ app.get('/user/me', async (req, res) => {
 
     const user = result.rows[0];
     if (!user) {
-      console.log('❌ User not found in database for ID:', req.session.userId);
       return res.status(404).json({ message: 'User not found' });
     }
 
-    console.log('✅ User found, returning data for:', user.display_name);
     res.json({
       displayName: user.display_name,
       profile_picture: user.profile_picture,
       role: user.role
     });
   } catch (err) {
-    console.error('❌ Error in /user/me:', err);
+    console.error('Error in /user/me:', err);
     res.status(500).json({ message: 'Internal Server Error' });
   }
 });
