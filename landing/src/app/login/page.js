@@ -45,16 +45,26 @@ function LoginForm() {
     setIsLoading(true);
 
     try {
-      const data = await apiRequest('/login', {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'https://backend-6wqj.onrender.com'}/login`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
+        credentials: 'include', // Essential for cookies
         body: JSON.stringify(formData),
       });
 
+      console.log('Raw response status:', response.status);
+      console.log('Response headers:', [...response.headers.entries()]);
+      console.log('Set-Cookie header:', response.headers.get('set-cookie'));
+      
+      const data = await response.json();
       console.log('Login response:', data);
       console.log('Document cookies after login:', document.cookie);
+
+      if (!response.ok) {
+        throw new Error(data.message || 'Login failed');
+      }
 
       showToast({
         title: 'Login Successful!',

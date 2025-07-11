@@ -44,7 +44,7 @@ app.use(cors({
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// Session config - Fixed for cross-origin with specific domain
+// Session config - Testing without domain restriction
 app.use(session({
   store: new pgSession({
     pool: pool,
@@ -59,8 +59,8 @@ app.use(session({
     maxAge: 24 * 60 * 60 * 1000,
     secure: true, // Always secure in production (HTTPS required)
     sameSite: 'none', // Required for cross-origin cookies
-    httpOnly: true,
-    domain: '.onrender.com' // Allow cookie to work across onrender.com subdomains
+    httpOnly: true
+    // Temporarily remove domain to test if cookies get set at all
   }
 }));
 
@@ -226,6 +226,11 @@ app.post('/login', async (req, res) => {
       console.log('- Full session after save:', req.session);
       console.log('- Setting Set-Cookie header for domain:', req.get('host'));
       console.log('✅ Using PostgreSQL session store');
+      
+      // Manually check what headers are being set
+      console.log('📤 Response headers being sent:');
+      console.log('- Set-Cookie:', res.getHeaders()['set-cookie']);
+      console.log('- All headers:', res.getHeaders());
       
       res.status(200).json({
         message: "Login successful",
