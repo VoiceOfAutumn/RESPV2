@@ -82,6 +82,7 @@ router.post('/', authMiddleware, isStaff, [
 // GET /tournaments - List all tournaments
 router.get('/', async (req, res) => {
     try {
+        console.log('🔍 Attempting to fetch tournaments data...');
         const result = await pool.query(`
             SELECT t.*, 
                 COUNT(tp.id) as participant_count,
@@ -97,10 +98,12 @@ router.get('/', async (req, res) => {
             ORDER BY t.date DESC
         `, [req.session?.userId || null]);
         
+        console.log(`✅ Tournaments query successful, returned ${result.rows.length} tournaments`);
         res.json(result.rows);
     } catch (err) {
-        console.error(err);
-        res.status(500).json({ error: 'Internal server error' });
+        console.error('❌ Error fetching tournaments:', err.message);
+        console.error('Full error:', err);
+        res.status(500).json({ error: 'Internal server error', details: err.message });
     }
 });
 

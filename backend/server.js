@@ -20,6 +20,13 @@ const cors = require('cors');
 const app = express();
 const PORT = 3000;
 
+// Test database connection on startup
+pool.query('SELECT NOW()').then(() => {
+  console.log('✅ Database connected successfully');
+}).catch(err => {
+  console.error('❌ Database connection failed:', err.message);
+});
+
 // Use CORS with production and development origins
 const allowedOrigins = [
   'http://localhost:3001', // Development frontend
@@ -443,6 +450,7 @@ app.get('/countries', async (req, res) => {
 
 app.get('/leaderboard', async (req, res) => {
   try {
+    console.log('🔍 Attempting to fetch leaderboard data...');
     // Query to fetch leaderboard data (display name and points sorted by points)
     const query = `
       SELECT display_name, points, profile_picture
@@ -450,12 +458,14 @@ app.get('/leaderboard', async (req, res) => {
       ORDER BY points DESC;
     `;
     const { rows } = await pool.query(query);
+    console.log(`✅ Leaderboard query successful, returned ${rows.length} users`);
 
     // Send the fetched data as JSON response
     res.json(rows);
   } catch (err) {
-    console.error('Error fetching leaderboard data:', err);
-    res.status(500).json({ error: 'Internal Server Error' });
+    console.error('❌ Error fetching leaderboard data:', err.message);
+    console.error('Full error:', err);
+    res.status(500).json({ error: 'Internal Server Error', details: err.message });
   }
 });
 
