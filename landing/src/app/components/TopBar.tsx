@@ -16,20 +16,18 @@ export default function TopBar() {
     // Fetch authentication status from the API
     const checkAuth = async () => {
       try {
-        const res = await fetch('/api/auth/me', {
-          credentials: 'include',
-        });
-        if (res.ok) {
-          const data = await res.json();
-          if (data.isLoggedIn && data.user) {
-            setUser({
-              displayName: data.user.displayName,
-              profile_picture: data.user.profile_picture,
-            });
-          }
+        const data = await apiRequest('/api/auth/me');
+        if (data.isLoggedIn && data.user) {
+          setUser({
+            displayName: data.user.displayName,
+            profile_picture: data.user.profile_picture,
+          });
+        } else {
+          setUser(null);
         }
       } catch (error) {
         console.error('Auth check failed:', error);
+        setUser(null);
       }
     };
 
@@ -52,17 +50,17 @@ export default function TopBar() {
 
   const handleLogout = async () => {
     try {
-      const res = await apiRequest('/logout', {
+      await apiRequest('/logout', {
         method: 'POST',
       });
 
-      if (res.ok) {
-        localStorage.removeItem('user');
-        // Refresh the page after logging out
-        window.location.reload();
-      } else {
-        alert('Logout failed');
-      }
+      // Clear user state and redirect
+      setUser(null);
+      localStorage.removeItem('user');
+      localStorage.removeItem('justLoggedIn');
+      
+      // Refresh the page after logging out
+      window.location.href = '/';
     } catch (err) {
       console.error('Logout error:', err);
       alert('Logout failed');
@@ -71,14 +69,8 @@ export default function TopBar() {
 
   return (
     <div className="fixed top-0 left-0 right-0 h-16 bg-transparent text-white flex justify-between items-center px-6 shadow z-50 border-b border-gray-800">
-      {/* Logo on the left */}
-      <Link href="/" className="flex items-center space-x-3">
-        <img
-          src="/images/logo1.png"
-          alt="Logo"
-          className="h-14"
-        />
-      </Link>
+      {/* Empty left side */}
+      <div></div>
 
       {/* User profile dropdown (only when user is logged in) */}
       {user ? (

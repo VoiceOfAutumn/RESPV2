@@ -1,11 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server';
 
 export async function GET(request: NextRequest) {
-  try {    const res = await fetch('https://backend-6wqj.onrender.com/user/me', {
-      credentials: 'include',
+  try {
+    // Get all cookies from the request
+    const cookies = request.headers.get('cookie') || '';
+    
+    const res = await fetch('https://backend-6wqj.onrender.com/user/me', {
+      method: 'GET',
       headers: {
         'Content-Type': 'application/json',
-        'Cookie': request.headers.get('cookie') || ''
+        'Cookie': cookies
       }
     });
 
@@ -14,8 +18,16 @@ export async function GET(request: NextRequest) {
     }
 
     const data = await res.json();
-    return NextResponse.json({ isLoggedIn: true, user: data });
+    return NextResponse.json({ 
+      isLoggedIn: true, 
+      user: {
+        displayName: data.displayName,
+        profile_picture: data.profile_picture,
+        role: data.role
+      }
+    });
   } catch (error) {
+    console.error('Auth API route error:', error);
     return NextResponse.json({ isLoggedIn: false }, { status: 500 });
   }
 }
