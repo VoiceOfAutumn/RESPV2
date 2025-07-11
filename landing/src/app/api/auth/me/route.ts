@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 
 export async function GET(request: NextRequest) {
-  try {    const res = await fetch('http://localhost:3000/user/me', {
+  try {    const res = await fetch('https://retrosports-backend.onrender.com/user/me', {
       credentials: 'include',
       headers: {
         'Content-Type': 'application/json',

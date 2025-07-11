@@ -19,7 +19,7 @@ const RecentTournaments = () => {
   useEffect(() => {
     const fetchTournaments = async () => {
       try {
-        const response = await fetch('http://localhost:3000/tournaments');
+        const response = await fetch('https://retrosports-backend.onrender.com/tournaments');
         if (!response.ok) {
           throw new Error('Failed to fetch tournaments');
         }

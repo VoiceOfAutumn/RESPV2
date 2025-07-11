@@ -33,7 +33,7 @@ export default function UserProfile() {
     if (!displayname) return;    const fetchUserProfile = async () => {
       try {
         // Fetch user profile
-        const userRes = await fetch(`http://localhost:3000/user/${displayname}`);
+        const userRes = await fetch(`https://retrosports-backend.onrender.com/user/${displayname}`);
         if (!userRes.ok) {
           throw new Error("User not found");
         }
@@ -41,7 +41,7 @@ export default function UserProfile() {
         setUser(userData);
 
         // Fetch leaderboard to determine rank
-        const leaderboardRes = await fetch('http://localhost:3000/leaderboard');
+        const leaderboardRes = await fetch('https://retrosports-backend.onrender.com/leaderboard');
         if (leaderboardRes.ok) {
           const leaderboardData = await leaderboardRes.json();
           const userRankIndex = leaderboardData.findIndex(entry => entry.display_name === displayname);

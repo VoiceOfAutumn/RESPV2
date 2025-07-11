@@ -34,7 +34,7 @@ export default function CreateTournamentPage() {
     };
 
     try {
-      const res = await fetch('http://localhost:3000/tournaments', {
+      const res = await fetch('https://retrosports-backend.onrender.com/tournaments', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

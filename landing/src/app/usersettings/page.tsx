@@ -32,7 +32,7 @@ export default function UserSettings() {
     if (!isClient) return; // Wait until we are on the client
 
     const fetchUserSettings = async () => {
-      try {        const res = await fetch('http://localhost:3000/usersettings', {
+      try {        const res = await fetch('https://retrosports-backend.onrender.com/usersettings', {
           credentials: 'include', // Ensure the session cookie is included
         });
 
@@ -56,7 +56,7 @@ export default function UserSettings() {
 
     const fetchCountries = async () => {
       try {
-        const res = await fetch('http://localhost:3000/countries', {
+        const res = await fetch('https://retrosports-backend.onrender.com/countries', {
           credentials: 'include',
         });
         if (!res.ok) throw new Error('Failed to fetch countries');
@@ -102,7 +102,7 @@ export default function UserSettings() {
         }
       }
 
-      const res = await fetch('http://localhost:3000/user/update', {
+      const res = await fetch('https://retrosports-backend.onrender.com/user/update', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ [field]: userData[field] }),

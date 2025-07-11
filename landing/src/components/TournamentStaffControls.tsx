@@ -17,7 +17,7 @@ export default function TournamentStaffControls({ tournament, setTournament }: P
     setIsUpdating(true);
 
     try {
-      const res = await fetch(`http://localhost:3000/tournaments/${tournament.id}/status`, {
+      const res = await fetch(`https://retrosports-backend.onrender.com/tournaments/${tournament.id}/status`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -53,7 +53,7 @@ export default function TournamentStaffControls({ tournament, setTournament }: P
     setIsUpdating(true);
 
     try {
-      const res = await fetch(`http://localhost:3000/tournaments/${tournament.id}/bracket/generate`, {
+      const res = await fetch(`https://retrosports-backend.onrender.com/tournaments/${tournament.id}/bracket/generate`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

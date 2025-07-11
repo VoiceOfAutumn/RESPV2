@@ -48,7 +48,7 @@ export default function TournamentSeeding({
     setIsSubmitting(true);
 
     try {
-      const res = await fetch(`http://localhost:3000/tournaments/${tournamentId}/seeds`, {
+      const res = await fetch(`https://retrosports-backend.onrender.com/tournaments/${tournamentId}/seeds`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
