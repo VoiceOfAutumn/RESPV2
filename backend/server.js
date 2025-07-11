@@ -3,7 +3,7 @@ require('dotenv').config();
 
 // Imports
 const express = require('express');
-const bcrypt = require('bcrypt');
+const bcrypt = require('bcryptjs');
 const session = require('express-session');
 const crypto = require('crypto');
 const { Resend } = require('resend');
