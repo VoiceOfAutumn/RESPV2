@@ -44,7 +44,7 @@ app.use(cors({
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// Session config - Testing without domain restriction
+// Session config - Simplified for compatibility
 const sessionConfig = {
   store: new pgSession({
     pool: pool,
@@ -57,10 +57,10 @@ const sessionConfig = {
   name: 'connect.sid',
   cookie: {
     maxAge: 24 * 60 * 60 * 1000,
-    secure: true, // Always secure in production (HTTPS required)
-    sameSite: 'none', // Required for cross-origin cookies
+    secure: false, // Disable secure temporarily to test
+    sameSite: 'lax', // Use lax instead of none
     httpOnly: true
-    // Temporarily remove domain to test if cookies get set at all
+    // No domain restriction for now
   }
 };
 
@@ -244,18 +244,9 @@ app.post('/login', async (req, res) => {
       console.log('✅ Using PostgreSQL session store');
       
       // Manually set the session cookie if Express isn't doing it automatically
-      // Try setting the cookie for both domains to see which one works
-      const cookieValueNoDomain = `connect.sid=${req.sessionID}; Max-Age=86400; Path=/; HttpOnly; Secure; SameSite=None`;
-      const cookieValueWithDomain = `connect.sid=${req.sessionID}; Max-Age=86400; Path=/; HttpOnly; Secure; SameSite=None; Domain=.onrender.com`;
-      
-      // Set multiple Set-Cookie headers to test both approaches
-      res.setHeader('Set-Cookie', [cookieValueNoDomain, cookieValueWithDomain]);
-      
-      // Manually check what headers are being set
-      console.log('📤 Response headers being sent:');
-      console.log('- Set-Cookie (no domain):', cookieValueNoDomain);
-      console.log('- Set-Cookie (with domain):', cookieValueWithDomain);
-      console.log('- All headers:', res.getHeaders());
+      // Since cookies are being rejected, focus on token-based authentication
+      console.log('📤 Cookies may be rejected by browser due to cross-origin restrictions');
+      console.log('📤 Relying on token-based authentication for cross-origin requests');
       
       res.status(200).json({
         message: "Login successful",
@@ -264,7 +255,7 @@ app.post('/login', async (req, res) => {
           display_name: user.display_name,
           profile_picture: user.profile_picture || null
         },
-        authToken: authToken // Backup token for cross-origin authentication
+        authToken: authToken // Primary authentication method for cross-origin
       });
     });
 
