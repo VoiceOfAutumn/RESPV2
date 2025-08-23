@@ -335,15 +335,14 @@ export default function TournamentDetailPage() {
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
                           <div className="flex items-center space-x-3">
-                            {participant.profile_picture ? (
-                              <img
-                                src={participant.profile_picture}
-                                alt={participant.display_name}
-                                className="w-8 h-8 rounded-full object-cover ring-1 ring-gray-700/50"
-                              />
-                            ) : (
-                              <div className="w-8 h-8 bg-gray-700/50 rounded-full" />
-                            )}
+                            <img
+                              src={participant.profile_picture || "/images/default-avatar.png"}
+                              alt={participant.display_name}
+                              className="w-8 h-8 rounded-full object-cover ring-1 ring-gray-700/50"
+                              onError={(e) => {
+                                e.currentTarget.src = '/images/default-avatar.png';
+                              }}
+                            />
                             <Link 
                               href={`/user/${participant.display_name}`}
                               className="text-gray-300 hover:text-white font-medium transition-colors duration-300"

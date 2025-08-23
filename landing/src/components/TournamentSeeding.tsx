@@ -126,15 +126,14 @@ export default function TournamentSeeding({
                       </div>
                       
                       <div className="flex items-center">
-                        {participant.profile_picture ? (
-                          <img
-                            src={participant.profile_picture}
-                            alt={participant.display_name}
-                            className="w-8 h-8 rounded-full object-cover mr-3"
-                          />
-                        ) : (
-                          <div className="w-8 h-8 bg-gray-300 rounded-full mr-3" />
-                        )}
+                        <img
+                          src={participant.profile_picture || "/images/default-avatar.png"}
+                          alt={participant.display_name}
+                          className="w-8 h-8 rounded-full object-cover mr-3"
+                          onError={(e) => {
+                            e.currentTarget.src = '/images/default-avatar.png';
+                          }}
+                        />
                         <span className="font-medium">{participant.display_name}</span>
                       </div>
                     </div>
