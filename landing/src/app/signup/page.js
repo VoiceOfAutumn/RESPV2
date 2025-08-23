@@ -225,6 +225,13 @@ export default function SignupPage() {
     setMessage('');
     setIsLoading(true);
 
+    // Validate that a country is selected
+    if (!formData.country_id || formData.country_id.trim() === '') {
+      setMessage('❌ Please select a country');
+      setIsLoading(false);
+      return;
+    }
+
     try {
       const data = await apiRequest('/signup', {
         method: 'POST',
