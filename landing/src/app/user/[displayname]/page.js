@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
-import Image from 'next/image';
 import TopBar from '../../components/TopBar';
 import Navbar from '../../components/Navbar';
 
@@ -114,13 +113,11 @@ export default function UserProfile() {
               {/* Profile Picture */}
               <div className="relative w-32 h-32 group">
                 <div className="absolute inset-0 bg-purple-500 rounded-full opacity-0 group-hover:opacity-10 transition-opacity duration-300"></div>
-                <Image
+                <img
                   src={user.profile_picture || '/images/default-avatar.png'}
                   alt={`${user.display_name}'s profile picture`}
-                  width={128}
-                  height={128}
-                  className="rounded-full border-4 border-gray-700 object-cover transition-transform duration-300 group-hover:scale-105"
-                  priority
+                  className="w-32 h-32 rounded-full border-4 border-gray-700 object-cover transition-transform duration-300 group-hover:scale-105"
+                  loading="lazy"
                 />
               </div>
 
