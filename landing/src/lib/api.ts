@@ -26,7 +26,16 @@ export async function apiRequest(endpoint: string, options: RequestInit = {}) {
     if (!response.ok) {
       const errorText = await response.text();
       console.error(`API error for ${endpoint}:`, errorText);
-      throw new Error(`HTTP error! status: ${response.status}, message: ${errorText}`);
+      
+      // Try to parse the error response as JSON to extract the actual message
+      try {
+        const errorJson = JSON.parse(errorText);
+        const errorMessage = errorJson.message || errorJson.error || errorText;
+        throw new Error(errorMessage);
+      } catch (parseError) {
+        // If parsing fails, just use the raw error text
+        throw new Error(errorText || `Request failed with status ${response.status}`);
+      }
     }
 
     // Try to parse as JSON, fall back to text if it fails
