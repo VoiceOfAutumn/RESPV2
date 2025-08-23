@@ -19,7 +19,7 @@ const resend = new Resend(process.env.RESEND_API_KEY);
 // Create server
 const cors = require('cors');
 const app = express();
-const PORT = 3001;
+const PORT = 3000;
 
 // TEST NEON DATABASE
 pool.query('SELECT current_database(), current_schema();')
