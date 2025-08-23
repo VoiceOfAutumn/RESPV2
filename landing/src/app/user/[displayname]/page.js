@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
 import TopBar from '../../components/TopBar';
 import Navbar from '../../components/Navbar';
+import { getFlagImageProps } from '@/lib/countryFlags';
 
 function LoadingSkeleton() {
   return (
@@ -126,13 +127,10 @@ export default function UserProfile() {
                 <h1 className="text-4xl font-bold bg-gradient-to-r from-white to-purple-400 bg-clip-text text-transparent">
                   {user.display_name}
                 </h1>                <div className="flex items-center gap-2 mt-2">
-                  {user.country_code ? (
+                  {user.country_name ? (
                     <>
                       <img
-                        src={`https://flagcdn.com/w40/${user.country_code.toLowerCase()}.png`}
-                        alt={user.country_name}
-                        className="w-6 h-4 object-cover rounded-sm"
-                        loading="lazy"
+                        {...getFlagImageProps(user.country_name, user.country_code)}
                       />
                       <span className="text-gray-300">{user.country_name}</span>
                     </>
