@@ -63,11 +63,21 @@ export default function TournamentDetailPage() {
 
     const fetchTournament = async () => {
       try {
+        // Include auth token to get proper signup status
+        const authToken = localStorage.getItem('authToken');
+        const headers: HeadersInit = {};
+        
+        if (authToken) {
+          headers['Authorization'] = `Bearer ${authToken}`;
+        }
+
         const res = await fetch(`https://backend-6wqj.onrender.com/tournaments/${id}`, {
+          headers,
           credentials: 'include'
         });
         if (res.ok) {
           const data = await res.json();
+          console.log('Tournament data with signup status:', data);
           setTournamentState(data);
         } else {
           setError('Tournament not found');
