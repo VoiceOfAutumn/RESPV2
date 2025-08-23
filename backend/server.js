@@ -21,6 +21,11 @@ const cors = require('cors');
 const app = express();
 const PORT = 3000;
 
+// TEST NEON DATABASE
+pool.query('SELECT current_database(), current_schema();')
+  .then(res => console.log('✅ Connected to DB:', res.rows))
+  .catch(err => console.error('❌ DB connection error:', err));
+
 // Test database connection on startup
 pool.query('SELECT NOW()').then(() => {
   console.log('✅ Database connected successfully');
