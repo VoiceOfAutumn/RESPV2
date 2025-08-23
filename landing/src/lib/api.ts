@@ -30,11 +30,24 @@ export async function apiRequest(endpoint: string, options: RequestInit = {}) {
       // Try to parse the error response as JSON to extract the actual message
       try {
         const errorJson = JSON.parse(errorText);
-        const errorMessage = errorJson.message || errorJson.error || errorText;
+        const errorMessage = errorJson.message || errorJson.error || 'An error occurred';
         throw new Error(errorMessage);
       } catch (parseError) {
-        // If parsing fails, just use the raw error text
-        throw new Error(errorText || `Request failed with status ${response.status}`);
+        // If JSON parsing fails, try to extract message from string if it looks like JSON
+        if (errorText.includes('"message"') && errorText.includes('{')) {
+          const messageMatch = errorText.match(/"message"\s*:\s*"([^"]+)"/);
+          if (messageMatch) {
+            throw new Error(messageMatch[1]);
+          }
+        }
+        if (errorText.includes('"error"') && errorText.includes('{')) {
+          const errorMatch = errorText.match(/"error"\s*:\s*"([^"]+)"/);
+          if (errorMatch) {
+            throw new Error(errorMatch[1]);
+          }
+        }
+        // Fallback to status-based message or generic error
+        throw new Error(`Request failed with status ${response.status}`);
       }
     }
 
