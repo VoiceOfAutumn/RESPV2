@@ -116,7 +116,7 @@ export default function TopBar() {
               <img
                 src={user.profile_picture || "/images/default-avatar.png"}
                 alt="Profile"
-                className="w-9 h-9 rounded-full border-2 border-purple-500/50 transition-all duration-200 hover:border-purple-400"
+                className="w-9 h-9 rounded-full border-2 border-purple-500/50 object-cover transition-all duration-200 hover:border-purple-400"
               />
               <div className="absolute bottom-0 right-0 w-2.5 h-2.5 bg-green-500 rounded-full border-2 border-gray-800" />
             </div>

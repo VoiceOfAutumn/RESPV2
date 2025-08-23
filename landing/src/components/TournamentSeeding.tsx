@@ -130,7 +130,7 @@ export default function TournamentSeeding({
                           <img
                             src={participant.profile_picture}
                             alt={participant.display_name}
-                            className="w-8 h-8 rounded-full mr-3"
+                            className="w-8 h-8 rounded-full object-cover mr-3"
                           />
                         ) : (
                           <div className="w-8 h-8 bg-gray-300 rounded-full mr-3" />
