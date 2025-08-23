@@ -3,6 +3,48 @@ const { body, validationResult } = require('express-validator');
 const pool = require('../db');
 const authMiddleware = require('../middleware/authMiddleware');
 
+// Optional auth middleware - processes auth if present but doesn't require it
+const optionalAuth = (req, res, next) => {
+  let userId = null;
+
+  // Try session first
+  if (req.session && req.session.userId) {
+    userId = req.session.userId;
+    console.log('✅ OptionalAuth: Using session authentication, userId:', userId);
+  } 
+  // Try auth token as backup
+  else if (req.headers.authorization) {
+    const authToken = req.headers.authorization.replace('Bearer ', '');
+    console.log('🔑 OptionalAuth: Trying token authentication:', authToken);
+    
+    // Parse token (format: userId.timestamp.randomHex)
+    const tokenParts = authToken.split('.');
+    if (tokenParts.length === 3) {
+      const tokenUserId = parseInt(tokenParts[0]);
+      const timestamp = parseInt(tokenParts[1]);
+      const now = Date.now();
+      
+      // Check if token is not older than 24 hours
+      if (!isNaN(tokenUserId) && !isNaN(timestamp) && (now - timestamp) < 24 * 60 * 60 * 1000) {
+        userId = tokenUserId;
+        console.log('✅ OptionalAuth: Using token authentication, userId:', userId);
+        
+        // Store userId in session for compatibility with existing code
+        if (!req.session.userId) {
+          req.session.userId = userId;
+        }
+      } else {
+        console.log('❌ OptionalAuth: Token expired or invalid');
+      }
+    } else {
+      console.log('❌ OptionalAuth: Token format invalid');
+    }
+  }
+
+  console.log('OptionalAuth: Final userId for request:', userId);
+  next(); // Continue regardless of auth status
+};
+
 // Middleware to check if user is staff/admin
 const isStaff = async (req, res, next) => {
     try {
@@ -108,9 +150,12 @@ router.get('/', async (req, res) => {
 });
 
 // GET /tournaments/:id - Get tournament details
-router.get('/:id', async (req, res) => {
+router.get('/:id', optionalAuth, async (req, res) => {
     try {
         const { id } = req.params;
+        const userId = req.session?.userId || null;
+        console.log('Tournament details request - userId:', userId, 'tournamentId:', id);
+        
         const result = await pool.query(`
             SELECT t.*, 
                 COUNT(tp.id) as participant_count,
@@ -124,7 +169,9 @@ router.get('/:id', async (req, res) => {
                 AND tp2.user_id = $1
             WHERE t.id = $2
             GROUP BY t.id, tp2.user_id
-        `, [req.session?.userId || null, id]);
+        `, [userId, id]);
+
+        console.log('Tournament query result:', result.rows[0]?.is_signed_up);
 
         if (result.rows.length === 0) {
             return res.status(404).json({ error: 'Tournament not found' });
