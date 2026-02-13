@@ -154,10 +154,22 @@ router.get('/:id/bracket', async (req, res) => {
     }
 
     const matchResult = await pool.query(`
-      SELECT *
-      FROM tournament_matches
-      WHERE tournament_id = $1
-      ORDER BY round, match_number
+      SELECT 
+        m.id, m.tournament_id, m.round, m.match_number,
+        m.player1_id, m.player2_id, m.winner_id,
+        m.player1_score, m.player2_score,
+        m.bye_match, m.next_match_id, m.next_match_slot,
+        m.bracket_type AS bracket, m.losers_match_id, m.is_grand_finals,
+        m.created_at, m.updated_at,
+        u1.display_name AS player1_name, u1.profile_picture AS player1_picture,
+        u2.display_name AS player2_name, u2.profile_picture AS player2_picture,
+        uw.display_name AS winner_name
+      FROM tournament_matches m
+      LEFT JOIN users u1 ON u1.id = m.player1_id
+      LEFT JOIN users u2 ON u2.id = m.player2_id
+      LEFT JOIN users uw ON uw.id = m.winner_id
+      WHERE m.tournament_id = $1
+      ORDER BY m.round, m.match_number
     `, [id]);
     
     res.json({
@@ -179,7 +191,7 @@ router.put('/:id/matches/:matchId', authMiddleware, async (req, res) => {
   const winId = req.body.winner_id ?? req.body.winnerId;
 
   try {
-    // Get the current match to find winner details and next_match_id
+    // Get the current match to find next_match_id
     const matchResult = await pool.query(
       'SELECT * FROM tournament_matches WHERE tournament_id = $1 AND id = $2',
       [id, matchId]
@@ -189,25 +201,12 @@ router.put('/:id/matches/:matchId', authMiddleware, async (req, res) => {
     }
     const currentMatch = matchResult.rows[0];
 
-    // Determine winner info
-    let winnerName = null;
-    let winnerPicture = null;
-    if (winId) {
-      if (winId === currentMatch.player1_id) {
-        winnerName = currentMatch.player1_name;
-        winnerPicture = currentMatch.player1_picture;
-      } else if (winId === currentMatch.player2_id) {
-        winnerName = currentMatch.player2_name;
-        winnerPicture = currentMatch.player2_picture;
-      }
-    }
-
-    // Update the current match
+    // Update the current match scores + winner
     await pool.query(`
       UPDATE tournament_matches 
-      SET player1_score = $1, player2_score = $2, winner_id = $3, winner_name = $4
-      WHERE tournament_id = $5 AND id = $6
-    `, [p1Score, p2Score, winId, winnerName, id, matchId]);
+      SET player1_score = $1, player2_score = $2, winner_id = $3
+      WHERE tournament_id = $4 AND id = $5
+    `, [p1Score, p2Score, winId, id, matchId]);
 
     // Advance winner to the next match if next_match_id is set
     if (currentMatch.next_match_id && winId) {
@@ -215,15 +214,15 @@ router.put('/:id/matches/:matchId', authMiddleware, async (req, res) => {
       if (slot === 1) {
         await pool.query(`
           UPDATE tournament_matches
-          SET player1_id = $1, player1_name = $2, player1_picture = $3
-          WHERE id = $4 AND tournament_id = $5
-        `, [winId, winnerName, winnerPicture, currentMatch.next_match_id, id]);
+          SET player1_id = $1
+          WHERE id = $2 AND tournament_id = $3
+        `, [winId, currentMatch.next_match_id, id]);
       } else {
         await pool.query(`
           UPDATE tournament_matches
-          SET player2_id = $1, player2_name = $2, player2_picture = $3
-          WHERE id = $4 AND tournament_id = $5
-        `, [winId, winnerName, winnerPicture, currentMatch.next_match_id, id]);
+          SET player2_id = $1
+          WHERE id = $2 AND tournament_id = $3
+        `, [winId, currentMatch.next_match_id, id]);
       }
     }
 
@@ -341,15 +340,14 @@ router.post('/:id/bracket/generate', authMiddleware, async (req, res) => {
       const p2 = round1Players[i * 2 + 1] || null;
 
       const insertResult = await pool.query(
-        `INSERT INTO tournament_matches (tournament_id, round, match_number, player1_id, player1_name, player2_id, player2_name, player1_picture, player2_picture, bye_match, bracket)
-         VALUES ($1, 1, $2, $3, $4, $5, $6, $7, $8, $9, 'winners')
+        `INSERT INTO tournament_matches (tournament_id, round, match_number, player1_id, player2_id, bye_match, bracket_type)
+         VALUES ($1, 1, $2, $3, $4, $5, 'winners')
          RETURNING id`,
         [
           tournamentId,
           i + 1,
-          p1.id, p1.display_name,
-          p2?.id || null, p2?.display_name || null,
-          p1.profile_picture || null, p2?.profile_picture || null,
+          p1.id,
+          p2?.id || null,
           !p2,
         ]
       );
@@ -374,22 +372,22 @@ router.post('/:id/bracket/generate', authMiddleware, async (req, res) => {
       const matchesInRound = bracketSize / Math.pow(2, r);
 
       for (let i = 0; i < matchesInRound; i++) {
-        let p1Id = null, p1Name = null, p1Pic = null;
-        let p2Id = null, p2Name = null, p2Pic = null;
+        let p1Id = null;
+        let p2Id = null;
 
         // For Round 2, populate with BYE recipients
         if (r === 2) {
           const slot1 = round2Slots[i * 2];
           const slot2 = round2Slots[i * 2 + 1];
-          if (slot1) { p1Id = slot1.id; p1Name = slot1.display_name; p1Pic = slot1.profile_picture; }
-          if (slot2) { p2Id = slot2.id; p2Name = slot2.display_name; p2Pic = slot2.profile_picture; }
+          if (slot1) { p1Id = slot1.id; }
+          if (slot2) { p2Id = slot2.id; }
         }
 
         const insertResult = await pool.query(
-          `INSERT INTO tournament_matches (tournament_id, round, match_number, player1_id, player1_name, player2_id, player2_name, player1_picture, player2_picture, bye_match, bracket)
-           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, false, 'winners')
+          `INSERT INTO tournament_matches (tournament_id, round, match_number, player1_id, player2_id, bye_match, bracket_type)
+           VALUES ($1, $2, $3, $4, $5, false, 'winners')
            RETURNING id`,
-          [tournamentId, r, i + 1, p1Id, p1Name, p2Id, p2Name, p1Pic, p2Pic]
+          [tournamentId, r, i + 1, p1Id, p2Id]
         );
         matchIdsByRound[r].push(insertResult.rows[0].id);
       }
