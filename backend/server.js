@@ -45,11 +45,15 @@ app.use(cors({
   credentials: true, // Allow cookies to be sent if you're using sessions
 }));
 
+// Trust Render's reverse proxy so secure cookies work
+app.set('trust proxy', 1);
+
 // Middleware
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// Session config - Simplified for compatibility
+// Session config
+const isProduction = process.env.NODE_ENV === 'production';
 const sessionConfig = {
   store: new pgSession({
     pool: pool,
@@ -60,12 +64,12 @@ const sessionConfig = {
   resave: false,
   saveUninitialized: false,
   name: 'connect.sid',
+  proxy: isProduction, // Trust Render's proxy
   cookie: {
     maxAge: 24 * 60 * 60 * 1000,
-    secure: false, // Disable secure temporarily to test
-    sameSite: 'lax', // Use lax instead of none
+    secure: isProduction,       // HTTPS only in production
+    sameSite: isProduction ? 'none' : 'lax', // 'none' required for cross-site cookies
     httpOnly: true
-    // No domain restriction for now
   }
 };
 

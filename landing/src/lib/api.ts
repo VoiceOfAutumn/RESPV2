@@ -6,11 +6,21 @@ export const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://backend-
 // Helper function for making API requests with proper error handling
 export async function apiRequest(endpoint: string, options: RequestInit = {}) {
   const url = `${API_BASE_URL}${endpoint}`;
-  
+
+  // Attach Bearer token from localStorage as fallback for cross-site cookie issues
+  const extraHeaders: Record<string, string> = {};
+  if (typeof window !== 'undefined') {
+    const authToken = localStorage.getItem('authToken');
+    if (authToken) {
+      extraHeaders['Authorization'] = `Bearer ${authToken}`;
+    }
+  }
+
   const defaultOptions: RequestInit = {
     credentials: 'include',
     headers: {
       'Content-Type': 'application/json',
+      ...extraHeaders,
       ...options.headers,
     },
   };
