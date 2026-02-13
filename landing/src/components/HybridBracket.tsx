@@ -72,7 +72,7 @@ export default function HybridBracket({
 
   return (
     <div>
-      {/* Render bracket sections */}}
+      {/* Render bracket sections */}
       {bracketType === 'all' && tournament.format === 'DOUBLE_ELIMINATION' ? (
         <>
           {/* Winners bracket */}
