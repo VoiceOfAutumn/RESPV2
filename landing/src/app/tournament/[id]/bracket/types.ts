@@ -31,6 +31,7 @@ export interface Tournament {
   name: string;
   format: 'SINGLE_ELIMINATION' | 'DOUBLE_ELIMINATION';
   status: string;
+  image?: string | null;
 }
 
 export interface BracketData {

@@ -148,7 +148,7 @@ router.get('/:id/bracket', async (req, res) => {
   const { id } = req.params;
   try {
     // Fetch tournament info
-    const tournResult = await pool.query('SELECT id, name, format, status FROM tournaments WHERE id = $1', [id]);
+    const tournResult = await pool.query('SELECT id, name, format, status, image FROM tournaments WHERE id = $1', [id]);
     if (tournResult.rows.length === 0) {
       return res.status(404).json({ error: 'Tournament not found' });
     }

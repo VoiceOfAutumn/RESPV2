@@ -393,7 +393,31 @@ export default function TournamentBracketPage() {
       <div className="container mx-auto px-4 py-8">
         <div className="flex flex-col space-y-6">
           {/* Bracket Navigation */}
-          <div className="bg-neutral-800/50 backdrop-blur rounded-xl shadow-lg border border-gray-700/50">
+          <div className="bg-neutral-800/50 backdrop-blur rounded-xl shadow-lg border border-gray-700/50 overflow-hidden">
+            {/* Tournament Banner */}
+            <div className="relative h-36 overflow-hidden">
+              {data.tournament.image ? (
+                <img
+                  src={data.tournament.image}
+                  alt=""
+                  className="absolute inset-0 w-full h-full object-cover"
+                />
+              ) : (
+                <div className="absolute inset-0 bg-gradient-to-r from-purple-900/60 via-indigo-900/60 to-blue-900/60" />
+              )}
+              {/* Gradient fade to blend into bracket area */}
+              <div className="absolute inset-0 bg-gradient-to-t from-neutral-900 via-neutral-900/60 to-transparent" />
+              <div className="absolute inset-0 bg-gradient-to-r from-black/30 to-black/30" />
+              {/* Tournament title */}
+              <div className="absolute bottom-0 left-0 right-0 p-6">
+                <h1
+                  className="text-2xl md:text-3xl font-bold text-white uppercase tracking-wider"
+                  style={{ textShadow: '0 2px 8px rgba(0,0,0,0.7), 0 1px 3px rgba(0,0,0,0.9)' }}
+                >
+                  {data.tournament.name}
+                </h1>
+              </div>
+            </div>
             {/* Bracket Tabs - Show only for double elimination */}
             {data.tournament && data.tournament.format === 'DOUBLE_ELIMINATION' && (
               <div className="flex border-b border-gray-700/50">

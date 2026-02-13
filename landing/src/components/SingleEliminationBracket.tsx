@@ -503,13 +503,6 @@ export default function SingleEliminationBracket({
 
   return (
     <div className={`flex flex-col ${className}`}>
-      {/* Header */}
-      <div className="mb-6">
-        <h2 className="text-xl font-semibold bg-clip-text text-transparent bg-gradient-to-r from-green-400 to-teal-300">
-          {tournamentName}
-        </h2>
-      </div>
-
       {/* Bracket Grid */}
       <div className="flex gap-8 pb-6 overflow-x-auto">
         {rounds.map((round, roundIndex) => {
