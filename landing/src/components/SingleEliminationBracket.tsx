@@ -1,6 +1,7 @@
 'use client';
 
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 
 // ==================== TYPES ====================
 
@@ -223,13 +224,13 @@ function VodButton({ url }: { url: string }) {
         Watch VOD
       </button>
 
-      {showModal && (
+      {showModal && createPortal(
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm"
+          className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/80 backdrop-blur-sm"
           onClick={() => setShowModal(false)}
         >
           <div
-            className="relative w-full max-w-3xl mx-4"
+            className="relative w-full max-w-4xl mx-4"
             onClick={(e) => e.stopPropagation()}
           >
             <button
@@ -262,7 +263,8 @@ function VodButton({ url }: { url: string }) {
               </div>
             )}
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </>
   );
