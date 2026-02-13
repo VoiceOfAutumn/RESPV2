@@ -611,7 +611,7 @@ app.get('/leaderboard', async (req, res) => {
 });
 
 // ++++++++++++++++++++++ TOURNAMENT RELATED ++++++++++++++++++++++
-app.use('/tournaments', require('./routes/tournament-router'));
+app.use('/tournaments', require('./routes/tournaments'));
 
 // ++++++++++++++++++++ SERVER +++++++++++++++++
 // ================== START SERVER ==================
