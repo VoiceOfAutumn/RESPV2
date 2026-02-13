@@ -160,6 +160,7 @@ router.get('/:id/bracket', async (req, res) => {
         m.player1_score, m.player2_score,
         m.bye_match, m.next_match_id, m.next_match_slot,
         m.bracket_type AS bracket, m.losers_match_id, m.is_grand_finals,
+        m.vod_url,
         m.created_at, m.updated_at,
         u1.display_name AS player1_name, u1.profile_picture AS player1_picture,
         u2.display_name AS player2_name, u2.profile_picture AS player2_picture,
@@ -229,6 +230,36 @@ router.put('/:id/matches/:matchId', authMiddleware, async (req, res) => {
     res.json({ message: 'Match updated successfully' });
   } catch (err) {
     console.error('Error updating match:', err);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// PUT /tournaments/:id/matches/:matchId/vod  (set VOD link — staff/admin only)
+router.put('/:id/matches/:matchId/vod', authMiddleware, async (req, res) => {
+  try {
+    const userResult = await pool.query('SELECT role FROM users WHERE id = $1', [req.session.userId]);
+    if (userResult.rows.length === 0) return res.status(401).json({ error: 'User not found' });
+    const role = userResult.rows[0].role;
+    if (role !== 'staff' && role !== 'admin') {
+      return res.status(403).json({ error: 'Only staff or admin can set VOD links' });
+    }
+
+    const { id, matchId } = req.params;
+    const vodUrl = req.body.vod_url ?? req.body.vodUrl ?? null;
+
+    // Basic validation: must be empty/null or a valid URL
+    if (vodUrl && !vodUrl.match(/^https?:\/\//)) {
+      return res.status(400).json({ error: 'VOD URL must be a valid HTTP/HTTPS link' });
+    }
+
+    await pool.query(
+      'UPDATE tournament_matches SET vod_url = $1 WHERE id = $2 AND tournament_id = $3',
+      [vodUrl || null, matchId, id]
+    );
+
+    res.json({ message: 'VOD link updated' });
+  } catch (err) {
+    console.error('Error setting VOD:', err);
     res.status(500).json({ error: 'Internal server error' });
   }
 });

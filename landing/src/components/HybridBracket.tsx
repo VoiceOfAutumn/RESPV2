@@ -10,6 +10,7 @@ interface HybridBracketProps {
   matches: Match[];
   isStaff?: boolean;
   onMatchUpdate?: (matchId: number, player1Score: number, player2Score: number) => Promise<void>;
+  onVodUpdate?: (matchId: number, vodUrl: string | null) => Promise<void>;
   bracketType?: 'all' | 'winners' | 'losers' | 'finals';
 }
 
@@ -19,6 +20,7 @@ export default function HybridBracket({
   matches,
   isStaff = false,
   onMatchUpdate,
+  onVodUpdate,
   bracketType = 'all',
 }: HybridBracketProps) {
   const hasOfficialBrackets = matches.length > 0;
@@ -110,6 +112,7 @@ export default function HybridBracket({
                   matches={winnersMatches}
                   isStaff={isStaff}
                   onMatchUpdate={onMatchUpdate}
+                  onVodUpdate={onVodUpdate}
                   tournamentName=""
                   className="w-full"
                 />
@@ -127,6 +130,7 @@ export default function HybridBracket({
                   matches={losersMatches}
                   isStaff={isStaff}
                   onMatchUpdate={onMatchUpdate}
+                  onVodUpdate={onVodUpdate}
                   tournamentName=""
                   className="w-full"
                 />
@@ -144,6 +148,7 @@ export default function HybridBracket({
                   matches={finalsMatches}
                   isStaff={isStaff}
                   onMatchUpdate={onMatchUpdate}
+                  onVodUpdate={onVodUpdate}
                   tournamentName=""
                   className="w-full"
                 />
@@ -156,6 +161,7 @@ export default function HybridBracket({
           matches={filteredMatches}
           isStaff={isStaff}
           onMatchUpdate={onMatchUpdate}
+          onVodUpdate={onVodUpdate}
           tournamentName={sectionLabel}
           className="w-full"
         />

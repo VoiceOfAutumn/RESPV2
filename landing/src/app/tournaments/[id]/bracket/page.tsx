@@ -182,6 +182,40 @@ export default function TournamentBracketPage() {
     fetchBracket();
   }, [id]);
 
+  const handleVodUpdate = async (matchId: number, vodUrl: string | null): Promise<void> => {
+    try {
+      const authToken = localStorage.getItem('authToken');
+      const headers: HeadersInit = { 'Content-Type': 'application/json' };
+      if (authToken) headers['Authorization'] = `Bearer ${authToken}`;
+
+      const res = await fetch(`https://backend-6wqj.onrender.com/tournaments/${id}/matches/${matchId}/vod`, {
+        method: 'PUT',
+        headers,
+        credentials: 'include',
+        body: JSON.stringify({ vod_url: vodUrl }),
+      });
+
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.error || 'Failed to update VOD');
+      }
+
+      // Refresh bracket
+      const bracketRes = await fetch(`https://backend-6wqj.onrender.com/tournaments/${id}/bracket`, { credentials: 'include' });
+      if (bracketRes.ok) {
+        const newData = await bracketRes.json();
+        newData.matches = newData.matches || [];
+        setData(newData);
+      }
+
+      showToast({ title: 'Success', message: vodUrl ? 'VOD link saved' : 'VOD link removed', type: 'success' });
+    } catch (err) {
+      console.error('Error updating VOD:', err);
+      showToast({ title: 'Error', message: err instanceof Error ? err.message : 'Failed to update VOD', type: 'error' });
+      throw err;
+    }
+  };
+
   const handleScoreSubmit = async (matchId: number, player1Score: number, player2Score: number): Promise<void> => {
     if (!data?.matches) {
       showToast({
@@ -377,6 +411,7 @@ export default function TournamentBracketPage() {
                     matches={data.matches || []}
                     isStaff={user?.role === 'staff' || user?.role === 'admin'}
                     onMatchUpdate={handleScoreSubmit}
+                    onVodUpdate={handleVodUpdate}
                     bracketType={activeBracketType}
                   />
                 )}

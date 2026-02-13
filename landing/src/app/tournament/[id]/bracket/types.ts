@@ -22,6 +22,7 @@ export interface Match {
   next_match_id: number | null;
   next_match_slot: number | null;
   bye_match: boolean;
+  vod_url?: string | null;
   bracket?: 'winners' | 'losers' | 'finals'; // Optional for single elimination
 }
 

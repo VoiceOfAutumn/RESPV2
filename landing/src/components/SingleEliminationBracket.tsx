@@ -22,6 +22,7 @@ interface BracketMatch {
   isBye: boolean;
   nextMatchId: number | null;
   nextMatchSlot: number | null;
+  vodUrl: string | null;
 }
 
 interface Round {
@@ -34,6 +35,7 @@ interface SingleEliminationBracketProps {
   matches: any[];          // Raw backend match data
   isStaff?: boolean;
   onMatchUpdate?: (matchId: number, player1Score: number, player2Score: number) => Promise<void>;
+  onVodUpdate?: (matchId: number, vodUrl: string | null) => Promise<void>;
   tournamentName?: string;
   className?: string;
 }
@@ -117,12 +119,162 @@ function ScoreInput({ match, onMatchUpdate }: {
   );
 }
 
+// ==================== VOD INPUT ====================
+
+function VodInput({ match, onVodUpdate }: {
+  match: BracketMatch;
+  onVodUpdate: (matchId: number, vodUrl: string | null) => Promise<void>;
+}) {
+  const [url, setUrl] = useState<string>(match.vodUrl || '');
+  const [submitting, setSubmitting] = useState(false);
+  const [open, setOpen] = useState(false);
+
+  const handleSave = async () => {
+    if (submitting) return;
+    setSubmitting(true);
+    try {
+      await onVodUpdate(match.id, url.trim() || null);
+      setOpen(false);
+    } catch (err) {
+      console.error('Error updating VOD:', err);
+      alert('Failed to update VOD link.');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  if (!open) {
+    return (
+      <button
+        onClick={() => setOpen(true)}
+        className="mt-2 w-full text-xs px-2 py-1 rounded border border-purple-500/30 text-purple-400 hover:bg-purple-500/10 transition-colors flex items-center justify-center gap-1"
+      >
+        <svg className="w-3 h-3" viewBox="0 0 24 24" fill="currentColor"><path d="M10 15l5.19-3L10 9v6m11.56-7.83c.13.47.22 1.1.28 1.9.07.8.1 1.49.1 2.09L22 12c0 2.19-.16 3.8-.44 4.83-.25.9-.83 1.48-1.73 1.73-.47.13-1.33.22-2.65.28-1.3.07-2.49.1-3.59.1L12 19c-4.19 0-6.8-.16-7.83-.44-.9-.25-1.48-.83-1.73-1.73-.13-.47-.22-1.1-.28-1.9-.07-.8-.1-1.49-.1-2.09L2 12c0-2.19.16-3.8.44-4.83.25-.9.83-1.48 1.73-1.73.47-.13 1.33-.22 2.65-.28 1.3-.07 2.49-.1 3.59-.1L12 5c4.19 0 6.8.16 7.83.44.9.25 1.48.83 1.73 1.73z"/></svg>
+        {match.vodUrl ? 'Edit VOD' : 'Add VOD'}
+      </button>
+    );
+  }
+
+  return (
+    <div className="mt-2 p-2 bg-purple-500/10 border border-purple-500/20 rounded-lg">
+      <div className="text-xs text-purple-400 mb-1 font-medium">YouTube VOD Link</div>
+      <div className="flex gap-1">
+        <input
+          type="url"
+          value={url}
+          onChange={(e) => setUrl(e.target.value)}
+          onKeyDown={(e) => e.key === 'Enter' && handleSave()}
+          placeholder="https://youtube.com/watch?v=..."
+          className="flex-1 px-2 py-1 text-xs bg-gray-700 rounded border border-gray-600 focus:border-purple-400 focus:outline-none text-gray-300"
+          disabled={submitting}
+        />
+        <button
+          onClick={handleSave}
+          disabled={submitting}
+          className="px-2 py-1 text-xs bg-purple-500 text-white rounded hover:bg-purple-600 transition-colors disabled:opacity-50"
+        >
+          {submitting ? '...' : 'Save'}
+        </button>
+        <button
+          onClick={() => setOpen(false)}
+          className="px-2 py-1 text-xs text-gray-400 rounded hover:bg-gray-700 transition-colors"
+        >
+          ✕
+        </button>
+      </div>
+    </div>
+  );
+}
+
+// ==================== VOD PLAY BUTTON ====================
+
+function VodButton({ url }: { url: string }) {
+  const [showModal, setShowModal] = useState(false);
+
+  // Convert YouTube URL to embed URL
+  const getEmbedUrl = (rawUrl: string): string | null => {
+    try {
+      const parsed = new URL(rawUrl);
+      let videoId: string | null = null;
+
+      if (parsed.hostname.includes('youtube.com')) {
+        videoId = parsed.searchParams.get('v');
+      } else if (parsed.hostname.includes('youtu.be')) {
+        videoId = parsed.pathname.slice(1);
+      }
+
+      if (videoId) {
+        return `https://www.youtube-nocookie.com/embed/${videoId}`;
+      }
+    } catch {}
+    return null;
+  };
+
+  const embedUrl = getEmbedUrl(url);
+
+  return (
+    <>
+      <button
+        onClick={() => setShowModal(true)}
+        className="mt-2 w-full text-xs px-2 py-1 rounded bg-red-600/20 border border-red-500/30 text-red-400 hover:bg-red-600/30 transition-colors flex items-center justify-center gap-1"
+        title="Watch VOD"
+      >
+        <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="currentColor"><path d="M10 15l5.19-3L10 9v6m11.56-7.83c.13.47.22 1.1.28 1.9.07.8.1 1.49.1 2.09L22 12c0 2.19-.16 3.8-.44 4.83-.25.9-.83 1.48-1.73 1.73-.47.13-1.33.22-2.65.28-1.3.07-2.49.1-3.59.1L12 19c-4.19 0-6.8-.16-7.83-.44-.9-.25-1.48-.83-1.73-1.73-.13-.47-.22-1.1-.28-1.9-.07-.8-.1-1.49-.1-2.09L2 12c0-2.19.16-3.8.44-4.83.25-.9.83-1.48 1.73-1.73.47-.13 1.33-.22 2.65-.28 1.3-.07 2.49-.1 3.59-.1L12 5c4.19 0 6.8.16 7.83.44.9.25 1.48.83 1.73 1.73z"/></svg>
+        Watch VOD
+      </button>
+
+      {showModal && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm"
+          onClick={() => setShowModal(false)}
+        >
+          <div
+            className="relative w-full max-w-3xl mx-4"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <button
+              onClick={() => setShowModal(false)}
+              className="absolute -top-10 right-0 text-white hover:text-gray-300 text-2xl"
+            >
+              ✕
+            </button>
+            {embedUrl ? (
+              <div className="relative w-full" style={{ paddingBottom: '56.25%' }}>
+                <iframe
+                  className="absolute inset-0 w-full h-full rounded-lg"
+                  src={embedUrl}
+                  title="Match VOD"
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                  allowFullScreen
+                />
+              </div>
+            ) : (
+              <div className="bg-neutral-900 rounded-lg p-8 text-center">
+                <p className="text-gray-300 mb-4">Could not embed this video. Click below to open it directly.</p>
+                <a
+                  href={url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-block px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700 transition-colors"
+                >
+                  Open Video ↗
+                </a>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+    </>
+  );
+}
+
 // ==================== MATCH CARD ====================
 
-function MatchCard({ match, isStaff, onMatchUpdate, hasLiveData }: {
+function MatchCard({ match, isStaff, onMatchUpdate, onVodUpdate, hasLiveData }: {
   match: BracketMatch;
   isStaff: boolean;
   onMatchUpdate?: (matchId: number, p1Score: number, p2Score: number) => Promise<void>;
+  onVodUpdate?: (matchId: number, vodUrl: string | null) => Promise<void>;
   hasLiveData: boolean;
 }) {
   const hasScores = match.player1Score !== null || match.player2Score !== null;
@@ -205,6 +357,17 @@ function MatchCard({ match, isStaff, onMatchUpdate, hasLiveData }: {
       </div>
 
       {canReport && <ScoreInput match={match} onMatchUpdate={onMatchUpdate!} />}
+
+      {/* VOD play button — visible to everyone when a VOD exists */}
+      {match.vodUrl && !isStaff && <VodButton url={match.vodUrl} />}
+
+      {/* Staff: VOD input (also shows play button if VOD already set) */}
+      {isStaff && onVodUpdate && (
+        <>
+          {match.vodUrl && <VodButton url={match.vodUrl} />}
+          <VodInput match={match} onVodUpdate={onVodUpdate} />
+        </>
+      )}
     </div>
   );
 }
@@ -255,6 +418,7 @@ export default function SingleEliminationBracket({
   matches,
   isStaff = false,
   onMatchUpdate,
+  onVodUpdate,
   tournamentName = 'Tournament',
   className = ''
 }: SingleEliminationBracketProps) {
@@ -312,7 +476,8 @@ export default function SingleEliminationBracket({
           } : null,
           isBye: m.bye_match,
           nextMatchId: m.next_match_id,
-          nextMatchSlot: m.next_match_slot
+          nextMatchSlot: m.next_match_slot,
+          vodUrl: m.vod_url || null
         }))
       });
     }
@@ -369,6 +534,7 @@ export default function SingleEliminationBracket({
                       match={match}
                       isStaff={isStaff}
                       onMatchUpdate={onMatchUpdate}
+                      onVodUpdate={onVodUpdate}
                       hasLiveData={hasLiveData}
                     />
                   </div>
