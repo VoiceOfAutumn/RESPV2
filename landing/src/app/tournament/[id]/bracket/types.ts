@@ -20,6 +20,7 @@ export interface Match {
   winner_id: number | null;
   winner_name: string | null;
   next_match_id: number | null;
+  next_match_slot: number | null;
   bye_match: boolean;
   bracket?: 'winners' | 'losers' | 'finals'; // Optional for single elimination
 }
