@@ -546,13 +546,6 @@ export default function SingleEliminationBracket({
           );
         })}
       </div>
-
-      {/* Legend */}
-      <div className="mt-6 flex flex-wrap gap-x-6 gap-y-1 text-xs text-gray-500">
-        <div>• <span className="text-yellow-400">BYE</span> — Auto-advance (no opponent)</div>
-        <div>• <span className="text-green-400">Green</span> — Match winner</div>
-        <div>• <span className="text-gray-400 italic">TBD</span> — Waiting for previous result</div>
-      </div>
     </div>
   );
 }

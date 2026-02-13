@@ -72,34 +72,7 @@ export default function HybridBracket({
 
   return (
     <div>
-      {/* Bracket status indicator */}
-      <div className="mb-6 p-4 bg-blue-500/10 border border-blue-500/20 rounded-lg">
-        <div className="flex items-center justify-between">
-          <div>
-            <h3 className="text-blue-400 font-medium mb-1">
-              {hasOfficialBrackets ? 'Official Tournament Bracket' : 'Bracket Preview'}
-            </h3>
-            <p className="text-sm text-gray-300">
-              {hasOfficialBrackets
-                ? `${sectionLabel} — ${filteredMatches.length} match${filteredMatches.length !== 1 ? 'es' : ''}`
-                : 'Preview of tournament structure'}
-            </p>
-          </div>
-          <div className="flex flex-col items-end gap-1">
-            <div
-              className={`text-xs px-2 py-1 rounded ${
-                hasOfficialBrackets
-                  ? 'text-green-400 bg-green-500/20'
-                  : 'text-yellow-400 bg-yellow-500/20'
-              }`}
-            >
-              {hasOfficialBrackets ? 'OFFICIAL' : 'PREVIEW'}
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Render bracket sections */}
+      {/* Render bracket sections */}}
       {bracketType === 'all' && tournament.format === 'DOUBLE_ELIMINATION' ? (
         <>
           {/* Winners bracket */}
@@ -162,7 +135,7 @@ export default function HybridBracket({
           isStaff={isStaff}
           onMatchUpdate={onMatchUpdate}
           onVodUpdate={onVodUpdate}
-          tournamentName={sectionLabel}
+          tournamentName={tournament.name}
           className="w-full"
         />
       )}
