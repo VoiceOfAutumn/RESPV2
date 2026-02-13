@@ -21,17 +21,51 @@ router.get('/', async (req, res) => {
 router.get('/:id', async (req, res) => {
   const { id } = req.params;
   try {
-    const result = await pool.query(`
-      SELECT *
-      FROM tournaments
-      WHERE id = $1
-    `, [id]);
-
+    // Fetch the tournament
+    const result = await pool.query('SELECT * FROM tournaments WHERE id = $1', [id]);
     if (result.rows.length === 0) {
       return res.status(404).json({ error: 'Tournament not found' });
     }
+    const tournament = result.rows[0];
 
-    res.json(result.rows[0]);
+    // Fetch participants (join with users to get display_name & profile_picture)
+    const participantsResult = await pool.query(
+      `SELECT u.id, u.display_name, u.profile_picture
+       FROM tournament_participants tp
+       JOIN users u ON u.id = tp.user_id
+       WHERE tp.tournament_id = $1
+       ORDER BY tp.id`,
+      [id]
+    );
+
+    // Determine if the requesting user is signed up (optional auth)
+    let isSignedUp = false;
+    let userId = null;
+
+    if (req.session && req.session.userId) {
+      userId = req.session.userId;
+    } else if (req.headers.authorization) {
+      const authToken = req.headers.authorization.replace('Bearer ', '');
+      const tokenParts = authToken.split('.');
+      if (tokenParts.length === 3) {
+        const tokenUserId = parseInt(tokenParts[0]);
+        const timestamp = parseInt(tokenParts[1]);
+        if (!isNaN(tokenUserId) && !isNaN(timestamp) && (Date.now() - timestamp) < 24 * 60 * 60 * 1000) {
+          userId = tokenUserId;
+        }
+      }
+    }
+
+    if (userId) {
+      isSignedUp = participantsResult.rows.some(p => p.id === userId);
+    }
+
+    res.json({
+      ...tournament,
+      participants: participantsResult.rows,
+      participant_count: participantsResult.rows.length,
+      is_signed_up: isSignedUp,
+    });
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'Internal server error' });
