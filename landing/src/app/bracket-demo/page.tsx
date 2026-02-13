@@ -18,6 +18,7 @@ const NAMES = [
 /**
  * Generate mock matches in the same format the backend produces.
  * This keeps the demo in sync with the real bracket components.
+ * Winners propagate through ALL rounds, not just R1→R2.
  */
 function generateMockMatches(
   numParticipants: number,
@@ -76,93 +77,80 @@ function generateMockMatches(
     });
   }
 
-  // ---- Round 2+ ----
+  // ---- Round 2+ (iteratively propagate winners) ----
   if (totalRounds >= 2) {
+    // Build initial Round 2 slots from BYE recipients + Round 1 winners
     const round2Size = bracketSize / 2;
-    const round2Slots: ({ id: number; name: string; picture: string } | null)[] = new Array(round2Size).fill(null);
+    let prevSlots: ({ id: number; name: string; picture: string } | null)[] = new Array(round2Size).fill(null);
 
     // Spread BYE recipients evenly
     if (numberOfByes > 0) {
       const spacing = round2Size / numberOfByes;
       for (let i = 0; i < numberOfByes; i++) {
         const pos = Math.floor(i * spacing);
-        round2Slots[pos] = byeRecipients[i];
+        prevSlots[pos] = byeRecipients[i];
       }
     }
 
-    // Fill in resolved Round 1 winners (or null = TBD)
+    // Fill in Round 1 winners
     let r1Idx = 0;
     for (let pos = 0; pos < round2Size; pos++) {
-      if (!round2Slots[pos] && r1Idx < round1MatchCount) {
+      if (!prevSlots[pos] && r1Idx < round1MatchCount) {
         const r1Match = matches[r1Idx];
         if (r1Match?.winner_id) {
           const winner = participants.find((p) => p.id === r1Match.winner_id);
-          round2Slots[pos] = winner ?? null;
+          prevSlots[pos] = winner ?? null;
         }
         r1Idx++;
       }
     }
 
-    // Create Round 2 matches
-    const round2MatchCount = Math.floor(round2Size / 2);
-    for (let i = 0; i < round2MatchCount; i++) {
-      const p1 = round2Slots[i * 2];
-      const p2 = round2Slots[i * 2 + 1];
-      const id = nextId++;
-      const score = scoreOverrides.get(id);
-      const winnerId = score
-        ? score.p1 > score.p2
-          ? p1?.id ?? null
-          : p2?.id ?? null
-        : null;
+    // Now iterate from Round 2 through the final round
+    for (let r = 2; r <= totalRounds; r++) {
+      const matchesInRound = Math.floor(prevSlots.length / 2);
+      const nextSlots: ({ id: number; name: string; picture: string } | null)[] = [];
 
-      matches.push({
-        id,
-        round: 2,
-        match_number: i + 1,
-        player1_id: p1?.id ?? null,
-        player2_id: p2?.id ?? null,
-        player1_name: p1?.name ?? null,
-        player2_name: p2?.name ?? null,
-        player1_picture: p1?.picture ?? null,
-        player2_picture: p2?.picture ?? null,
-        player1_score: score?.p1 ?? null,
-        player2_score: score?.p2 ?? null,
-        winner_id: winnerId,
-        winner_name: winnerId ? (winnerId === p1?.id ? p1?.name : p2?.name) ?? null : null,
-        next_match_id: null,
-        next_match_slot: null,
-        bye_match: false,
-        bracket: 'winners',
-      });
-    }
+      for (let i = 0; i < matchesInRound; i++) {
+        const p1 = prevSlots[i * 2];
+        const p2 = prevSlots[i * 2 + 1];
+        const id = nextId++;
+        const score = scoreOverrides.get(id);
+        const winnerId = score
+          ? score.p1 > score.p2
+            ? p1?.id ?? null
+            : p2?.id ?? null
+          : null;
 
-    // Rounds 3+ — empty TBD shells
-    let prevRoundMatchCount = round2MatchCount;
-    for (let r = 3; r <= totalRounds; r++) {
-      const thisRoundCount = Math.floor(prevRoundMatchCount / 2);
-      for (let i = 0; i < thisRoundCount; i++) {
         matches.push({
-          id: nextId++,
+          id,
           round: r,
           match_number: i + 1,
-          player1_id: null,
-          player2_id: null,
-          player1_name: null,
-          player2_name: null,
-          player1_picture: null,
-          player2_picture: null,
-          player1_score: null,
-          player2_score: null,
-          winner_id: null,
-          winner_name: null,
+          player1_id: p1?.id ?? null,
+          player2_id: p2?.id ?? null,
+          player1_name: p1?.name ?? null,
+          player2_name: p2?.name ?? null,
+          player1_picture: p1?.picture ?? null,
+          player2_picture: p2?.picture ?? null,
+          player1_score: score?.p1 ?? null,
+          player2_score: score?.p2 ?? null,
+          winner_id: winnerId,
+          winner_name: winnerId ? (winnerId === p1?.id ? p1?.name : p2?.name) ?? null : null,
           next_match_id: null,
           next_match_slot: null,
           bye_match: false,
           bracket: 'winners',
         });
+
+        // Propagate this match's winner to the next round's slot
+        if (winnerId) {
+          const winner = winnerId === p1?.id ? p1 : p2;
+          nextSlots.push(winner ?? null);
+        } else {
+          nextSlots.push(null);
+        }
       }
-      prevRoundMatchCount = thisRoundCount;
+
+      prevSlots = nextSlots;
     }
   }
 

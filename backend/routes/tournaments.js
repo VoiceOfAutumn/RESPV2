@@ -147,14 +147,23 @@ router.post('/:id/signup', authMiddleware, async (req, res) => {
 router.get('/:id/bracket', async (req, res) => {
   const { id } = req.params;
   try {
-    const result = await pool.query(`
+    // Fetch tournament info
+    const tournResult = await pool.query('SELECT id, name, format, status FROM tournaments WHERE id = $1', [id]);
+    if (tournResult.rows.length === 0) {
+      return res.status(404).json({ error: 'Tournament not found' });
+    }
+
+    const matchResult = await pool.query(`
       SELECT *
       FROM tournament_matches
       WHERE tournament_id = $1
       ORDER BY round, match_number
     `, [id]);
     
-    res.json(result.rows);
+    res.json({
+      tournament: tournResult.rows[0],
+      matches: matchResult.rows,
+    });
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'Internal server error' });
@@ -164,19 +173,63 @@ router.get('/:id/bracket', async (req, res) => {
 // PUT /tournaments/:id/matches/:matchId
 router.put('/:id/matches/:matchId', authMiddleware, async (req, res) => {
   const { id, matchId } = req.params;
-  const { player1Score, player2Score, winnerId } = req.body;
+  // Support both camelCase and snake_case from frontend
+  const p1Score = req.body.player1_score ?? req.body.player1Score;
+  const p2Score = req.body.player2_score ?? req.body.player2Score;
+  const winId = req.body.winner_id ?? req.body.winnerId;
 
   try {
-    // Update match scores and winner
+    // Get the current match to find winner details and next_match_id
+    const matchResult = await pool.query(
+      'SELECT * FROM tournament_matches WHERE tournament_id = $1 AND id = $2',
+      [id, matchId]
+    );
+    if (matchResult.rows.length === 0) {
+      return res.status(404).json({ error: 'Match not found' });
+    }
+    const currentMatch = matchResult.rows[0];
+
+    // Determine winner info
+    let winnerName = null;
+    let winnerPicture = null;
+    if (winId) {
+      if (winId === currentMatch.player1_id) {
+        winnerName = currentMatch.player1_name;
+        winnerPicture = currentMatch.player1_picture;
+      } else if (winId === currentMatch.player2_id) {
+        winnerName = currentMatch.player2_name;
+        winnerPicture = currentMatch.player2_picture;
+      }
+    }
+
+    // Update the current match
     await pool.query(`
       UPDATE tournament_matches 
-      SET player1_score = $1, player2_score = $2, winner_id = $3
-      WHERE tournament_id = $4 AND id = $5
-    `, [player1Score, player2Score, winnerId, id, matchId]);
+      SET player1_score = $1, player2_score = $2, winner_id = $3, winner_name = $4
+      WHERE tournament_id = $5 AND id = $6
+    `, [p1Score, p2Score, winId, winnerName, id, matchId]);
+
+    // Advance winner to the next match if next_match_id is set
+    if (currentMatch.next_match_id && winId) {
+      const slot = currentMatch.next_match_slot || 1;
+      if (slot === 1) {
+        await pool.query(`
+          UPDATE tournament_matches
+          SET player1_id = $1, player1_name = $2, player1_picture = $3
+          WHERE id = $4 AND tournament_id = $5
+        `, [winId, winnerName, winnerPicture, currentMatch.next_match_id, id]);
+      } else {
+        await pool.query(`
+          UPDATE tournament_matches
+          SET player2_id = $1, player2_name = $2, player2_picture = $3
+          WHERE id = $4 AND tournament_id = $5
+        `, [winId, winnerName, winnerPicture, currentMatch.next_match_id, id]);
+      }
+    }
 
     res.json({ message: 'Match updated successfully' });
   } catch (err) {
-    console.error(err);
+    console.error('Error updating match:', err);
     res.status(500).json({ error: 'Internal server error' });
   }
 });
@@ -264,7 +317,8 @@ router.post('/:id/bracket/generate', authMiddleware, async (req, res) => {
       return res.status(400).json({ message: 'Need at least 2 participants to generate a bracket' });
     }
 
-    // Clear existing matches
+    // Clear existing matches (drop foreign key constraint temporarily to avoid issues)
+    await pool.query('UPDATE tournament_matches SET next_match_id = NULL WHERE tournament_id = $1', [tournamentId]);
     await pool.query('DELETE FROM tournament_matches WHERE tournament_id = $1', [tournamentId]);
 
     // Single elimination bracket generation
@@ -276,33 +330,36 @@ router.post('/:id/bracket/generate', authMiddleware, async (req, res) => {
     const round1Players = participants.slice(numberOfByes);
     const round1MatchCount = Math.floor(round1Players.length / 2);
 
-    let matchNumber = 0;
+    // Store created match IDs grouped by round for linking
+    // matchIdsByRound[round] = [matchId1, matchId2, ...]
+    const matchIdsByRound = {};
 
-    // Round 1 matches
+    // ---- Round 1 matches ----
+    matchIdsByRound[1] = [];
     for (let i = 0; i < round1MatchCount; i++) {
       const p1 = round1Players[i * 2];
       const p2 = round1Players[i * 2 + 1] || null;
 
-      matchNumber++;
-      await pool.query(
+      const insertResult = await pool.query(
         `INSERT INTO tournament_matches (tournament_id, round, match_number, player1_id, player1_name, player2_id, player2_name, player1_picture, player2_picture, bye_match, bracket)
-         VALUES ($1, 1, $2, $3, $4, $5, $6, $7, $8, $9, 'winners')`,
+         VALUES ($1, 1, $2, $3, $4, $5, $6, $7, $8, $9, 'winners')
+         RETURNING id`,
         [
           tournamentId,
-          matchNumber,
+          i + 1,
           p1.id, p1.display_name,
           p2?.id || null, p2?.display_name || null,
           p1.profile_picture || null, p2?.profile_picture || null,
           !p2,
         ]
       );
+      matchIdsByRound[1].push(insertResult.rows[0].id);
     }
 
-    // Round 2 slots
+    // ---- Round 2 slots (BYE recipients + empty) ----
     const round2Size = bracketSize / 2;
     const round2Slots = new Array(round2Size).fill(null);
 
-    // Place BYE recipients
     if (numberOfByes > 0) {
       const spacing = round2Size / numberOfByes;
       for (let i = 0; i < numberOfByes; i++) {
@@ -311,13 +368,12 @@ router.post('/:id/bracket/generate', authMiddleware, async (req, res) => {
       }
     }
 
-    // Round 2+ matches (empty TBD slots, filled with BYE recipients where applicable)
+    // ---- Round 2+ matches ----
     for (let r = 2; r <= totalRounds; r++) {
+      matchIdsByRound[r] = [];
       const matchesInRound = bracketSize / Math.pow(2, r);
 
       for (let i = 0; i < matchesInRound; i++) {
-        matchNumber++;
-
         let p1Id = null, p1Name = null, p1Pic = null;
         let p2Id = null, p2Name = null, p2Pic = null;
 
@@ -329,10 +385,55 @@ router.post('/:id/bracket/generate', authMiddleware, async (req, res) => {
           if (slot2) { p2Id = slot2.id; p2Name = slot2.display_name; p2Pic = slot2.profile_picture; }
         }
 
-        await pool.query(
+        const insertResult = await pool.query(
           `INSERT INTO tournament_matches (tournament_id, round, match_number, player1_id, player1_name, player2_id, player2_name, player1_picture, player2_picture, bye_match, bracket)
-           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, false, 'winners')`,
+           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, false, 'winners')
+           RETURNING id`,
           [tournamentId, r, i + 1, p1Id, p1Name, p2Id, p2Name, p1Pic, p2Pic]
+        );
+        matchIdsByRound[r].push(insertResult.rows[0].id);
+      }
+    }
+
+    // ---- Link matches: set next_match_id and next_match_slot ----
+    // Round 1 matches feed into Round 2 matches.
+    // We need to figure out which Round 2 match each Round 1 match feeds into.
+    // Round 1 has fewer matches than round2Size/2 due to BYEs, so we need to
+    // map Round 1 matches to the correct Round 2 slots they occupy.
+
+    // Build a mapping: for each Round 2 match, which slots are fed by Round 1 vs BYEs
+    // Round 2 match i gets slots [i*2] and [i*2+1] from round2Slots
+    // Slots that are null and have a corresponding Round 1 match get linked
+
+    let r1MatchIdx = 0;
+    for (let r2Idx = 0; r2Idx < matchIdsByRound[2].length; r2Idx++) {
+      const r2MatchId = matchIdsByRound[2][r2Idx];
+      // Check slot i*2 and i*2+1
+      for (let slotOffset = 0; slotOffset < 2; slotOffset++) {
+        const slotPos = r2Idx * 2 + slotOffset;
+        if (!round2Slots[slotPos] && r1MatchIdx < matchIdsByRound[1].length) {
+          // This slot is filled by a Round 1 match winner
+          const r1MatchId = matchIdsByRound[1][r1MatchIdx];
+          const nextMatchSlot = slotOffset + 1; // 1 = player1, 2 = player2
+          await pool.query(
+            'UPDATE tournament_matches SET next_match_id = $1, next_match_slot = $2 WHERE id = $3',
+            [r2MatchId, nextMatchSlot, r1MatchId]
+          );
+          r1MatchIdx++;
+        }
+      }
+    }
+
+    // Link Round 2+ to subsequent rounds (straightforward: match i feeds into match floor(i/2))
+    for (let r = 2; r < totalRounds; r++) {
+      const currentRoundIds = matchIdsByRound[r];
+      const nextRoundIds = matchIdsByRound[r + 1];
+      for (let i = 0; i < currentRoundIds.length; i++) {
+        const nextMatchId = nextRoundIds[Math.floor(i / 2)];
+        const nextMatchSlot = (i % 2) + 1; // odd index → slot 2, even → slot 1
+        await pool.query(
+          'UPDATE tournament_matches SET next_match_id = $1, next_match_slot = $2 WHERE id = $3',
+          [nextMatchId, nextMatchSlot, currentRoundIds[i]]
         );
       }
     }
