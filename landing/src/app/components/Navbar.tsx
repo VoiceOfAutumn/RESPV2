@@ -29,7 +29,7 @@ export default function Navbar() {
   ];
 
   return (
-    <nav className="w-64 h-screen flex flex-col items-start py-8 px-6 space-y-6 fixed top-16 left-0">
+    <nav className="w-64 h-screen flex flex-col justify-between py-8 px-6 fixed top-16 left-0">
       <ul className="flex flex-col items-start space-y-4 text-lg font-medium">
         {navItems.slice(0, 3).map(({ href, label, icon }) => (
           <li
@@ -102,6 +102,13 @@ export default function Navbar() {
           </li>
         ))}
       </ul>
+
+      {/* Logo at bottom */}
+      <div className="pb-8">
+        <Link href="/">
+          <img src="/images/Logotemp.png" alt="Logo" className="w-40 opacity-80 hover:opacity-100 transition-opacity duration-200" />
+        </Link>
+      </div>
     </nav>
   );
 }
