@@ -5,7 +5,6 @@ import { usePathname } from 'next/navigation';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { AiOutlineInfoCircle } from 'react-icons/ai';
 import {
-  faHome,
   faTrophy,
   faChartBar,
   faShieldAlt,
@@ -20,7 +19,6 @@ export default function Navbar() {
   const pathname = usePathname();
 
   const navItems = [
-    { href: '/', label: 'Home', icon: faHome },
     { href: '/tournaments', label: 'Tournaments', icon: faTrophy },
     { href: '/leaderboards', label: 'Leaderboards', icon: faChartBar },
     { href: '/rules', label: 'Rules & Guidelines', icon: faGavel },
@@ -29,9 +27,14 @@ export default function Navbar() {
   ];
 
   return (
-    <nav className="w-64 h-screen flex flex-col justify-between py-8 px-6 fixed top-16 left-0">
+    <nav className="w-64 h-screen flex flex-col py-8 px-6 fixed top-16 left-0">
+      {/* Logo */}
+      <Link href="/" className="mb-6">
+        <img src="/images/Logotemp.png" alt="Logo" className="w-40 opacity-80 hover:opacity-100 transition-opacity duration-200" />
+      </Link>
+
       <ul className="flex flex-col items-start space-y-4 text-lg font-medium">
-        {navItems.slice(0, 3).map(({ href, label, icon }) => (
+        {navItems.slice(0, 2).map(({ href, label, icon }) => (
           <li
             key={label}
             className={`flex items-center space-x-2 ${
@@ -88,7 +91,7 @@ export default function Navbar() {
 
         <hr className="w-full border-t border-gray-600 my-4" />
 
-        {navItems.slice(3).map(({ href, label, icon }) => (
+        {navItems.slice(2).map(({ href, label, icon }) => (
           <li
             key={label}
             className={`flex items-center space-x-2 ${
@@ -102,13 +105,6 @@ export default function Navbar() {
           </li>
         ))}
       </ul>
-
-      {/* Logo at bottom */}
-      <div className="pb-8">
-        <Link href="/">
-          <img src="/images/Logotemp.png" alt="Logo" className="w-40 opacity-80 hover:opacity-100 transition-opacity duration-200" />
-        </Link>
-      </div>
     </nav>
   );
 }
