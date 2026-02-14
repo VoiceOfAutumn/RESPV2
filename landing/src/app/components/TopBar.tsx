@@ -102,8 +102,10 @@ export default function TopBar() {
 
   return (
     <div className="fixed top-0 left-0 right-0 h-16 bg-transparent text-white flex justify-between items-center px-6 shadow z-50 border-b border-gray-800">
-      {/* Empty left side */}
-      <div></div>
+      {/* Logo */}
+      <Link href="/" className="flex items-center gap-2">
+        <img src="/images/Logotemp.png" alt="Logo" className="h-10 w-auto" />
+      </Link>
 
       {/* User profile dropdown (only when user is logged in) */}
       {user ? (
