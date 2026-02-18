@@ -42,7 +42,7 @@ export default function Terms() {
               <div className="bg-red-500/10 border border-red-500/20 rounded-xl p-6">
                 <h3 className="text-lg font-semibold text-red-400 mb-2">ROMs Policy</h3>
                 <p className="leading-relaxed">
-                  <strong>Retro eSports does not support or provide any copyright-protected ROMs!</strong> We have a zero-tolerance policy towards any illegal content on our platform. We do not provide any links to download ROMs or any other copyrighted content. We are not responsible for any content uploaded by users, and we reserve the right to remove any content that violates our policies.
+                  <strong>Retro Rivals does not support or provide any copyright-protected ROMs!</strong> We have a zero-tolerance policy towards any illegal content on our platform. We do not provide any links to download ROMs or any other copyrighted content. We are not responsible for any content uploaded by users, and we reserve the right to remove any content that violates our policies.
                 </p>
               </div>
 

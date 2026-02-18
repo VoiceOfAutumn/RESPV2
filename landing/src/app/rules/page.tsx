@@ -17,7 +17,7 @@ export default function Rules() {
           <section className="bg-white/5 backdrop-blur-sm rounded-2xl p-6 shadow-md hover:shadow-purple-500/20 transition duration-300 border border-white/10">
             <h2 className="text-2xl font-bold mb-4">General Rules</h2>
             <p className="text-gray-400 mb-4 leading-relaxed">
-              The following rules apply to all tournaments and events on Retro eSports. By participating, you agree to abide by these rules. Please note that individual tournaments may have additional rules.
+              The following rules apply to all tournaments and events on Retro Rivals. By participating, you agree to abide by these rules. Please note that individual tournaments may have additional rules.
             </p>
             <ul className="space-y-4 text-gray-300 list-disc list-inside leading-relaxed">
               <li>Use of glitches & cheat codes is not allowed unless specified otherwise. When in doubt, ask a Game Master or Tournament Host.</li>
@@ -34,7 +34,7 @@ export default function Rules() {
           <section className="bg-white/5 backdrop-blur-sm rounded-2xl p-6 shadow-md hover:shadow-purple-500/20 transition duration-300 border border-white/10">
             <h2 className="text-2xl font-bold mb-4">Player Behaviour</h2>
             <p className="text-gray-400 mb-4 leading-relaxed">
-              Retro eSports is a competitive platform that values both mental and physical well-being. We expect the following from our players:
+              Retro Rivals is a competitive platform that values both mental and physical well-being. We expect the following from our players:
             </p>
             <ul className="space-y-4 text-gray-300 list-disc list-inside leading-relaxed">
               <li>
@@ -42,7 +42,7 @@ export default function Rules() {
                 <strong> Take breaks and maintain real-world social interactions.</strong>
               </li>
               <li>Show respect and sportsmanship. Use block features to de-escalate situations—repeat offenders will be banned.</li>
-              <li>No tolerance for defamation, racism, threats, grooming, or other inappropriate behavior.</li>
+              <li>No defamation, racism, threats, grooming, or other inappropriate behavior.</li>
               <li>Appeals or complaints must be handled privately with staff, not in public channels.</li>
               <li>
                 Do not break copyright laws. We don’t provide ROMs or illegal content, and we’ll remove anything that violates our policy.

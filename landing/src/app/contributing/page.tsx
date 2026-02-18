@@ -48,13 +48,12 @@ export default function Contributing() {
               <h2 className="text-2xl font-bold">Financing</h2>
             </div>
             <p className="text-gray-300 text-base leading-relaxed">
-              Retro eSports is powered by nostalgia — not profits. But running things costs money:
+              Retro Rivals is powered by nostalgia & competitiveness - not profits. But running things costs money:
             </p>
             <ul className="list-disc list-inside text-base text-gray-400 mt-4 space-y-2">
-              <li>💻 Server hosting and maintenance</li>
-              <li>🎥 Media production & streaming</li>
-              <li>🛠 Website improvements & tools</li>
-              <li>⚡ Bandwidth, storage, APIs</li>
+              <li>Server hosting and maintenance</li>
+              <li>Media production & streaming</li>
+              <li>Website improvements & tools</li>
             </ul>
             <p className="text-base text-gray-400 mt-4">
               We gratefully accept donations to help keep the platform alive and thriving. Every bit helps!
@@ -76,7 +75,7 @@ export default function Contributing() {
               Whether it's a new site feature, tournament format, or community initiative — we welcome your creativity.
             </p>
             <p className="text-base text-gray-400 mt-4">
-              Reach out via Discord and help shape the future of Retro eSports with your unique contributions.
+              Reach out via Discord and help shape the future of Retro Rivals with your unique contributions.
             </p>
           </div>
         </div>
