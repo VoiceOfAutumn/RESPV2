@@ -24,7 +24,7 @@ export default function Contributing() {
               <h2 className="text-2xl font-bold">Volunteering</h2>
             </div>
             <p className="text-gray-300 text-base leading-relaxed">
-              We live and breathe retro gaming, and we know you do too. That’s why we're always on the lookout for passionate volunteers to help us grow. Join any of our teams:
+              We live and breathe retro gaming, and we know you do too. That’s why we're always on the lookout for passionate volunteers to help us grow.
             </p>
             <ul className="list-disc list-inside text-base text-gray-400 mt-4 space-y-2">
               <li><strong>Tournament Hosts:</strong> Organize and run tournaments fairly and smoothly.</li>
@@ -32,9 +32,6 @@ export default function Contributing() {
               <li><strong>Streamers:</strong> Showcase events through live streams.</li>
               <li><strong>Media Team:</strong> Create graphics, videos, and manage VODs.</li>
             </ul>
-            <p className="text-base text-gray-400 mt-4">
-              Interested? Reach out on our Discord server — we'd love to hear from you!
-            </p>
           </div>
 
           {/* Financing Column */}
@@ -72,7 +69,7 @@ export default function Contributing() {
             </div>
             <p className="text-gray-300 text-base leading-relaxed">
               Got another idea? We’re all ears.
-              Whether it's a new site feature, tournament format, or community initiative — we welcome your creativity.
+              Whether it's a new site feature, tournament format, or community initiative - we welcome your creativity.
             </p>
             <p className="text-base text-gray-400 mt-4">
               Reach out via Discord and help shape the future of Retro Rivals with your unique contributions.
