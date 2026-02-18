@@ -1,3 +1,15 @@
+export interface GameInfo {
+  gameName: string;
+  platform: string;
+  challengeDescription: string;
+}
+
+export interface GameData {
+  differsPerRound: boolean;
+  game?: GameInfo;
+  rounds?: Record<string, GameInfo>;
+}
+
 export interface Tournament {
   id: number;
   name: string;
@@ -9,6 +21,7 @@ export interface Tournament {
   participant_count: number;
   is_signed_up: boolean;
   image: string | null;
+  game_data: GameData | null;
   participants: Array<{
     id: number;
     display_name: string;

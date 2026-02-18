@@ -6,7 +6,7 @@ import Navbar from '../../components/Navbar';
 import TopBar from '../../components/TopBar';
 import TournamentStaffControls from '@/components/TournamentStaffControls';
 import { useToast } from '@/app/components/ToastContext';
-import { Tournament, TournamentUpdate } from '@/types/tournament';
+import { Tournament, TournamentUpdate, GameData, GameInfo } from '@/types/tournament';
 import Link from 'next/link';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import Image from 'next/image';
@@ -306,6 +306,58 @@ export default function TournamentDetailPage() {
               </div>
             </div>
           </div>
+
+          {/* Game Information Section */}
+          {tournament.game_data && (
+            <div className="bg-neutral-800/50 backdrop-blur rounded-xl shadow-lg border border-gray-700/50 p-6">
+              <h2 className="text-xl font-semibold bg-clip-text text-transparent bg-gradient-to-r from-white to-gray-300 mb-4">
+                Game Information
+              </h2>
+              {tournament.game_data.differsPerRound && tournament.game_data.rounds ? (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {Object.entries(tournament.game_data.rounds)
+                    .filter(([, info]) => info.gameName || info.platform || info.challengeDescription)
+                    .map(([roundKey, info]) => {
+                      const labels: Record<string, string> = {
+                        round_of_128: 'Round of 128',
+                        round_of_64: 'Round of 64',
+                        round_of_32: 'Round of 32',
+                        round_of_16: 'Round of 16',
+                        quarter_final: 'Quarter-Final',
+                        semi_final: 'Semi-Final',
+                        final: 'Final',
+                      };
+                      return (
+                        <div key={roundKey} className="bg-gray-900/40 rounded-lg p-4 border border-gray-700/30">
+                          <h3 className="text-sm font-semibold text-purple-400 mb-2">{labels[roundKey] || roundKey}</h3>
+                          {info.gameName && (
+                            <p className="text-sm"><span className="text-gray-400">Game:</span> <span className="text-white">{info.gameName}</span></p>
+                          )}
+                          {info.platform && (
+                            <p className="text-sm"><span className="text-gray-400">Platform:</span> <span className="text-white">{info.platform}</span></p>
+                          )}
+                          {info.challengeDescription && (
+                            <p className="text-sm mt-1"><span className="text-gray-400">Challenge:</span> <span className="text-white">{info.challengeDescription}</span></p>
+                          )}
+                        </div>
+                      );
+                    })}
+                </div>
+              ) : tournament.game_data.game ? (
+                <div className="bg-gray-900/40 rounded-lg p-4 border border-gray-700/30 max-w-md">
+                  {tournament.game_data.game.gameName && (
+                    <p className="text-sm"><span className="text-gray-400">Game:</span> <span className="text-white">{tournament.game_data.game.gameName}</span></p>
+                  )}
+                  {tournament.game_data.game.platform && (
+                    <p className="text-sm"><span className="text-gray-400">Platform:</span> <span className="text-white">{tournament.game_data.game.platform}</span></p>
+                  )}
+                  {tournament.game_data.game.challengeDescription && (
+                    <p className="text-sm mt-1"><span className="text-gray-400">Challenge:</span> <span className="text-white">{tournament.game_data.game.challengeDescription}</span></p>
+                  )}
+                </div>
+              ) : null}
+            </div>
+          )}
 
           <div className="bg-neutral-800/50 backdrop-blur rounded-xl shadow-lg border border-gray-700/50">
             <div className="p-6 pb-4">
