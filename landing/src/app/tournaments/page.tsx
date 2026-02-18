@@ -376,7 +376,7 @@ export default function TournamentsPage() {
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="text-sm text-gray-300">
-                        {new Date(tournament.date).toLocaleDateString()}
+                        {new Date(tournament.date).toLocaleDateString()} <span className="text-gray-500 text-xs">UTC</span>
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">

@@ -10,7 +10,6 @@ interface FormData {
   name: string;
   description: string;
   date: string;
-  rules: string;
   image: string;
 }
 
@@ -20,7 +19,6 @@ export default function CreateTournamentPage() {
     name: '',
     description: '',
     date: '',
-    rules: '',
     image: ''
   });
   const handleSubmit = async (e: React.FormEvent) => {
@@ -115,7 +113,7 @@ export default function CreateTournamentPage() {
             
             <div>
               <label htmlFor="date" className="block text-sm font-medium text-gray-300">
-                Tournament Date
+                Tournament Date <span className="text-gray-500 text-xs">(UTC)</span>
               </label>
               <input
                 type="datetime-local"
@@ -125,6 +123,7 @@ export default function CreateTournamentPage() {
                 onChange={(e) => setFormData(prev => ({ ...prev, date: e.target.value }))}
                 className="mt-1 block w-full bg-gray-900/50 text-white rounded-lg border border-gray-700/50 focus:outline-none focus:ring-2 focus:ring-purple-500/50 focus:border-transparent transition-all duration-300 px-4 py-2"
               />
+              <p className="mt-1 text-sm text-gray-400">All times are in UTC timezone</p>
             </div>
 
             <div>
@@ -143,19 +142,6 @@ export default function CreateTournamentPage() {
               <p className="mt-1 text-sm text-gray-400">
                 Must be a direct link to an image ending in .jpg, .jpeg, or .png
               </p>
-            </div>
-            
-            <div>
-              <label htmlFor="rules" className="block text-sm font-medium text-gray-300">
-                Tournament Rules
-              </label>
-              <textarea
-                id="rules"
-                value={formData.rules}
-                onChange={(e) => setFormData(prev => ({ ...prev, rules: e.target.value }))}
-                rows={4}
-                className="mt-1 block w-full bg-gray-900/50 text-white rounded-lg border border-gray-700/50 focus:outline-none focus:ring-2 focus:ring-purple-500/50 focus:border-transparent transition-all duration-300 px-4 py-2"
-              />
             </div>
             
             <div className="flex justify-end space-x-4">

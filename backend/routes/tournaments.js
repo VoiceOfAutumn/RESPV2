@@ -30,17 +30,17 @@ router.post('/', authMiddleware, async (req, res) => {
       return res.status(403).json({ message: 'Only staff or admin can create tournaments' });
     }
 
-    const { name, description, date, rules, image } = req.body;
+    const { name, description, date, image } = req.body;
 
     if (!name || !date) {
       return res.status(400).json({ message: 'Name and date are required' });
     }
 
     const result = await pool.query(
-      `INSERT INTO tournaments (name, description, date, rules, image, status)
-       VALUES ($1, $2, $3, $4, $5, 'registration_open')
+      `INSERT INTO tournaments (name, description, date, image, status)
+       VALUES ($1, $2, $3, $4, 'registration_open')
        RETURNING *`,
-      [name, description || null, date, rules || null, image || null]
+      [name, description || null, date, image || null]
     );
 
     res.status(201).json(result.rows[0]);

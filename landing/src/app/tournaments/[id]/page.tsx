@@ -262,7 +262,7 @@ export default function TournamentDetailPage() {
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <span className="text-gray-400">Date:</span>{' '}
-                    <span className="font-medium">{new Date(tournament.date).toLocaleString()}</span>
+                    <span className="font-medium">{new Date(tournament.date).toLocaleString()} <span className="text-gray-500 text-xs">UTC</span></span>
                   </div>
                   <div>
                     <span className="text-gray-400">Status:</span>{' '}
