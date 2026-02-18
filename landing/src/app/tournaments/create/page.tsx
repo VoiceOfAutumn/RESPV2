@@ -134,7 +134,7 @@ export default function CreateTournamentPage() {
           value={game.gameName}
           onChange={(e) => onChange('gameName', e.target.value)}
           className={inputClass}
-          placeholder="e.g. Fortnite, Valorant, Chess..."
+          placeholder="e.g. Super Mario 64, Windjammers, Street Fighter..."
         />
       </div>
       <div>
@@ -148,7 +148,7 @@ export default function CreateTournamentPage() {
           value={game.platform}
           onChange={(e) => onChange('platform', e.target.value)}
           className={inputClass}
-          placeholder="e.g. PC, PlayStation, Xbox, Mobile..."
+          placeholder="e.g. Fightcade, GBA, Playstation..."
         />
       </div>
       <div>

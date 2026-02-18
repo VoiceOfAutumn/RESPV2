@@ -315,9 +315,13 @@ export default function TournamentDetailPage() {
               </h2>
               {tournament.game_data.differsPerRound && tournament.game_data.rounds ? (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {Object.entries(tournament.game_data.rounds)
-                    .filter(([, info]) => info.gameName || info.platform || info.challengeDescription)
-                    .map(([roundKey, info]) => {
+                  {(['round_of_128', 'round_of_64', 'round_of_32', 'round_of_16', 'quarter_final', 'semi_final', 'final'] as const)
+                    .filter((roundKey) => {
+                      const info = tournament.game_data!.rounds![roundKey];
+                      return info && (info.gameName || info.platform || info.challengeDescription);
+                    })
+                    .map((roundKey) => {
+                      const info = tournament.game_data!.rounds![roundKey];
                       const labels: Record<string, string> = {
                         round_of_128: 'Round of 128',
                         round_of_64: 'Round of 64',
