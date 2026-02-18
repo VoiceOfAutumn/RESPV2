@@ -69,12 +69,6 @@ export default function Terms() {
             </div>
           </section>
 
-          <section className="bg-gray-800/50 backdrop-blur rounded-2xl p-8 border border-gray-700/50">
-            <h2 className="text-2xl font-bold text-purple-400 mb-4">Privacy & Data</h2>
-            <p className="text-gray-300 leading-relaxed">
-              We value your privacy. Information you provide is stored securely to the best of our ability and will never be sold. Any information you provide is used solely for the purpose of providing our services.
-            </p>
-          </section>
         </div>
 
         {/* Footer Note */}
