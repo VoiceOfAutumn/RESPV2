@@ -3,7 +3,7 @@
 import { useState, useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useToast } from '../components/ToastContext';
-import { apiRequest } from '@/lib/api';
+import { apiRequest, API_BASE_URL } from '@/lib/api';
 
 // Separate component for handling search params
 function LoginSuccessHandler() {
