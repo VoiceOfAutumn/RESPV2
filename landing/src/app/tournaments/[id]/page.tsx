@@ -7,6 +7,7 @@ import TopBar from '../../components/TopBar';
 import TournamentStaffControls from '@/components/TournamentStaffControls';
 import { useToast } from '@/app/components/ToastContext';
 import { Tournament, TournamentUpdate, GameData, GameInfo } from '@/types/tournament';
+import { API_BASE_URL } from '@/lib/api';
 import Link from 'next/link';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import Image from 'next/image';
@@ -71,7 +72,7 @@ export default function TournamentDetailPage() {
           headers['Authorization'] = `Bearer ${authToken}`;
         }
 
-        const res = await fetch(`https://backend-6wqj.onrender.com/tournaments/${id}`, {
+        const res = await fetch(`${API_BASE_URL}/tournaments/${id}`, {
           headers,
           credentials: 'include'
         });
@@ -103,7 +104,7 @@ export default function TournamentDetailPage() {
         headers['Authorization'] = `Bearer ${authToken}`;
       }
 
-      const res = await fetch(`https://backend-6wqj.onrender.com/tournaments/${id}/signup`, {
+      const res = await fetch(`${API_BASE_URL}/tournaments/${id}/signup`, {
         method: 'POST',
         headers,
         credentials: 'include',
@@ -147,7 +148,7 @@ export default function TournamentDetailPage() {
         headers['Authorization'] = `Bearer ${authToken}`;
       }
 
-      const res = await fetch(`https://backend-6wqj.onrender.com/tournaments/${id}/signup`, {
+      const res = await fetch(`${API_BASE_URL}/tournaments/${id}/signup`, {
         method: 'DELETE',
         headers,
         credentials: 'include',

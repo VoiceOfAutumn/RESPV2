@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import TopBar from '../../components/TopBar';
 import Navbar from '../../components/Navbar';
 import { useToast } from '@/app/components/ToastContext';
+import { API_BASE_URL } from '@/lib/api';
 
 interface GameInfo {
   gameName: string;
@@ -87,7 +88,7 @@ export default function CreateTournamentPage() {
         headers['Authorization'] = `Bearer ${authToken}`;
       }
 
-      const res = await fetch('https://backend-6wqj.onrender.com/tournaments', {
+      const res = await fetch(`${API_BASE_URL}/tournaments`, {
         method: 'POST',
         headers,
         credentials: 'include',

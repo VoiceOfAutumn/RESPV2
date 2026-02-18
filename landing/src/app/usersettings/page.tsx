@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation'; // For redirection
 import TopBar from '../components/TopBar';
 import Navbar from '../components/Navbar';
+import { API_BASE_URL } from '@/lib/api';
 
 export default function UserSettings() {
   const [userData, setUserData] = useState({
@@ -41,7 +42,7 @@ export default function UserSettings() {
           headers['Authorization'] = `Bearer ${authToken}`;
         }
 
-        const res = await fetch('https://backend-6wqj.onrender.com/usersettings', {
+        const res = await fetch(`${API_BASE_URL}/usersettings`, {
           headers,
           credentials: 'include', // Ensure the session cookie is included
         });
@@ -74,7 +75,7 @@ export default function UserSettings() {
           headers['Authorization'] = `Bearer ${authToken}`;
         }
 
-        const res = await fetch('https://backend-6wqj.onrender.com/countries', {
+        const res = await fetch(`${API_BASE_URL}/countries`, {
           headers,
           credentials: 'include',
         });
@@ -131,7 +132,7 @@ export default function UserSettings() {
         headers['Authorization'] = `Bearer ${authToken}`;
       }
 
-      const res = await fetch('https://backend-6wqj.onrender.com/user/update', {
+      const res = await fetch(`${API_BASE_URL}/user/update`, {
         method: 'PUT',
         headers,
         body: JSON.stringify({ [field]: userData[field] }),

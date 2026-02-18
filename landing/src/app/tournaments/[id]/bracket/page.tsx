@@ -6,6 +6,7 @@ import Navbar from '../../../components/Navbar';
 import TopBar from '../../../components/TopBar';
 import HybridBracket from '@/components/HybridBracket';
 import { useToast } from '@/app/components/ToastContext';
+import { API_BASE_URL } from '@/lib/api';
 import { BracketData, Match, Tournament } from '@/app/tournament/[id]/bracket/types';
 
 // Bracket Tabs Component
@@ -154,7 +155,7 @@ export default function TournamentBracketPage() {
     // Fetch bracket data
     const fetchBracket = async () => {
       try {
-        const res = await fetch(`https://backend-6wqj.onrender.com/tournaments/${id}/bracket`, {
+        const res = await fetch(`${API_BASE_URL}/tournaments/${id}/bracket`, {
           credentials: 'include'
         });
         
@@ -188,7 +189,7 @@ export default function TournamentBracketPage() {
       const headers: HeadersInit = { 'Content-Type': 'application/json' };
       if (authToken) headers['Authorization'] = `Bearer ${authToken}`;
 
-      const res = await fetch(`https://backend-6wqj.onrender.com/tournaments/${id}/matches/${matchId}/vod`, {
+      const res = await fetch(`${API_BASE_URL}/tournaments/${id}/matches/${matchId}/vod`, {
         method: 'PUT',
         headers,
         credentials: 'include',
@@ -201,7 +202,7 @@ export default function TournamentBracketPage() {
       }
 
       // Refresh bracket
-      const bracketRes = await fetch(`https://backend-6wqj.onrender.com/tournaments/${id}/bracket`, { credentials: 'include' });
+      const bracketRes = await fetch(`${API_BASE_URL}/tournaments/${id}/bracket`, { credentials: 'include' });
       if (bracketRes.ok) {
         const newData = await bracketRes.json();
         newData.matches = newData.matches || [];
@@ -263,7 +264,7 @@ export default function TournamentBracketPage() {
         headers['Authorization'] = `Bearer ${authToken}`;
       }
 
-      const res = await fetch(`https://backend-6wqj.onrender.com/tournaments/${id}/matches/${matchId}`, {
+      const res = await fetch(`${API_BASE_URL}/tournaments/${id}/matches/${matchId}`, {
         method: 'PUT',
         headers,
         credentials: 'include',
@@ -283,7 +284,7 @@ export default function TournamentBracketPage() {
       console.log('Score update response:', responseData);
 
       // Refresh bracket data to show the updated results
-      const bracketRes = await fetch(`https://backend-6wqj.onrender.com/tournaments/${id}/bracket`, {
+      const bracketRes = await fetch(`${API_BASE_URL}/tournaments/${id}/bracket`, {
         credentials: 'include'
       });
       if (!bracketRes.ok) throw new Error('Failed to refresh bracket');

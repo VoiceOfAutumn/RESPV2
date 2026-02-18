@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useToast } from '../components/ToastContext';
+import { API_BASE_URL } from '@/lib/api';
 
 export default function ForgotPasswordPage() {
   const [email, setEmail] = useState('');
@@ -18,7 +19,7 @@ export default function ForgotPasswordPage() {
     setIsLoading(true);
 
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'https://backend-6wqj.onrender.com'}/forgot-password`, {
+      const response = await fetch(`${API_BASE_URL}/forgot-password`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

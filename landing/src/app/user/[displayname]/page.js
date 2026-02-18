@@ -5,6 +5,7 @@ import { useParams } from 'next/navigation';
 import TopBar from '../../components/TopBar';
 import Navbar from '../../components/Navbar';
 import { getFlagImageProps } from '@/lib/countryFlags';
+import { API_BASE_URL } from '@/lib/api';
 
 function LoadingSkeleton() {
   return (
@@ -33,7 +34,7 @@ export default function UserProfile() {
     if (!displayname) return;    const fetchUserProfile = async () => {
       try {
         // Fetch user profile
-        const userRes = await fetch(`https://backend-6wqj.onrender.com/user/${displayname}`);
+        const userRes = await fetch(`${API_BASE_URL}/user/${displayname}`);
         if (!userRes.ok) {
           throw new Error("User not found");
         }
@@ -41,7 +42,7 @@ export default function UserProfile() {
         setUser(userData);
 
         // Fetch leaderboard to determine rank
-        const leaderboardRes = await fetch('https://backend-6wqj.onrender.com/leaderboard');
+        const leaderboardRes = await fetch(`${API_BASE_URL}/leaderboard`);
         if (leaderboardRes.ok) {
           const leaderboardData = await leaderboardRes.json();
           const userRankIndex = leaderboardData.findIndex(entry => entry.display_name === displayname);

@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { BACKEND_INTERNAL_URL } from '@/lib/api';
 
 export async function GET(request: NextRequest) {
   try {
@@ -24,7 +25,7 @@ export async function GET(request: NextRequest) {
     
     console.log('API route forwarding headers:', headers);
     
-    const res = await fetch('https://backend-6wqj.onrender.com/user/me', {
+    const res = await fetch(`${BACKEND_INTERNAL_URL}/user/me`, {
       method: 'GET',
       headers
     });

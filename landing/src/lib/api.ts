@@ -1,7 +1,11 @@
 // API configuration for frontend
-// This will use the environment variable or fallback to localhost for development
+// Uses Next.js rewrites to proxy /api/backend/* to the actual backend,
+// making the app work on any domain (e.g. respv2.onrender.com, retrorivals.nl)
 
-export const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://backend-6wqj.onrender.com';
+export const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || '/api/backend';
+
+// Server-side only: absolute URL for Next.js API routes that run on the server
+export const BACKEND_INTERNAL_URL = 'https://backend-6wqj.onrender.com';
 
 // Helper function for making API requests with proper error handling
 export async function apiRequest(endpoint: string, options: RequestInit = {}) {

@@ -3,6 +3,7 @@
 import { useState, useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useToast } from '../components/ToastContext';
+import { API_BASE_URL } from '@/lib/api';
 
 function ResetPasswordForm() {
   const [formData, setFormData] = useState({
@@ -54,7 +55,7 @@ function ResetPasswordForm() {
     }
 
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'https://backend-6wqj.onrender.com'}/reset-password`, {
+      const response = await fetch(`${API_BASE_URL}/reset-password`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

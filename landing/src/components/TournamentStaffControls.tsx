@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useToast } from '@/app/components/ToastContext';
-
+import { API_BASE_URL } from '@/lib/api';
 import { Tournament, TournamentUpdate } from '@/types/tournament';
 
 interface Props {
@@ -27,7 +27,7 @@ export default function TournamentStaffControls({ tournament, setTournament }: P
         headers['Authorization'] = `Bearer ${authToken}`;
       }
 
-      const res = await fetch(`https://backend-6wqj.onrender.com/tournaments/${tournament.id}/status`, {
+      const res = await fetch(`${API_BASE_URL}/tournaments/${tournament.id}/status`, {
         method: 'PUT',
         headers,
         credentials: 'include',
@@ -71,7 +71,7 @@ export default function TournamentStaffControls({ tournament, setTournament }: P
         headers['Authorization'] = `Bearer ${authToken}`;
       }
 
-      const res = await fetch(`https://backend-6wqj.onrender.com/tournaments/${tournament.id}/bracket/generate`, {
+      const res = await fetch(`${API_BASE_URL}/tournaments/${tournament.id}/bracket/generate`, {
         method: 'POST',
         headers,
         credentials: 'include',

@@ -7,6 +7,7 @@ import { createPortal } from 'react-dom';
 import Navbar from '../components/Navbar';
 import TopBar from '../components/TopBar';
 import { Search, Calendar, Users, TrendingUp, ChevronLeft, ChevronRight } from 'lucide-react';
+import { API_BASE_URL } from '@/lib/api';
 
 interface Tournament {
   id: number;
@@ -114,7 +115,7 @@ export default function TournamentsPage() {
 
   useEffect(() => {
     setLoading(true);
-    fetch('https://backend-6wqj.onrender.com/tournaments', {
+    fetch(`${API_BASE_URL}/tournaments`, {
       credentials: 'include'
     })
       .then(res => res.json())
@@ -145,7 +146,7 @@ export default function TournamentsPage() {
         headers['Authorization'] = `Bearer ${authToken}`;
       }
 
-      const response = await fetch(`https://backend-6wqj.onrender.com/tournaments/${tournamentId}/status`, {
+      const response = await fetch(`${API_BASE_URL}/tournaments/${tournamentId}/status`, {
         method: 'PUT',
         headers,
         credentials: 'include',
@@ -191,7 +192,7 @@ export default function TournamentsPage() {
         headers['Authorization'] = `Bearer ${authToken}`;
       }
 
-      const response = await fetch(`https://backend-6wqj.onrender.com/tournaments/${tournamentId}/bracket/generate`, {
+      const response = await fetch(`${API_BASE_URL}/tournaments/${tournamentId}/bracket/generate`, {
         method: 'POST',
         headers,
         credentials: 'include',

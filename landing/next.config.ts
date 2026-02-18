@@ -9,6 +9,14 @@ const nextConfig: NextConfig = {
       },
     ],
   },
+  async rewrites() {
+    return [
+      {
+        source: '/api/backend/:path*',
+        destination: 'https://backend-6wqj.onrender.com/:path*',
+      },
+    ];
+  },
 };
 
 export default nextConfig;
