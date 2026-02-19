@@ -116,10 +116,12 @@ const RecentTournaments = () => {
                 </svg>
                 {formatDate(tournament.date)}
               </div>
-              <span className={`inline-block px-2 py-0.5 rounded-full text-xs font-medium ${
-                tournament.status.toLowerCase() === 'registration open' ? 'bg-green-500/20 text-green-400' :
-                tournament.status.toLowerCase() === 'in progress' ? 'bg-yellow-500/20 text-yellow-400' :
-                'bg-gray-500/20 text-gray-400'
+              <span className={`inline-flex items-center px-2.5 py-1 rounded-md text-xs font-semibold tracking-wide uppercase border ${
+                tournament.status.toLowerCase() === 'registration open' ? 'bg-green-500/10 text-green-400 border-green-500/20' :
+                tournament.status.toLowerCase() === 'registration closed' ? 'bg-red-500/10 text-red-400 border-red-500/20' :
+                tournament.status.toLowerCase() === 'completed' || tournament.status.toLowerCase() === 'finished' ? 'bg-purple-500/10 text-purple-400 border-purple-500/20' :
+                tournament.status.toLowerCase() === 'in progress' ? 'bg-blue-500/10 text-blue-400 border-blue-500/20' :
+                'bg-gray-500/10 text-gray-400 border-gray-500/20'
               }`}>
                 {tournament.status}
               </span>

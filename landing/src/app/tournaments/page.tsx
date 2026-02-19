@@ -266,7 +266,7 @@ export default function TournamentsPage() {
       case 'registration_open':
         return 'text-green-400';
       case 'registration_closed':
-        return 'text-yellow-400';
+        return 'text-red-400';
       case 'in_progress':
         return 'text-blue-400';
       case 'completed':
@@ -281,17 +281,17 @@ export default function TournamentsPage() {
   const getStatusBadgeStyle = (status: string) => {
     switch (status) {
       case 'registration_open':
-        return 'bg-green-500/10 text-green-400';
+        return 'bg-green-500/10 text-green-400 border border-green-500/20';
       case 'registration_closed':
-        return 'bg-yellow-500/10 text-yellow-400';
+        return 'bg-red-500/10 text-red-400 border border-red-500/20';
       case 'in_progress':
-        return 'bg-blue-500/10 text-blue-400';
+        return 'bg-blue-500/10 text-blue-400 border border-blue-500/20';
       case 'completed':
-        return 'bg-purple-500/10 text-purple-400';
+        return 'bg-purple-500/10 text-purple-400 border border-purple-500/20';
       case 'cancelled':
-        return 'bg-red-500/10 text-red-400';
+        return 'bg-red-500/10 text-red-400 border border-red-500/20';
       default:
-        return 'bg-gray-500/10 text-gray-400';
+        return 'bg-gray-500/10 text-gray-400 border border-gray-500/20';
     }
   };
 
@@ -377,11 +377,15 @@ export default function TournamentsPage() {
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="text-sm text-gray-300">
-                        {new Date(tournament.date).toLocaleDateString()} <span className="text-gray-500 text-xs">UTC</span>
+                        {new Date(tournament.date).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' })}{' '}
+                        <span className="text-gray-400">
+                          {new Date(tournament.date).toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit', timeZone: 'UTC' })}
+                        </span>{' '}
+                        <span className="text-gray-500 text-xs">UTC</span>
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusColor(tournament.status)}`}>
+                      <span className={`inline-flex items-center px-2.5 py-1 rounded-md text-xs font-semibold tracking-wide uppercase ${getStatusBadgeStyle(tournament.status)}`}>
                         {getStatusText(tournament.status)}
                       </span>
                     </td>
