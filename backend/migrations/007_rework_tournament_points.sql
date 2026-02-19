@@ -38,13 +38,13 @@ BEGIN
     WHERE tournament_id = p_tournament_id
       AND user_id = p_user_id;
 
-    -- Walk every non-bye match this user won, ordered by round
+    -- Walk every match this user won, ordered by round (including byes
+    -- so the multiplier advances, but byes award 0 actual points)
     FOR v_match IN
-        SELECT id, round, match_number, next_match_id
+        SELECT id, round, match_number, next_match_id, bye_match
         FROM tournament_matches
         WHERE tournament_id = p_tournament_id
           AND winner_id = p_user_id
-          AND bye_match = false
         ORDER BY round, match_number
     LOOP
         v_win_number := v_win_number + 1;
@@ -57,26 +57,30 @@ BEGIN
         END IF;
 
         v_prev_points  := v_match_points;
-        v_total_points := v_total_points + v_match_points;
 
-        -- Final match (no next match) means this user won the tournament
-        IF v_match.next_match_id IS NULL THEN
-            v_is_winner := TRUE;
+        -- Bye matches advance the multiplier but don't award points
+        IF v_match.bye_match = false THEN
+            v_total_points := v_total_points + v_match_points;
+
+            -- Final match (no next match) means this user won the tournament
+            IF v_match.next_match_id IS NULL THEN
+                v_is_winner := TRUE;
+            END IF;
+
+            INSERT INTO tournament_points
+                (tournament_id, user_id, points, points_detail)
+            VALUES (
+                p_tournament_id,
+                p_user_id,
+                v_match_points,
+                jsonb_build_object(
+                    'match_id',     v_match.id,
+                    'win_number',   v_win_number,
+                    'match_points', v_match_points,
+                    'reason',       'Match win #' || v_win_number
+                )
+            );
         END IF;
-
-        INSERT INTO tournament_points
-            (tournament_id, user_id, points, points_detail)
-        VALUES (
-            p_tournament_id,
-            p_user_id,
-            v_match_points,
-            jsonb_build_object(
-                'match_id',     v_match.id,
-                'win_number',   v_win_number,
-                'match_points', v_match_points,
-                'reason',       'Match win #' || v_win_number
-            )
-        );
     END LOOP;
 
     -- Tournament-winner bonus: ceil(total × 1.25) - total
