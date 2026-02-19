@@ -356,7 +356,7 @@ export default function TournamentsPage() {
             >
               Discord Server
             </a>{' '}
-            is mandatory for participating in the tournaments.
+            is currently mandatory for participating in the tournaments.
           </span>
         </div>
 
