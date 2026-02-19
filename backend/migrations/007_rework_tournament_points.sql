@@ -10,11 +10,14 @@
 -- recalculated so they always stay consistent.
 
 -- ============================================================
--- Step 1: Drop existing trigger + functions
+-- Step 1: Drop existing triggers + functions
 -- ============================================================
 DROP TRIGGER IF EXISTS calculate_match_points ON tournament_matches;
+DROP TRIGGER IF EXISTS apply_winner_bonus ON tournaments;
 DROP FUNCTION IF EXISTS calculate_tournament_points() CASCADE;
 DROP FUNCTION IF EXISTS recalculate_user_tournament_points(INTEGER, INTEGER) CASCADE;
+DROP FUNCTION IF EXISTS apply_tournament_winner_bonus() CASCADE;
+DROP FUNCTION IF EXISTS get_match_id_from_points_detail() CASCADE;
 
 -- ============================================================
 -- Step 2: Helper – full recalculate for one user in one tournament
