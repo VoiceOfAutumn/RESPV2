@@ -26,14 +26,11 @@ CREATE OR REPLACE FUNCTION recalculate_user_tournament_points(
 RETURNS VOID AS $$
 DECLARE
     v_match        RECORD;
-    v_win_number   INTEGER := 0;
     v_match_points INTEGER;
-    v_prev_points  INTEGER := 0;
     v_total_points INTEGER := 0;
     v_is_winner    BOOLEAN := FALSE;
     v_bonus        INTEGER;
-    v_first_round  INTEGER;
-    v_bye_rounds   INTEGER;
+    v_seq_points   INTEGER;
     v_i            INTEGER;
 BEGIN
     -- Wipe this user's point rows for the tournament
@@ -41,56 +38,27 @@ BEGIN
     WHERE tournament_id = p_tournament_id
       AND user_id = p_user_id;
 
-    -- Detect bye rounds: if the user's first match is round 2+, they
-    -- had (first_round - 1) bye rounds. Advance the multiplier for each.
-    SELECT MIN(round) INTO v_first_round
-    FROM tournament_matches
-    WHERE tournament_id = p_tournament_id
-      AND winner_id = p_user_id;
-
-    IF v_first_round IS NULL THEN
-        -- User has no wins at all; just zero out and return
-        UPDATE users
-        SET points = (
-            SELECT COALESCE(SUM(points), 0)
-            FROM tournament_points
-            WHERE user_id = p_user_id
-        )
-        WHERE id = p_user_id;
-        RETURN;
-    END IF;
-
-    v_bye_rounds := v_first_round - 1;
-
-    -- Advance the multiplier through bye rounds (no points awarded)
-    FOR v_i IN 1..v_bye_rounds LOOP
-        v_win_number := v_win_number + 1;
-        IF v_win_number = 1 THEN
-            v_match_points := 1;
-        ELSE
-            v_match_points := CEIL(v_prev_points * 1.5);
-        END IF;
-        v_prev_points := v_match_points;
-    END LOOP;
-
-    -- Walk every match this user won, ordered by round
+    -- Walk every NON-BYE match this user won, ordered by round.
+    -- Use the match's ROUND number to determine position in the
+    -- point sequence (1, 2, 3, 5, 8, 12, 18, 27 …).
+    -- This means a bye in round 1 naturally causes the first real
+    -- win (round 2) to receive the round-2 value (2 pts).
     FOR v_match IN
         SELECT id, round, match_number, next_match_id
         FROM tournament_matches
         WHERE tournament_id = p_tournament_id
           AND winner_id = p_user_id
+          AND bye_match = false
         ORDER BY round, match_number
     LOOP
-        v_win_number := v_win_number + 1;
+        -- Compute point value for this round's position in the sequence
+        -- Position 1 = 1, position N = ceil(position(N-1) × 1.5)
+        v_seq_points := 1;
+        FOR v_i IN 2..v_match.round LOOP
+            v_seq_points := CEIL(v_seq_points * 1.5);
+        END LOOP;
+        v_match_points := v_seq_points;
 
-        -- 1st win = 1, each next = ceil(previous × 1.5)
-        IF v_win_number = 1 THEN
-            v_match_points := 1;
-        ELSE
-            v_match_points := CEIL(v_prev_points * 1.5);
-        END IF;
-
-        v_prev_points  := v_match_points;
         v_total_points := v_total_points + v_match_points;
 
         -- Final match (no next match) means this user won the tournament
@@ -106,9 +74,9 @@ BEGIN
             v_match_points,
             jsonb_build_object(
                 'match_id',     v_match.id,
-                'win_number',   v_win_number,
+                'round',        v_match.round,
                 'match_points', v_match_points,
-                'reason',       'Match win #' || v_win_number
+                'reason',       'Round ' || v_match.round || ' victory'
             )
         );
     END LOOP;
