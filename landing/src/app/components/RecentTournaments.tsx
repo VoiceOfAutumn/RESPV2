@@ -35,7 +35,7 @@ const RecentTournaments = () => {
             const pa = statusPriority[a.status] ?? 99;
             const pb = statusPriority[b.status] ?? 99;
             if (pa !== pb) return pa - pb;
-            return new Date(b.date).getTime() - new Date(a.date).getTime();
+            return new Date(a.date).getTime() - new Date(b.date).getTime();
           })
           .slice(0, 3);
         setTournaments(sortedTournaments);
