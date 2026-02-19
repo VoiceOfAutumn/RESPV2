@@ -21,9 +21,22 @@ const RecentTournaments = () => {
     const fetchTournaments = async () => {
       try {
         const data: Tournament[] = await apiRequest('/tournaments');
-        // Sort by tournament ID (most recent first) and take the latest 3
+        // Sort by status priority (open > closed > completed) then by date (newest first)
+        const statusPriority: Record<string, number> = {
+          registration_open: 0,
+          registration_closed: 1,
+          in_progress: 2,
+          completed: 3,
+          finished: 3,
+          cancelled: 4,
+        };
         const sortedTournaments = data
-          .sort((a, b) => b.id - a.id)
+          .sort((a, b) => {
+            const pa = statusPriority[a.status] ?? 99;
+            const pb = statusPriority[b.status] ?? 99;
+            if (pa !== pb) return pa - pb;
+            return new Date(b.date).getTime() - new Date(a.date).getTime();
+          })
           .slice(0, 3);
         setTournaments(sortedTournaments);
         setLoading(false);
