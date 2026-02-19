@@ -342,6 +342,24 @@ export default function TournamentsPage() {
           </div>
         </div>
 
+        <div className="mb-6 flex items-center gap-3 rounded-lg border border-yellow-500/30 bg-yellow-500/5 px-4 py-3 text-sm text-yellow-300">
+          <svg className="h-5 w-5 flex-shrink-0 text-yellow-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01M10.29 3.86l-8.6 14.86A1 1 0 002.56 20h18.88a1 1 0 00.87-1.28l-8.6-14.86a1 1 0 00-1.72 0z" />
+          </svg>
+          <span>
+            Being in our{' '}
+            <a
+              href="https://discord.gg/hjGrrbTKVT"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="font-semibold text-yellow-200 underline underline-offset-2 hover:text-white transition-colors"
+            >
+              Discord Server
+            </a>{' '}
+            is mandatory for participating in the tournaments.
+          </span>
+        </div>
+
         {loading ? (
           <div className="flex justify-center items-center py-12">
             <div className="animate-spin rounded-full h-16 w-16 border-4 border-purple-500 border-t-transparent shadow-lg shadow-purple-500/20"></div>

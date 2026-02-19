@@ -16,7 +16,7 @@ export default function Terms() {
             Terms & Conditions
           </h1>
           <p className="mt-4 text-gray-400">
-            Last updated: May 2025
+            Last updated: February 2026
           </p>
         </div>
 
