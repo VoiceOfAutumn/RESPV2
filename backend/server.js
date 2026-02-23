@@ -464,7 +464,34 @@ app.put('/user/update', authMiddleware, async (req, res) => {
       const normalizedEmail = value.trim().toLowerCase();
       await pool.query('UPDATE users SET email = $1 WHERE id = $2', [normalizedEmail, userId]);
     } else if (field === 'profile_picture') {
-      // Optional: validate .png/.jpg/.jpeg
+      // Validate file extension
+      const urlLower = value.toLowerCase().split('?')[0];
+      if (!urlLower.match(/\.(png|jpg|jpeg)$/)) {
+        return res.status(400).json({ message: 'Profile picture URL must end with .png, .jpg, or .jpeg' });
+      }
+
+      // Check if the image is animated (APNG detection)
+      try {
+        const response = await fetch(value);
+        if (!response.ok) {
+          return res.status(400).json({ message: 'Could not fetch the image URL' });
+        }
+        const buffer = Buffer.from(await response.arrayBuffer());
+
+        // Check for animated PNG (APNG) - look for 'acTL' chunk which indicates animation
+        if (urlLower.endsWith('.png')) {
+          const acTL = Buffer.from('acTL');
+          for (let i = 0; i < buffer.length - 4; i++) {
+            if (buffer[i] === acTL[0] && buffer[i + 1] === acTL[1] && buffer[i + 2] === acTL[2] && buffer[i + 3] === acTL[3]) {
+              return res.status(400).json({ message: 'Animated images are not allowed as profile pictures' });
+            }
+          }
+        }
+      } catch (fetchErr) {
+        console.error('Error validating profile picture:', fetchErr);
+        return res.status(400).json({ message: 'Could not validate the image. Please check the URL.' });
+      }
+
       await pool.query('UPDATE users SET profile_picture = $1 WHERE id = $2', [value, userId]);
     } else if (field === 'country_id') {
       await pool.query('UPDATE users SET country_id = $1 WHERE id = $2', [value, userId]);
