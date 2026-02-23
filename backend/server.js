@@ -644,6 +644,9 @@ app.get('/leaderboard', async (req, res) => {
 // ++++++++++++++++++++++ TOURNAMENT RELATED ++++++++++++++++++++++
 app.use('/tournaments', require('./routes/tournaments'));
 
+// ++++++++++++++++++++++ SEALS ++++++++++++++++++++++
+app.use('/seals', require('./routes/seals'));
+
 // ++++++++++++++++++++ SERVER +++++++++++++++++
 // ================== START SERVER ==================
 app.listen(PORT, () => {

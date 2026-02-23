@@ -27,6 +27,7 @@ function LoadingSkeleton() {
 export default function UserProfile() {
   const { displayname } = useParams();  const [user, setUser] = useState(null);
   const [userRank, setUserRank] = useState(null);
+  const [userSeals, setUserSeals] = useState([]);
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(true);
 
@@ -49,6 +50,12 @@ export default function UserProfile() {
           if (userRankIndex !== -1) {
             setUserRank(userRankIndex + 1);
           }
+        }
+
+        // Fetch user seals
+        const sealsRes = await fetch(`${API_BASE_URL}/seals/user/${displayname}`);
+        if (sealsRes.ok) {
+          setUserSeals(await sealsRes.json());
         }
       } catch (err) {
         setError(err.message);
@@ -175,8 +182,24 @@ export default function UserProfile() {
                   </svg>
                   Seals
                 </h2>
-                <div className="flex flex-wrap gap-3">
-                  <p className="text-gray-500 text-sm italic">No seals earned yet. Seals are awarded for special accomplishments.</p>
+                <div className="flex flex-wrap gap-4">
+                  {userSeals.length === 0 ? (
+                    <p className="text-gray-500 text-sm italic">No seals earned yet. Seals are awarded for special accomplishments.</p>
+                  ) : (
+                    userSeals.map((seal) => (
+                      <div key={seal.id} className="group relative flex flex-col items-center gap-1">
+                        <div className="w-14 h-14 rounded-full border-2 border-purple-500/40 overflow-hidden bg-gray-800 transition-all duration-300 group-hover:border-purple-400 group-hover:scale-110">
+                          <img src={seal.image_url} alt={seal.name} className="w-full h-full object-cover" />
+                        </div>
+                        <span className="text-[10px] text-gray-400 font-medium max-w-[60px] text-center truncate">{seal.name}</span>
+                        {seal.description && (
+                          <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-1.5 text-xs text-white bg-gray-800 border border-gray-700 rounded-lg shadow-lg whitespace-nowrap z-50 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
+                            {seal.description}
+                          </div>
+                        )}
+                      </div>
+                    ))
+                  )}
                 </div>
               </div>
             </div>
