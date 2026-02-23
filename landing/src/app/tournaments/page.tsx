@@ -122,17 +122,17 @@ export default function TournamentsPage() {
       .then(data => {
         const statusOrder: Record<string, number> = {
           registration_open: 0,
-          check_in: 1,
-          in_progress: 2,
-          registration_closed: 3,
-          completed: 4,
-          cancelled: 5,
+          in_progress: 1,
+          registration_closed: 2,
+          completed: 3,
+          cancelled: 4,
         };
+        const now = Date.now();
         const sortedTournaments = data.sort((a: Tournament, b: Tournament) => {
           const aOrder = statusOrder[a.status] ?? 99;
           const bOrder = statusOrder[b.status] ?? 99;
           if (aOrder !== bOrder) return aOrder - bOrder;
-          return new Date(b.date).getTime() - new Date(a.date).getTime();
+          return Math.abs(new Date(a.date).getTime() - now) - Math.abs(new Date(b.date).getTime() - now);
         });
         setTournaments(sortedTournaments);
         setLoading(false);
