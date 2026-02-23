@@ -68,7 +68,7 @@ export default function TournamentsPage() {
   const [showActionMenu, setShowActionMenu] = useState<number | null>(null);
   const itemsPerPage = 6;
 
-  const isStaff = user?.role === 'staff' || user?.role === 'admin';
+  const isStaff = user?.role === 'admin';
   const actionButtonRefs = useRef<{ [key: number]: HTMLButtonElement | null }>({});
 
   useEffect(() => {

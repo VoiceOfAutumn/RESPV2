@@ -17,7 +17,7 @@ router.get('/', async (req, res) => {
   }
 });
 
-// POST /tournaments  (create a new tournament — staff/admin only)
+// POST /tournaments  (create a new tournament — admin only)
 router.post('/', authMiddleware, async (req, res) => {
   try {
     // Check user role
@@ -26,8 +26,8 @@ router.post('/', authMiddleware, async (req, res) => {
       return res.status(401).json({ message: 'User not found' });
     }
     const role = userResult.rows[0].role;
-    if (role !== 'staff' && role !== 'admin') {
-      return res.status(403).json({ message: 'Only staff or admin can create tournaments' });
+    if (role !== 'admin') {
+      return res.status(403).json({ message: 'Only admin can create tournaments' });
     }
 
     const { name, description, date, image, game_data } = req.body;
@@ -286,7 +286,7 @@ router.delete('/:id/signup', authMiddleware, async (req, res) => {
   }
 });
 
-// PUT /tournaments/:id/status  (update tournament status — staff/admin only)
+// PUT /tournaments/:id/status  (update tournament status — admin only)
 router.put('/:id/status', authMiddleware, async (req, res) => {
   try {
     const userResult = await pool.query('SELECT role FROM users WHERE id = $1', [req.session.userId]);
@@ -294,8 +294,8 @@ router.put('/:id/status', authMiddleware, async (req, res) => {
       return res.status(401).json({ message: 'User not found' });
     }
     const role = userResult.rows[0].role;
-    if (role !== 'staff' && role !== 'admin') {
-      return res.status(403).json({ message: 'Only staff or admin can update tournament status' });
+    if (role !== 'admin') {
+      return res.status(403).json({ message: 'Only admin can update tournament status' });
     }
 
     const { status } = req.body;
@@ -312,7 +312,7 @@ router.put('/:id/status', authMiddleware, async (req, res) => {
   }
 });
 
-// POST /tournaments/:id/bracket/generate  (generate bracket — staff/admin only)
+// POST /tournaments/:id/bracket/generate  (generate bracket — admin only)
 router.post('/:id/bracket/generate', authMiddleware, async (req, res) => {
   try {
     const userResult = await pool.query('SELECT role FROM users WHERE id = $1', [req.session.userId]);
@@ -320,8 +320,8 @@ router.post('/:id/bracket/generate', authMiddleware, async (req, res) => {
       return res.status(401).json({ message: 'User not found' });
     }
     const role = userResult.rows[0].role;
-    if (role !== 'staff' && role !== 'admin') {
-      return res.status(403).json({ message: 'Only staff or admin can generate brackets' });
+    if (role !== 'admin') {
+      return res.status(403).json({ message: 'Only admin can generate brackets' });
     }
 
     const tournamentId = parseInt(req.params.id);

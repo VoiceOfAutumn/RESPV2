@@ -229,7 +229,7 @@ export default function TournamentDetailPage() {
     );
   }
 
-  const isStaff = user?.role === 'staff' || user?.role === 'admin';
+  const isStaff = user?.role === 'admin';
   const canSignUp = tournament.status === 'registration_open' && user && !tournament.is_signed_up;
   const canCancel = tournament.status === 'registration_open' && user && tournament.is_signed_up;
 
