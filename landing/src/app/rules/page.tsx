@@ -41,7 +41,7 @@ export default function Rules() {
                 Treat the platform as an enhancement to your gaming life, not a substitute. 
                 <strong> Take breaks and maintain real-world social interactions.</strong>
               </li>
-              <li>Show respect and sportsmanship. Use block features to de-escalate situations—repeat offenders will be banned.</li>
+              <li>Show respect and sportsmanship. Use block features to de-escalate situations. Repeat offenders will be banned.</li>
               <li>No defamation, racism, threats, grooming, or other inappropriate behavior.</li>
               <li>Appeals or complaints must be handled privately with staff, not in public channels.</li>
               <li>
