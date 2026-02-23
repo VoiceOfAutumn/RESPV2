@@ -165,6 +165,21 @@ export default function UserProfile() {
                 <p className="text-2xl font-semibold text-white">2025</p>
               </div>
             </div>
+
+            {/* Seals Section */}
+            <div className="mt-8">
+              <div className="bg-gray-900/30 rounded-lg p-6 border border-gray-700 transition-all duration-300 hover:border-purple-500/50">
+                <h2 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
+                  <svg className="w-5 h-5 text-purple-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z" />
+                  </svg>
+                  Seals
+                </h2>
+                <div className="flex flex-wrap gap-3">
+                  <p className="text-gray-500 text-sm italic">No seals earned yet. Seals are awarded for special accomplishments.</p>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </section>
