@@ -191,7 +191,7 @@ export default function UserProfile() {
                         <div className="w-14 h-14 rounded-full border-2 border-purple-500/40 overflow-hidden bg-gray-800 transition-all duration-300 group-hover:border-purple-400 group-hover:scale-110">
                           <img src={seal.image_url} alt={seal.name} className="w-full h-full object-cover" />
                         </div>
-                        <span className="text-[10px] text-gray-400 font-medium max-w-[60px] text-center truncate">{seal.name}</span>
+                        <span className="text-xs text-white font-medium max-w-[70px] text-center truncate">{seal.name}</span>
                         {seal.description && (
                           <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-1.5 text-xs text-white bg-gray-800 border border-gray-700 rounded-lg shadow-lg whitespace-nowrap z-50 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
                             {seal.description}
