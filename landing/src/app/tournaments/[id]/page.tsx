@@ -271,10 +271,6 @@ export default function TournamentDetailPage() {
                       {tournament.status.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase())}
                     </span>
                   </div>
-                  <div>
-                    <span className="text-gray-400">Participants:</span>{' '}
-                    <span className="font-medium">{tournament.participant_count}</span>
-                  </div>
                 </div>                <div className="flex gap-3 pt-4">
                   <button
                     onClick={() => router.push(`/tournaments/${id}/bracket`)}
