@@ -406,7 +406,7 @@ export default function TournamentsPage() {
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="text-sm text-gray-300">
-                        {new Date(tournament.date).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' })}{' '}
+                        {new Date(tournament.date).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric', timeZone: 'UTC' })}{' '}
                         <span className="text-gray-400">
                           {new Date(tournament.date).toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit', timeZone: 'UTC' })}
                         </span>{' '}
