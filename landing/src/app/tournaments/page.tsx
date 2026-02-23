@@ -120,9 +120,13 @@ export default function TournamentsPage() {
     })
       .then(res => res.json())
       .then(data => {
-        const sortedTournaments = data.sort((a: Tournament, b: Tournament) => 
-          new Date(b.date).getTime() - new Date(a.date).getTime()
-        );
+        const statusOrder: Record<string, number> = { open: 0, closed: 1, completed: 2 };
+        const sortedTournaments = data.sort((a: Tournament, b: Tournament) => {
+          const aOrder = statusOrder[a.status?.toLowerCase()] ?? 99;
+          const bOrder = statusOrder[b.status?.toLowerCase()] ?? 99;
+          if (aOrder !== bOrder) return aOrder - bOrder;
+          return new Date(b.date).getTime() - new Date(a.date).getTime();
+        });
         setTournaments(sortedTournaments);
         setLoading(false);
       })
