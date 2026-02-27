@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { AiOutlineInfoCircle } from 'react-icons/ai'; // Import a tooltip icon
+import { AiOutlineInfoCircle } from 'react-icons/ai';
 import { useToast } from '../components/ToastContext';
 import { apiRequest } from '@/lib/api';
 
@@ -264,90 +264,135 @@ export default function SignupPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-black via-gray-900 to-black">
-      <div className="bg-gray-900 p-8 rounded-2xl shadow-lg w-full max-w-md border border-purple-500">
-        <h1 className="text-3xl font-bold text-white mb-6 text-center">Sign Up</h1>
-
-        <form onSubmit={handleSubmit} className="space-y-4">
-
-          {/* Display Name Field */}
-          <div className="relative">
-            <input
-              className="w-full p-3 rounded-lg bg-gray-800 border border-gray-700 text-white focus:outline-none focus:ring-2 focus:ring-purple-500"
-              type="text"
-              name="display_name"
-              placeholder="Display Name"
-              value={formData.display_name}
-              onChange={handleChange}
-              required
-            />
-            <AiOutlineInfoCircle className="absolute right-3 top-1/2 transform -translate-y-1/2 text-white cursor-pointer" title="3–16 characters and may only contain letters, numbers, or underscores. Can not be changed later!" />
-          </div>
-
-          {/* Email Field */}
-          <div className="relative">
-            <input
-              className="w-full p-3 rounded-lg bg-gray-800 border border-gray-700 text-white focus:outline-none focus:ring-2 focus:ring-teal-500"
-              type="email"
-              name="email"
-              placeholder="Email"
-              value={formData.email}
-              onChange={handleChange}
-              required
-            />
-          </div>
-
-          {/* Password Field */}
-          <div className="relative">
-            <input
-              className="w-full p-3 rounded-lg bg-gray-800 border border-gray-700 text-white focus:outline-none focus:ring-2 focus:ring-pink-500"
-              type="password"
-              name="password"
-              placeholder="Password"
-              value={formData.password}
-              onChange={handleChange}
-              required
-            />
-            <AiOutlineInfoCircle className="absolute right-3 top-1/2 transform -translate-y-1/2 text-white cursor-pointer" title="At least one uppercase letter, one digit or special character, and a minimum length of 8 characters" />
-          </div>
-
-          {/* Country Selection */}
-          <div className="relative">
-            <select
-              className="w-full p-3 rounded-lg bg-gray-800 border border-gray-700 text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
-              name="country_id"
-              value={formData.country_id}
-              onChange={handleChange}
-              required
-            >
-              <option value="">Select Country</option>
-              {countries.map((country, index) => (
-                <option key={index} value={country}>
-                  {country}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          <button
-            type="submit"
-            disabled={isLoading}
-            className="w-full bg-gradient-to-r from-pink-500 to-purple-500 hover:from-purple-500 hover:to-pink-500 text-white py-3 rounded-lg shadow-lg font-bold transition duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            {isLoading ? 'Creating Account...' : 'Create Account'}
-          </button>
-
-          {/* Add this below your <button> */}
-        <p className="mt-4 text-center text-gray-300 text-sm">
-        Already have an account?{' '}
-        <a href="/login" className="text-purple-400 hover:text-pink-400 underline">
-            Log in here
+    <div className="min-h-screen flex bg-gradient-to-br from-black via-gray-800 to-black">
+      {/* Left Side - Logo & Motto */}
+      <div className="hidden lg:flex lg:w-1/2 flex-col items-center justify-center px-12">
+        <a href="/">
+          <img
+            src="/images/Logotemp.png"
+            alt="Logo"
+            className="w-72 mb-10 opacity-90 hover:opacity-100 transition-opacity duration-300 drop-shadow-lg"
+          />
         </a>
-        </p>
+        <h2 className="text-4xl font-extrabold text-white tracking-widest uppercase text-center leading-relaxed">
+          Compete! Win!<br />Level Up!
+        </h2>
+      </div>
 
-        </form>
+      {/* Right Side - Signup Form */}
+      <div className="w-full lg:w-1/2 flex items-center justify-center px-6 py-12">
+        <div className="w-full max-w-md">
+          {/* Mobile logo (hidden on large screens) */}
+          <div className="flex justify-center mb-8 lg:hidden">
+            <a href="/">
+              <img
+                src="/images/Logotemp.png"
+                alt="Logo"
+                className="w-40 opacity-90"
+              />
+            </a>
+          </div>
 
-        {message && <p className="mt-4 text-center text-white">{message}</p>}
+          <div className="bg-gray-800/80 backdrop-blur-sm p-8 rounded-xl border border-gray-700/50 shadow-xl">
+            <h1 className="text-2xl font-bold text-white mb-6 text-center">Create Account</h1>
+
+            <form onSubmit={handleSubmit} className="space-y-4">
+              {/* Display Name Field */}
+              <div>
+                <label className="block text-sm text-gray-400 mb-1.5">
+                  Display Name
+                  <span className="relative group ml-1.5 inline-block">
+                    <AiOutlineInfoCircle className="inline text-gray-500 hover:text-gray-300 transition-colors duration-200" />
+                    <span className="absolute left-full top-1/2 transform -translate-y-1/2 ml-2 bg-gray-900 text-white text-xs rounded-lg py-1.5 px-3 opacity-0 group-hover:opacity-100 transition-opacity duration-300 whitespace-nowrap z-10 border border-gray-700/50">
+                      3–16 characters: letters, numbers, or underscores only. Cannot be changed later!
+                    </span>
+                  </span>
+                </label>
+                <input
+                  className="w-full p-3 rounded-lg bg-gray-900/60 border border-gray-700/50 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-purple-500/50 focus:border-purple-500/50 transition-all duration-200"
+                  type="text"
+                  name="display_name"
+                  placeholder="YourName_123"
+                  value={formData.display_name}
+                  onChange={handleChange}
+                  required
+                />
+              </div>
+
+              {/* Email Field */}
+              <div>
+                <label className="block text-sm text-gray-400 mb-1.5">Email</label>
+                <input
+                  className="w-full p-3 rounded-lg bg-gray-900/60 border border-gray-700/50 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-purple-500/50 focus:border-purple-500/50 transition-all duration-200"
+                  type="email"
+                  name="email"
+                  placeholder="you@example.com"
+                  value={formData.email}
+                  onChange={handleChange}
+                  required
+                />
+              </div>
+
+              {/* Password Field */}
+              <div>
+                <label className="block text-sm text-gray-400 mb-1.5">
+                  Password
+                  <span className="relative group ml-1.5 inline-block">
+                    <AiOutlineInfoCircle className="inline text-gray-500 hover:text-gray-300 transition-colors duration-200" />
+                    <span className="absolute left-full top-1/2 transform -translate-y-1/2 ml-2 bg-gray-900 text-white text-xs rounded-lg py-1.5 px-3 opacity-0 group-hover:opacity-100 transition-opacity duration-300 whitespace-nowrap z-10 border border-gray-700/50">
+                      Min 8 characters, one uppercase, one digit or special character
+                    </span>
+                  </span>
+                </label>
+                <input
+                  className="w-full p-3 rounded-lg bg-gray-900/60 border border-gray-700/50 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-purple-500/50 focus:border-purple-500/50 transition-all duration-200"
+                  type="password"
+                  name="password"
+                  placeholder="••••••••"
+                  value={formData.password}
+                  onChange={handleChange}
+                  required
+                />
+              </div>
+
+              {/* Country Selection */}
+              <div>
+                <label className="block text-sm text-gray-400 mb-1.5">Country</label>
+                <select
+                  className="w-full p-3 rounded-lg bg-gray-900/60 border border-gray-700/50 text-white focus:outline-none focus:ring-2 focus:ring-purple-500/50 focus:border-purple-500/50 transition-all duration-200"
+                  name="country_id"
+                  value={formData.country_id}
+                  onChange={handleChange}
+                  required
+                >
+                  <option value="">Select Country</option>
+                  {countries.map((country, index) => (
+                    <option key={index} value={country}>
+                      {country}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <button
+                type="submit"
+                disabled={isLoading}
+                className="w-full bg-purple-600 hover:bg-purple-700 text-white py-3 rounded-lg font-bold transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {isLoading ? 'Creating Account...' : 'Create Account'}
+              </button>
+
+              <p className="mt-4 text-center text-gray-400 text-sm">
+                Already have an account?{' '}
+                <a href="/login" className="text-purple-400 hover:text-purple-300 underline transition-colors duration-200">
+                  Log in here
+                </a>
+              </p>
+            </form>
+
+            {message && <p className="mt-4 text-center text-white text-sm">{message}</p>}
+          </div>
+        </div>
       </div>
     </div>
   );
