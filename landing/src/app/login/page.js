@@ -105,11 +105,8 @@ function LoginForm() {
           />
         </a>
         <h2 className="text-4xl font-extrabold text-white tracking-widest uppercase text-center leading-relaxed">
-          Compete. Win.<br />Level Up.
+          Compete! Win!<br />Level Up!
         </h2>
-        <p className="mt-4 text-gray-500 text-sm tracking-wide uppercase">
-          The Tournament Platform
-        </p>
       </div>
 
       {/* Right Side - Login Form */}
