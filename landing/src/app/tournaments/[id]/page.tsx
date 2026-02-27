@@ -471,7 +471,7 @@ const getStatusColor = (status: string) => {
     case 'registration_open':
       return 'text-green-400';
     case 'registration_closed':
-      return 'text-yellow-400';
+      return 'text-red-400';
     case 'in_progress':
       return 'text-blue-400';
     case 'completed':
