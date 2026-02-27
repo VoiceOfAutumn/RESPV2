@@ -375,18 +375,19 @@ export default function TournamentDetailPage() {
                     </Link>
                     {/* Hover popover */}
                     <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 opacity-0 scale-95 pointer-events-none group-hover:opacity-100 group-hover:scale-100 transition-all duration-200 z-50">
-                      <div className="bg-gray-900 border border-gray-700/50 rounded-xl shadow-xl p-3 flex items-center gap-3 whitespace-nowrap">
+                      <div className="bg-gray-900 border border-gray-700/50 rounded-xl shadow-xl p-3 flex items-center gap-3 w-max">
                         <img
                           src={participant.profile_picture || "/images/default-avatar.png"}
                           alt={participant.display_name}
-                          className="w-12 h-12 rounded-full object-cover ring-2 ring-purple-500/30"
+                          className="w-12 h-12 rounded-full object-cover ring-2 ring-purple-500/30 flex-shrink-0"
                           onError={(e) => {
                             e.currentTarget.src = '/images/default-avatar.png';
                           }}
                         />
-                        <div>
+                        <div className="min-w-0">
                           <p className="text-white font-semibold text-sm">{participant.display_name}</p>
-                          <p className="text-gray-400 text-xs">{participant.points ?? 0} pts</p>
+                          <p className="text-gray-400 text-xs">Rank #{participant.site_rank ?? '—'}</p>
+                          <p className="text-gray-500 text-xs">{participant.points ?? 0} EXP</p>
                         </div>
                       </div>
                       {/* Arrow */}

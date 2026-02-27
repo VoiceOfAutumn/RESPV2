@@ -27,6 +27,7 @@ export interface Tournament {
     display_name: string;
     profile_picture: string | null;
     points: number;
+    site_rank: number;
   }>;
 }
 

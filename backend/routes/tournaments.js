@@ -61,9 +61,10 @@ router.get('/:id', async (req, res) => {
     }
     const tournament = result.rows[0];
 
-    // Fetch participants (join with users to get display_name & profile_picture)
+    // Fetch participants (join with users to get display_name, profile_picture, points & global rank)
     const participantsResult = await pool.query(
-      `SELECT u.id, u.display_name, u.profile_picture, u.points
+      `SELECT u.id, u.display_name, u.profile_picture, u.points,
+              (SELECT COUNT(*) + 1 FROM users u2 WHERE u2.points > u.points) AS site_rank
        FROM tournament_participants tp
        JOIN users u ON u.id = tp.user_id
        WHERE tp.tournament_id = $1
