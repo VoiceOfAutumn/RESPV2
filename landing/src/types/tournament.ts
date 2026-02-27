@@ -26,6 +26,7 @@ export interface Tournament {
     id: number;
     display_name: string;
     profile_picture: string | null;
+    points: number;
   }>;
 }
 

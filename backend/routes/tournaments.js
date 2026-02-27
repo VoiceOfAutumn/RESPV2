@@ -63,7 +63,7 @@ router.get('/:id', async (req, res) => {
 
     // Fetch participants (join with users to get display_name & profile_picture)
     const participantsResult = await pool.query(
-      `SELECT u.id, u.display_name, u.profile_picture
+      `SELECT u.id, u.display_name, u.profile_picture, u.points
        FROM tournament_participants tp
        JOIN users u ON u.id = tp.user_id
        WHERE tp.tournament_id = $1

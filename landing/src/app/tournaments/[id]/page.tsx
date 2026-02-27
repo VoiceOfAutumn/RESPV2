@@ -9,7 +9,6 @@ import { useToast } from '@/app/components/ToastContext';
 import { Tournament, TournamentUpdate, GameData, GameInfo } from '@/types/tournament';
 import { API_BASE_URL } from '@/lib/api';
 import Link from 'next/link';
-import { ChevronLeft, ChevronRight } from 'lucide-react';
 import Image from 'next/image';
 
 interface User {
@@ -22,8 +21,6 @@ export default function TournamentDetailPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [user, setUser] = useState<User | null>(null);
-  const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 10;
   const { showToast } = useToast();
   const router = useRouter();
 
@@ -185,12 +182,6 @@ export default function TournamentDetailPage() {
   const handleViewBracket = () => {
     router.push(`/tournaments/${id}/bracket`);
   };
-
-  // Calculate pagination for participants
-  const indexOfLastParticipant = currentPage * itemsPerPage;
-  const indexOfFirstParticipant = indexOfLastParticipant - itemsPerPage;
-  const currentParticipants = tournament ? tournament.participants.slice(indexOfFirstParticipant, indexOfLastParticipant) : [];
-  const totalPages = tournament ? Math.ceil(tournament.participants.length / itemsPerPage) : 0;
 
   if (loading) {
     return (
@@ -360,105 +351,58 @@ export default function TournamentDetailPage() {
             </div>
           )}
 
-          <div className="bg-neutral-800/50 backdrop-blur rounded-xl shadow-lg border border-gray-700/50">
-            <div className="p-6 pb-4">
+          <div className="bg-neutral-800/50 backdrop-blur rounded-xl shadow-lg border border-gray-700/50 p-6">
+            <div className="flex items-center justify-between mb-4">
               <h2 className="text-xl font-semibold bg-clip-text text-transparent bg-gradient-to-r from-white to-gray-300">
                 Participants
               </h2>
+              <span className="text-sm text-gray-400">{tournament.participants.length} player{tournament.participants.length !== 1 ? 's' : ''}</span>
             </div>
 
-            <div className="overflow-x-auto">
-              <table className="w-full table-auto">
-                <thead>
-                  <tr className="border-t border-gray-700/50">
-                    <th className="px-6 py-3 text-left text-sm font-semibold text-gray-400">#</th>
-                    <th className="px-6 py-3 text-left text-sm font-semibold text-gray-400">Player</th>
-                    <th className="px-6 py-3 text-left text-sm font-semibold text-gray-400">Status</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-700/50">
-                  {tournament.participants.length > 0 ? (
-                    currentParticipants.map((participant, index) => (
-                      <tr 
-                        key={participant.id}
-                        className="hover:bg-white/5 transition-colors duration-200"
-                      >
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-400">
-                          {indexOfFirstParticipant + index + 1}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="flex items-center space-x-3">
-                            <img
-                              src={participant.profile_picture || "/images/default-avatar.png"}
-                              alt={participant.display_name}
-                              className="w-8 h-8 rounded-full object-cover ring-1 ring-gray-700/50"
-                              onError={(e) => {
-                                e.currentTarget.src = '/images/default-avatar.png';
-                              }}
-                            />
-                            <Link 
-                              href={`/user/${participant.display_name}`}
-                              className="text-gray-300 hover:text-white font-medium transition-colors duration-300"
-                            >
-                              {participant.display_name}
-                            </Link>
-                          </div>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm">
-                          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-500/10 text-green-400">
-                            Registered
-                          </span>
-                        </td>
-                      </tr>
-                    ))
-                  ) : (
-                    <tr>
-                      <td colSpan={3} className="px-6 py-8 text-center text-gray-400">
-                        <p className="mb-2">No participants yet</p>
-                        {tournament.status === 'registration_open' && !tournament.is_signed_up && (
-                          <p className="text-sm">Be the first to sign up!</p>
-                        )}
-                      </td>
-                    </tr>
-                  )}
-                </tbody>
-              </table>
-            </div>            {/* Pagination Controls */}
-            <div className="flex items-center justify-center gap-4 p-4 border-t border-gray-700/50">
-              <button
-                onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
-                disabled={currentPage === 1}
-                className="p-2 rounded-lg bg-purple-500/10 text-purple-400 hover:bg-purple-500/20 disabled:opacity-50 
-                  disabled:hover:bg-purple-500/10 transition-all duration-300"
-              >
-                <ChevronLeft size={20} />
-              </button>
-
-              <div className="flex gap-2">
-                {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => (
-                  <button
-                    key={page}
-                    onClick={() => setCurrentPage(page)}
-                    className={`px-4 py-2 rounded-lg transition-all duration-300 ${
-                      currentPage === page
-                        ? 'bg-purple-500 text-white'
-                        : 'bg-purple-500/10 text-purple-400 hover:bg-purple-500/20'
-                    }`}
-                  >
-                    {page}
-                  </button>
+            {tournament.participants.length > 0 ? (
+              <div className="flex flex-wrap gap-2">
+                {tournament.participants.map((participant) => (
+                  <div key={participant.id} className="relative group">
+                    <Link href={`/user/${participant.display_name}`}>
+                      <img
+                        src={participant.profile_picture || "/images/default-avatar.png"}
+                        alt={participant.display_name}
+                        className="w-10 h-10 rounded-full object-cover ring-2 ring-gray-700/50 hover:ring-purple-500/50 transition-all duration-200 cursor-pointer"
+                        onError={(e) => {
+                          e.currentTarget.src = '/images/default-avatar.png';
+                        }}
+                      />
+                    </Link>
+                    {/* Hover popover */}
+                    <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 opacity-0 scale-95 pointer-events-none group-hover:opacity-100 group-hover:scale-100 transition-all duration-200 z-50">
+                      <div className="bg-gray-900 border border-gray-700/50 rounded-xl shadow-xl p-3 flex items-center gap-3 whitespace-nowrap">
+                        <img
+                          src={participant.profile_picture || "/images/default-avatar.png"}
+                          alt={participant.display_name}
+                          className="w-12 h-12 rounded-full object-cover ring-2 ring-purple-500/30"
+                          onError={(e) => {
+                            e.currentTarget.src = '/images/default-avatar.png';
+                          }}
+                        />
+                        <div>
+                          <p className="text-white font-semibold text-sm">{participant.display_name}</p>
+                          <p className="text-gray-400 text-xs">{participant.points ?? 0} pts</p>
+                        </div>
+                      </div>
+                      {/* Arrow */}
+                      <div className="w-3 h-3 bg-gray-900 border-b border-r border-gray-700/50 rotate-45 absolute left-1/2 -translate-x-1/2 -bottom-1.5"></div>
+                    </div>
+                  </div>
                 ))}
               </div>
-
-              <button
-                onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
-                disabled={currentPage === totalPages}
-                className="p-2 rounded-lg bg-purple-500/10 text-purple-400 hover:bg-purple-500/20 disabled:opacity-50 
-                  disabled:hover:bg-purple-500/10 transition-all duration-300"
-              >
-                <ChevronRight size={20} />
-              </button>
-            </div>
+            ) : (
+              <div className="text-center text-gray-400 py-4">
+                <p className="mb-1">No participants yet</p>
+                {tournament.status === 'registration_open' && !tournament.is_signed_up && (
+                  <p className="text-sm">Be the first to sign up!</p>
+                )}
+              </div>
+            )}
           </div>
         </div>
       </div>
