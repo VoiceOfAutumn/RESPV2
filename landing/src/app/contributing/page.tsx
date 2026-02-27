@@ -5,7 +5,7 @@ import Navbar from "../components/Navbar";
 
 export default function Contributing() {
   return (
-    <main className="min-h-screen bg-gradient-to-br from-black via-gray-900 to-black text-white pt-16 pl-64">
+    <main className="min-h-screen bg-gradient-to-br from-black via-gray-800 to-black text-white pt-16 pl-64">
       <TopBar />
       <Navbar />
 
