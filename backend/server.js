@@ -447,7 +447,7 @@ app.put('/user/update', authMiddleware, async (req, res) => {
   }
 
   const allowedFields = ['email', 'password', 'country_id', 'profile_picture'];
-  const keys = Object.keys(req.body);
+  const keys = Object.keys(req.body).filter(k => k !== 'currentPassword');
 
   if (keys.length !== 1 || !allowedFields.includes(keys[0])) {
     return res.status(400).json({ message: 'Invalid update field' });
@@ -458,6 +458,22 @@ app.put('/user/update', authMiddleware, async (req, res) => {
 
   try {
     if (field === 'password') {
+      const { currentPassword } = req.body;
+      if (!currentPassword) {
+        return res.status(400).json({ message: 'Current password is required' });
+      }
+
+      // Verify current password
+      const userResult = await pool.query('SELECT password_hash FROM users WHERE id = $1', [userId]);
+      if (userResult.rows.length === 0) {
+        return res.status(404).json({ message: 'User not found' });
+      }
+
+      const isMatch = await bcrypt.compare(currentPassword, userResult.rows[0].password_hash);
+      if (!isMatch) {
+        return res.status(403).json({ message: 'Current password is incorrect' });
+      }
+
       const hashedPassword = await bcrypt.hash(value, 10);
       await pool.query('UPDATE users SET password_hash = $1 WHERE id = $2', [hashedPassword, userId]);
     } else if (field === 'email') {

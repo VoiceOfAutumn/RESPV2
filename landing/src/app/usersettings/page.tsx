@@ -13,6 +13,8 @@ export default function UserSettings() {
     country_id: '',
     profile_picture: '',
   });
+  const [currentPassword, setCurrentPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
 
   const [countries, setCountries] = useState<{ id: number; name: string }[]>([]);
   const [loadingFields, setLoadingFields] = useState({
@@ -103,6 +105,12 @@ export default function UserSettings() {
 
       // Validate password
       if (field === 'password') {
+        if (!currentPassword) {
+          throw new Error('Please enter your current password');
+        }
+        if (userData.password !== confirmPassword) {
+          throw new Error('New passwords do not match');
+        }
         const passwordRegex = /^(?=.*[A-Z])(?=.*[\d!@#$%^&*]).{8,}$/;
         if (!passwordRegex.test(userData.password)) {
           throw new Error('Password must be at least 8 characters with one uppercase letter and one number or special character');
@@ -132,10 +140,14 @@ export default function UserSettings() {
         headers['Authorization'] = `Bearer ${authToken}`;
       }
 
+      const body = field === 'password'
+        ? { [field]: userData[field], currentPassword }
+        : { [field]: userData[field] };
+
       const res = await fetch(`${API_BASE_URL}/user/update`, {
         method: 'PUT',
         headers,
-        body: JSON.stringify({ [field]: userData[field] }),
+        body: JSON.stringify(body),
         credentials: 'include',
       });
 
@@ -145,6 +157,12 @@ export default function UserSettings() {
       }
 
       alert(`${field.charAt(0).toUpperCase() + field.slice(1)} updated successfully!`);
+
+      if (field === 'password') {
+        setCurrentPassword('');
+        setConfirmPassword('');
+        setUserData((prev) => ({ ...prev, password: '' }));
+      }
       
       if (field === 'profile_picture') {
         // Refresh the page to show the new profile picture
@@ -189,21 +207,37 @@ export default function UserSettings() {
           {/* Password Field */}
           <div className="bg-gray-900 p-6 rounded-lg border border-gray-700">
             <h2 className="text-xl font-semibold mb-4">Password</h2>
-            <div className="flex gap-4 items-center">
+            <div className="space-y-3">
+              <input
+                type="password"
+                value={currentPassword}
+                onChange={(e) => setCurrentPassword(e.target.value)}
+                className="w-full bg-gray-800 text-white p-3 rounded-lg border border-gray-700 focus:outline-none focus:ring-2 focus:ring-purple-500"
+                placeholder="Current password"
+              />
               <input
                 type="password"
                 value={userData.password}
                 onChange={(e) => setUserData({ ...userData, password: e.target.value })}
-                className="flex-1 bg-gray-800 text-white p-3 rounded-lg border border-gray-700 focus:outline-none focus:ring-2 focus:ring-purple-500"
-                placeholder="Enter new password"
+                className="w-full bg-gray-800 text-white p-3 rounded-lg border border-gray-700 focus:outline-none focus:ring-2 focus:ring-purple-500"
+                placeholder="New password"
               />
-              <button
-                onClick={() => handleUpdate('password')}
-                disabled={loadingFields.password}
-                className="bg-purple-600 hover:bg-purple-700 text-white px-6 py-3 rounded-lg transition"
-              >
-                {loadingFields.password ? 'Updating...' : 'Update Password'}
-              </button>
+              <div className="flex gap-4 items-center">
+                <input
+                  type="password"
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  className="flex-1 bg-gray-800 text-white p-3 rounded-lg border border-gray-700 focus:outline-none focus:ring-2 focus:ring-purple-500"
+                  placeholder="Confirm new password"
+                />
+                <button
+                  onClick={() => handleUpdate('password')}
+                  disabled={loadingFields.password || !currentPassword || !userData.password || !confirmPassword}
+                  className="bg-purple-600 hover:bg-purple-700 text-white px-6 py-3 rounded-lg transition disabled:opacity-50"
+                >
+                  {loadingFields.password ? 'Updating...' : 'Update Password'}
+                </button>
+              </div>
             </div>
           </div>
 
