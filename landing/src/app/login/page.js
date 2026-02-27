@@ -94,55 +94,89 @@ function LoginForm() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-black via-gray-900 to-black">
-      <div className="bg-gray-900 p-8 rounded-2xl shadow-lg w-full max-w-md border border-purple-500">
-        <h1 className="text-3xl font-bold text-white mb-6 text-center">Login</h1>
-
-        <form onSubmit={handleSubmit} className="space-y-4">
-
-          {/* Email Field */}
-          <div className="relative">
-            <input
-              className="w-full p-3 rounded-lg bg-gray-800 border border-gray-700 text-white focus:outline-none focus:ring-2 focus:ring-teal-500"
-              type="email"
-              name="email"
-              placeholder="Email"
-              value={formData.email}
-              onChange={handleChange}
-              required
-            />
-          </div>
-
-          {/* Password Field */}
-          <div className="relative">
-            <input
-              className="w-full p-3 rounded-lg bg-gray-800 border border-gray-700 text-white focus:outline-none focus:ring-2 focus:ring-pink-500"
-              type="password"
-              name="password"
-              placeholder="Password"
-              value={formData.password}
-              onChange={handleChange}
-              required
-            />
-          </div>
-
-          <button
-            type="submit"
-            disabled={isLoading}
-            className="w-full bg-gradient-to-r from-pink-500 to-purple-500 hover:from-purple-500 hover:to-pink-500 text-white py-3 rounded-lg shadow-lg font-bold transition duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            {isLoading ? 'Logging In...' : 'Log In'}
-          </button>
-
-          <p className="mt-4 text-center text-gray-300 text-sm">
-          Don’t have an account?{' '}
-          <a href="/signup" className="text-purple-400 hover:text-pink-400 underline">
-          Sign up here
-         </a>
+    <div className="min-h-screen flex bg-gradient-to-br from-black via-gray-800 to-black">
+      {/* Left Side - Logo & Motto */}
+      <div className="hidden lg:flex lg:w-1/2 flex-col items-center justify-center px-12">
+        <a href="/">
+          <img
+            src="/images/Logotemp.png"
+            alt="Logo"
+            className="w-72 mb-10 opacity-90 hover:opacity-100 transition-opacity duration-300 drop-shadow-lg"
+          />
+        </a>
+        <h2 className="text-4xl font-extrabold text-white tracking-widest uppercase text-center leading-relaxed">
+          Compete. Win.<br />Level Up.
+        </h2>
+        <p className="mt-4 text-gray-500 text-sm tracking-wide uppercase">
+          The Tournament Platform
         </p>
-        </form>
+      </div>
 
-        {message && <p className="mt-4 text-center text-white">{message}</p>}
+      {/* Right Side - Login Form */}
+      <div className="w-full lg:w-1/2 flex items-center justify-center px-6 py-12">
+        <div className="w-full max-w-md">
+          {/* Mobile logo (hidden on large screens) */}
+          <div className="flex justify-center mb-8 lg:hidden">
+            <a href="/">
+              <img
+                src="/images/Logotemp.png"
+                alt="Logo"
+                className="w-40 opacity-90"
+              />
+            </a>
+          </div>
+
+          <div className="bg-gray-800/80 backdrop-blur-sm p-8 rounded-xl border border-gray-700/50 shadow-xl">
+            <h1 className="text-2xl font-bold text-white mb-6 text-center">Welcome Back</h1>
+
+            <form onSubmit={handleSubmit} className="space-y-4">
+              {/* Email Field */}
+              <div>
+                <label className="block text-sm text-gray-400 mb-1.5">Email</label>
+                <input
+                  className="w-full p-3 rounded-lg bg-gray-900/60 border border-gray-700/50 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-purple-500/50 focus:border-purple-500/50 transition-all duration-200"
+                  type="email"
+                  name="email"
+                  placeholder="you@example.com"
+                  value={formData.email}
+                  onChange={handleChange}
+                  required
+                />
+              </div>
+
+              {/* Password Field */}
+              <div>
+                <label className="block text-sm text-gray-400 mb-1.5">Password</label>
+                <input
+                  className="w-full p-3 rounded-lg bg-gray-900/60 border border-gray-700/50 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-purple-500/50 focus:border-purple-500/50 transition-all duration-200"
+                  type="password"
+                  name="password"
+                  placeholder="••••••••"
+                  value={formData.password}
+                  onChange={handleChange}
+                  required
+                />
+              </div>
+
+              <button
+                type="submit"
+                disabled={isLoading}
+                className="w-full bg-purple-600 hover:bg-purple-700 text-white py-3 rounded-lg font-bold transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {isLoading ? 'Logging In...' : 'Log In'}
+              </button>
+
+              <p className="mt-4 text-center text-gray-400 text-sm">
+                {"Don't have an account? "}
+                <a href="/signup" className="text-purple-400 hover:text-purple-300 underline transition-colors duration-200">
+                  Sign up here
+                </a>
+              </p>
+            </form>
+
+            {message && <p className="mt-4 text-center text-white text-sm">{message}</p>}
+          </div>
+        </div>
       </div>
     </div>
   );
