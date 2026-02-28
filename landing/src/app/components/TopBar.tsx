@@ -185,7 +185,7 @@ export default function TopBar() {
           </div>
         </div>
       ) : (
-        <Link href="/login" className="text-white bg-purple-600 hover:bg-purple-700 font-bold py-2 px-4 rounded-lg transition">
+        <Link href="/login" className="bg-purple-500/10 text-purple-400 hover:bg-purple-500/20 font-semibold py-2 px-6 rounded-lg transition-all duration-300 transform hover:scale-105 active:scale-95">
           Login
         </Link>
       )}
