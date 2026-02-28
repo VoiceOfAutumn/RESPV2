@@ -584,10 +584,61 @@ export default function SingleEliminationBracket({
   const hasLiveData = matches && matches.length > 0;
   const totalRounds = rounds.length;
 
+  // Drag-to-scroll state
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const isDragging = useRef(false);
+  const startX = useRef(0);
+  const startY = useRef(0);
+  const scrollLeftStart = useRef(0);
+  const scrollTopStart = useRef(0);
+  const hasMoved = useRef(false);
+
+  const handleMouseDown = (e: React.MouseEvent) => {
+    // Only handle left-click and ignore interactive elements
+    if (e.button !== 0) return;
+    const tag = (e.target as HTMLElement).closest('a, button, input, select, textarea');
+    if (tag) return;
+
+    isDragging.current = true;
+    hasMoved.current = false;
+    startX.current = e.pageX;
+    startY.current = e.pageY;
+    scrollLeftStart.current = scrollRef.current?.scrollLeft ?? 0;
+    scrollTopStart.current = scrollRef.current?.scrollTop ?? 0;
+    document.body.style.userSelect = 'none';
+  };
+
+  useEffect(() => {
+    const handleMouseMove = (e: MouseEvent) => {
+      if (!isDragging.current || !scrollRef.current) return;
+      const dx = e.pageX - startX.current;
+      const dy = e.pageY - startY.current;
+      if (Math.abs(dx) > 3 || Math.abs(dy) > 3) hasMoved.current = true;
+      scrollRef.current.scrollLeft = scrollLeftStart.current - dx;
+      scrollRef.current.scrollTop = scrollTopStart.current - dy;
+    };
+
+    const handleMouseUp = () => {
+      isDragging.current = false;
+      document.body.style.userSelect = '';
+    };
+
+    window.addEventListener('mousemove', handleMouseMove);
+    window.addEventListener('mouseup', handleMouseUp);
+    return () => {
+      window.removeEventListener('mousemove', handleMouseMove);
+      window.removeEventListener('mouseup', handleMouseUp);
+    };
+  }, []);
+
   return (
     <div className={`flex flex-col ${className}`}>
       {/* Bracket Grid */}
-      <div className="flex gap-8 pb-6 overflow-x-auto">
+      <div
+        ref={scrollRef}
+        onMouseDown={handleMouseDown}
+        className="flex gap-8 pb-6 overflow-x-auto cursor-grab active:cursor-grabbing select-none"
+      >
         {rounds.map((round, roundIndex) => {
           // Calculate vertical spacing: each subsequent round has double the gap
           // to keep matches aligned with their parent matches

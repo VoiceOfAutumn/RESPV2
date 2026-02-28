@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useRef, useEffect } from 'react';
 import HybridBracket from '@/components/HybridBracket';
 import Navbar from '@/app/components/Navbar';
 import TopBar from '@/app/components/TopBar';
@@ -245,6 +245,44 @@ export default function BracketDemo() {
   const [activeBracketType, setActiveBracketType] = useState<'all' | 'winners' | 'losers' | 'finals'>('all');
   const [scoreOverrides, setScoreOverrides] = useState<Map<number, { p1: number; p2: number }>>(new Map());
 
+  // Drag-to-scroll for the bracket container
+  const bracketScrollRef = useRef<HTMLDivElement>(null);
+  const isDragging = useRef(false);
+  const dragStartX = useRef(0);
+  const dragStartY = useRef(0);
+  const scrollLeftStart = useRef(0);
+  const scrollTopStart = useRef(0);
+
+  const handleBracketMouseDown = (e: React.MouseEvent) => {
+    if (e.button !== 0) return;
+    const tag = (e.target as HTMLElement).closest('a, button, input, select, textarea');
+    if (tag) return;
+    isDragging.current = true;
+    dragStartX.current = e.pageX;
+    dragStartY.current = e.pageY;
+    scrollLeftStart.current = bracketScrollRef.current?.scrollLeft ?? 0;
+    scrollTopStart.current = bracketScrollRef.current?.scrollTop ?? 0;
+    document.body.style.userSelect = 'none';
+  };
+
+  useEffect(() => {
+    const handleMouseMove = (e: MouseEvent) => {
+      if (!isDragging.current || !bracketScrollRef.current) return;
+      bracketScrollRef.current.scrollLeft = scrollLeftStart.current - (e.pageX - dragStartX.current);
+      bracketScrollRef.current.scrollTop = scrollTopStart.current - (e.pageY - dragStartY.current);
+    };
+    const handleMouseUp = () => {
+      isDragging.current = false;
+      document.body.style.userSelect = '';
+    };
+    window.addEventListener('mousemove', handleMouseMove);
+    window.addEventListener('mouseup', handleMouseUp);
+    return () => {
+      window.removeEventListener('mousemove', handleMouseMove);
+      window.removeEventListener('mouseup', handleMouseUp);
+    };
+  }, []);
+
   const mockTournament: Tournament = {
     id: 999999,
     name: 'Demo Tournament',
@@ -444,7 +482,11 @@ export default function BracketDemo() {
             </div>
           )}
 
-          <div className="overflow-x-auto p-6">
+          <div
+            ref={bracketScrollRef}
+            onMouseDown={handleBracketMouseDown}
+            className="overflow-x-auto p-6 cursor-grab active:cursor-grabbing select-none"
+          >
             <div className="min-w-max">
               <HybridBracket
                 tournamentId="demo-tournament"
