@@ -164,8 +164,14 @@ router.get('/:id/bracket', async (req, res) => {
         m.vod_url,
         m.created_at, m.updated_at,
         u1.display_name AS player1_name, u1.profile_picture AS player1_picture,
+        u1.points AS player1_points,
+        (SELECT COUNT(*) + 1 FROM users u3 WHERE u3.points > u1.points) AS player1_rank,
         u2.display_name AS player2_name, u2.profile_picture AS player2_picture,
-        uw.display_name AS winner_name
+        u2.points AS player2_points,
+        (SELECT COUNT(*) + 1 FROM users u3 WHERE u3.points > u2.points) AS player2_rank,
+        uw.display_name AS winner_name, uw.profile_picture AS winner_picture,
+        uw.points AS winner_points,
+        (SELECT COUNT(*) + 1 FROM users u3 WHERE u3.points > uw.points) AS winner_rank
       FROM tournament_matches m
       LEFT JOIN users u1 ON u1.id = m.player1_id
       LEFT JOIN users u2 ON u2.id = m.player2_id

@@ -1,7 +1,8 @@
 'use client';
 
-import React, { useMemo, useState, useEffect } from 'react';
+import React, { useMemo, useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
+import Link from 'next/link';
 
 // ==================== TYPES ====================
 
@@ -9,6 +10,8 @@ interface Player {
   id: number;
   name: string;
   profilePicture?: string | null;
+  points?: number | null;
+  siteRank?: number | null;
 }
 
 interface BracketMatch {
@@ -39,6 +42,58 @@ interface SingleEliminationBracketProps {
   onVodUpdate?: (matchId: number, vodUrl: string | null) => Promise<void>;
   tournamentName?: string;
   className?: string;
+}
+
+// ==================== PLAYER HOVER CARD ====================
+
+function PlayerPopover({ player, children }: { player: Player; children: React.ReactNode }) {
+  const [hovered, setHovered] = useState(false);
+  const [position, setPosition] = useState({ top: 0, left: 0 });
+  const ref = useRef<HTMLDivElement>(null);
+
+  const handleMouseEnter = () => {
+    if (ref.current) {
+      const rect = ref.current.getBoundingClientRect();
+      setPosition({
+        top: rect.top,
+        left: rect.left + rect.width / 2,
+      });
+    }
+    setHovered(true);
+  };
+
+  return (
+    <div
+      ref={ref}
+      onMouseEnter={handleMouseEnter}
+      onMouseLeave={() => setHovered(false)}
+      className="relative"
+    >
+      {children}
+      {hovered && createPortal(
+        <div
+          className="fixed z-[9999] pointer-events-none"
+          style={{ top: position.top, left: position.left, transform: 'translate(-50%, -100%)' }}
+        >
+          <div className="bg-gray-900 border border-gray-700/50 rounded-xl shadow-xl p-3 flex items-center gap-3 w-max mb-2">
+            <img
+              src={player.profilePicture || '/images/default-avatar.png'}
+              alt={player.name}
+              className="w-12 h-12 rounded-full object-cover ring-2 ring-purple-500/30 flex-shrink-0"
+              onError={(e) => { e.currentTarget.src = '/images/default-avatar.png'; }}
+            />
+            <div className="min-w-0">
+              <p className="text-white font-semibold text-sm">{player.name}</p>
+              <p className="text-gray-400 text-xs">Rank #{player.siteRank ?? '\u2014'}</p>
+              <p className="text-gray-500 text-xs">{player.points ?? 0} EXP</p>
+            </div>
+          </div>
+          <div className="w-3 h-3 bg-gray-900 border-b border-r border-gray-700/50 rotate-45 absolute left-1/2 -translate-x-1/2 -bottom-0.5"></div>
+        </div>,
+        document.body
+      )}
+    </div>
+  );
 }
 
 // ==================== SCORE INPUT ====================
@@ -286,22 +341,32 @@ function MatchCard({ match, isStaff, onMatchUpdate, onVodUpdate, hasLiveData }: 
       isWinner ? 'bg-green-500/10' : ''
     }`}>
       <div className="flex items-center gap-2 min-w-0 flex-1">
-        <div className="w-6 h-6 rounded-full flex-shrink-0">
-          {player ? (
-            <img
-              src={player.profilePicture || '/images/default-avatar.png'}
-              alt={player.name}
-              className="w-full h-full rounded-full object-cover ring-1 ring-gray-700/50"
-            />
-          ) : (
-            <div className="w-full h-full bg-gray-700/50 rounded-full" />
-          )}
-        </div>
-        <span className={`text-sm truncate ${
-          isWinner ? 'font-semibold text-green-400' : player ? 'text-gray-300' : 'text-gray-500 italic'
-        }`}>
-          {player?.name || 'TBD'}
-        </span>
+        {player ? (
+          <PlayerPopover player={player}>
+            <Link href={`/user/${player.name}`} className="flex items-center gap-2 min-w-0">
+              <div className="w-6 h-6 rounded-full flex-shrink-0">
+                <img
+                  src={player.profilePicture || '/images/default-avatar.png'}
+                  alt={player.name}
+                  className="w-full h-full rounded-full object-cover ring-1 ring-gray-700/50 hover:ring-purple-500/50 transition-all duration-200 cursor-pointer"
+                  onError={(e) => { e.currentTarget.src = '/images/default-avatar.png'; }}
+                />
+              </div>
+              <span className={`text-sm truncate ${
+                isWinner ? 'font-semibold text-green-400' : 'text-gray-300'
+              }`}>
+                {player.name}
+              </span>
+            </Link>
+          </PlayerPopover>
+        ) : (
+          <div className="flex items-center gap-2 min-w-0">
+            <div className="w-6 h-6 rounded-full flex-shrink-0">
+              <div className="w-full h-full bg-gray-700/50 rounded-full" />
+            </div>
+            <span className="text-sm truncate text-gray-500 italic">TBD</span>
+          </div>
+        )}
       </div>
       <div className="text-sm font-medium text-gray-400 ml-2 tabular-nums">
         {hasScores ? (score ?? '-') : ''}
@@ -316,18 +381,30 @@ function MatchCard({ match, isStaff, onMatchUpdate, onVodUpdate, hasLiveData }: 
           <div className="text-xs text-yellow-400 font-medium mb-1">BYE</div>
         </div>
         <div className="flex justify-center items-center p-2 bg-green-500/10 rounded-md">
-          <div className="flex items-center gap-2">
-            <div className="w-6 h-6 rounded-full flex-shrink-0">
-              <img
-                src={match.winner?.profilePicture || '/images/default-avatar.png'}
-                alt={match.winner?.name || 'Player'}
-                className="w-full h-full rounded-full object-cover ring-1 ring-gray-700/50"
-              />
+          {match.winner ? (
+            <PlayerPopover player={match.winner}>
+              <Link href={`/user/${match.winner.name}`} className="flex items-center gap-2">
+                <div className="w-6 h-6 rounded-full flex-shrink-0">
+                  <img
+                    src={match.winner.profilePicture || '/images/default-avatar.png'}
+                    alt={match.winner.name}
+                    className="w-full h-full rounded-full object-cover ring-1 ring-gray-700/50 hover:ring-purple-500/50 transition-all duration-200 cursor-pointer"
+                    onError={(e) => { e.currentTarget.src = '/images/default-avatar.png'; }}
+                  />
+                </div>
+                <span className="text-sm font-semibold text-green-400">
+                  {match.winner.name}
+                </span>
+              </Link>
+            </PlayerPopover>
+          ) : (
+            <div className="flex items-center gap-2">
+              <div className="w-6 h-6 rounded-full flex-shrink-0">
+                <div className="w-full h-full bg-gray-700/50 rounded-full" />
+              </div>
+              <span className="text-sm font-semibold text-green-400">Unknown</span>
             </div>
-            <span className="text-sm font-semibold text-green-400">
-              {match.winner?.name || 'Unknown'}
-            </span>
-          </div>
+          )}
         </div>
         <div className="text-center mt-1">
           <div className="text-xs text-green-400/70">Auto-advances</div>
@@ -462,19 +539,25 @@ export default function SingleEliminationBracket({
           player1: m.player1_id ? {
             id: m.player1_id,
             name: m.player1_name,
-            profilePicture: m.player1_picture
+            profilePicture: m.player1_picture,
+            points: m.player1_points != null ? Number(m.player1_points) : null,
+            siteRank: m.player1_rank != null ? Number(m.player1_rank) : null,
           } : null,
           player2: m.player2_id ? {
             id: m.player2_id,
             name: m.player2_name,
-            profilePicture: m.player2_picture
+            profilePicture: m.player2_picture,
+            points: m.player2_points != null ? Number(m.player2_points) : null,
+            siteRank: m.player2_rank != null ? Number(m.player2_rank) : null,
           } : null,
           player1Score: m.player1_score,
           player2Score: m.player2_score,
           winner: m.winner_id ? {
             id: m.winner_id,
             name: m.winner_name,
-            profilePicture: null
+            profilePicture: m.winner_picture || null,
+            points: m.winner_points != null ? Number(m.winner_points) : null,
+            siteRank: m.winner_rank != null ? Number(m.winner_rank) : null,
           } : null,
           isBye: m.bye_match,
           nextMatchId: m.next_match_id,
