@@ -104,7 +104,7 @@ function LoginForm() {
             className="w-72 mb-10 opacity-90 hover:opacity-100 transition-opacity duration-300 drop-shadow-lg"
           />
         </a>
-        <h2 className="text-4xl font-extrabold text-white tracking-widest uppercase text-center leading-relaxed">
+        <h2 className="text-4xl font-extrabold text-white tracking-widest uppercase text-center leading-relaxed" style={{ textShadow: '0 0 10px rgba(168, 85, 247, 0.4), 0 4px 8px rgba(0, 0, 0, 0.5)' }}>
           Compete! Win!<br />Level Up!
         </h2>
       </div>
@@ -158,7 +158,7 @@ function LoginForm() {
               <button
                 type="submit"
                 disabled={isLoading}
-                className="w-full bg-purple-600 hover:bg-purple-700 text-white py-3 rounded-lg font-bold transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="w-full bg-purple-500/10 text-purple-400 hover:bg-purple-500/20 py-3 rounded-lg font-semibold transition-all duration-300 transform hover:scale-[1.02] active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {isLoading ? 'Logging In...' : 'Log In'}
               </button>
