@@ -343,7 +343,7 @@ router.put('/:id/status', authMiddleware, async (req, res) => {
     }
 
     const { status } = req.body;
-    const validStatuses = ['registration_open', 'registration_closed', 'check_in', 'in_progress', 'completed', 'cancelled'];
+    const validStatuses = ['registration_open', 'registration_closed', 'check_in', 'brackets_generated', 'in_progress', 'completed', 'cancelled'];
     if (!validStatuses.includes(status)) {
       return res.status(400).json({ message: 'Invalid status' });
     }
@@ -511,8 +511,8 @@ router.post('/:id/bracket/generate', authMiddleware, async (req, res) => {
       }
     }
 
-    // Set tournament to in_progress
-    await pool.query('UPDATE tournaments SET status = $1 WHERE id = $2', ['in_progress', tournamentId]);
+    // Set tournament to brackets_generated (staff must explicitly start the tournament)
+    await pool.query('UPDATE tournaments SET status = $1 WHERE id = $2', ['brackets_generated', tournamentId]);
 
     res.json({ message: 'Bracket generated successfully' });
   } catch (err) {

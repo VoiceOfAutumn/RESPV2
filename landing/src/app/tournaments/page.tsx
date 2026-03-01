@@ -121,10 +121,11 @@ export default function TournamentsPage() {
       .then(data => {
         const statusOrder: Record<string, number> = {
           registration_open: 0,
-          in_progress: 1,
-          registration_closed: 2,
-          completed: 3,
-          cancelled: 4,
+          brackets_generated: 1,
+          in_progress: 2,
+          registration_closed: 3,
+          completed: 4,
+          cancelled: 5,
         };
         const now = Date.now();
         const sortedTournaments = data.sort((a: Tournament, b: Tournament) => {
@@ -212,6 +213,11 @@ export default function TournamentsPage() {
 
       // First check if the response is OK
       if (response.ok) {
+        // Update local status to brackets_generated
+        setTournaments(tournaments.map(t => 
+          t.id === tournamentId ? { ...t, status: 'brackets_generated' } : t
+        ));
+        setShowActionMenu(null);
         // Try to parse the response as JSON
         try {
           const responseData = await response.json();
@@ -277,6 +283,8 @@ export default function TournamentsPage() {
         return 'text-green-400';
       case 'registration_closed':
         return 'text-red-400';
+      case 'brackets_generated':
+        return 'text-cyan-400';
       case 'in_progress':
         return 'text-blue-400';
       case 'completed':
@@ -294,6 +302,8 @@ export default function TournamentsPage() {
         return 'bg-green-500/10 text-green-400 border border-green-500/20';
       case 'registration_closed':
         return 'bg-red-500/10 text-red-400 border border-red-500/20';
+      case 'brackets_generated':
+        return 'bg-cyan-500/10 text-cyan-400 border border-cyan-500/20';
       case 'in_progress':
         return 'bg-blue-500/10 text-blue-400 border border-blue-500/20';
       case 'completed':
@@ -469,13 +479,14 @@ export default function TournamentsPage() {
                                     >
                                       Close Registration
                                     </button>
-                                    <button
-                                      onClick={() => handleStatusChange(tournament.id, 'in_progress')}
-                                      disabled={tournament.status === 'in_progress'}
-                                      className="block w-full px-4 py-2 text-left text-sm text-gray-300 hover:bg-gray-700/50 disabled:opacity-50"
-                                    >
-                                      Start Tournament
-                                    </button>
+                                    {tournament.status === 'brackets_generated' && (
+                                      <button
+                                        onClick={() => handleStatusChange(tournament.id, 'in_progress')}
+                                        className="block w-full px-4 py-2 text-left text-sm text-gray-300 hover:bg-gray-700/50"
+                                      >
+                                        Start Tournament
+                                      </button>
+                                    )}
                                     <button
                                       onClick={() => handleStatusChange(tournament.id, 'completed')}
                                       disabled={tournament.status === 'completed'}

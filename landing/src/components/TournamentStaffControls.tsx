@@ -103,7 +103,7 @@ export default function TournamentStaffControls({ tournament, setTournament }: P
       });
 
       if (res.ok) {
-        const newStatus = 'in_progress';
+        const newStatus = 'brackets_generated';
         setTournament({ ...tournament, status: newStatus });
         showToast({
           title: 'Success',
@@ -160,6 +160,16 @@ export default function TournamentStaffControls({ tournament, setTournament }: P
               className="px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600 disabled:bg-green-400"
             >
               Generate Bracket
+            </button>
+          )}
+
+          {tournament.status === 'brackets_generated' && (
+            <button
+              onClick={() => updateStatus('in_progress')}
+              disabled={isUpdating}
+              className="px-4 py-2 bg-cyan-500 text-white rounded hover:bg-cyan-600 disabled:bg-cyan-400"
+            >
+              Start Tournament
             </button>
           )}
 

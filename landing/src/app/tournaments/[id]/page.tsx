@@ -448,6 +448,8 @@ const getStatusColor = (status: string) => {
       return 'text-green-400';
     case 'registration_closed':
       return 'text-red-400';
+    case 'brackets_generated':
+      return 'text-cyan-400';
     case 'in_progress':
       return 'text-blue-400';
     case 'completed':

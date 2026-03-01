@@ -24,7 +24,7 @@ export default function HybridBracket({
   bracketType = 'all',
 }: HybridBracketProps) {
   const hasOfficialBrackets = matches.length > 0;
-  const tournamentInProgress = tournament.status === 'in_progress' || tournament.status === 'completed';
+  const tournamentInProgress = tournament.status === 'brackets_generated' || tournament.status === 'in_progress' || tournament.status === 'completed';
 
   // Filter matches by bracket type for double elimination
   const filteredMatches = bracketType === 'all'

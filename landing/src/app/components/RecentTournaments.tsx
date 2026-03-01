@@ -24,11 +24,12 @@ const RecentTournaments = () => {
         // Sort by status priority (open > closed > completed) then by date (newest first)
         const statusPriority: Record<string, number> = {
           registration_open: 0,
-          registration_closed: 1,
-          in_progress: 2,
-          completed: 3,
-          finished: 3,
-          cancelled: 4,
+          brackets_generated: 1,
+          registration_closed: 2,
+          in_progress: 3,
+          completed: 4,
+          finished: 4,
+          cancelled: 5,
         };
         const sortedTournaments = data
           .sort((a, b) => {
@@ -133,6 +134,7 @@ const RecentTournaments = () => {
               <span className={`inline-flex items-center px-2.5 py-1 rounded-md text-xs font-semibold tracking-wide uppercase border ${
                 tournament.status === 'registration_open' ? 'bg-green-500/10 text-green-400 border-green-500/20' :
                 tournament.status === 'registration_closed' ? 'bg-red-500/10 text-red-400 border-red-500/20' :
+                tournament.status === 'brackets_generated' ? 'bg-cyan-500/10 text-cyan-400 border-cyan-500/20' :
                 tournament.status === 'completed' || tournament.status === 'finished' ? 'bg-purple-500/10 text-purple-400 border-purple-500/20' :
                 tournament.status === 'in_progress' ? 'bg-blue-500/10 text-blue-400 border-blue-500/20' :
                 'bg-gray-500/10 text-gray-400 border-gray-500/20'
