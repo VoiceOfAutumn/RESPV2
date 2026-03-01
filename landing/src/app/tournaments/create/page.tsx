@@ -9,6 +9,7 @@ import { useToast } from '@/app/components/ToastContext';
 interface GameInfo {
   gameName: string;
   platform: string;
+  platformUrl: string;
   challengeDescription: string;
 }
 
@@ -32,7 +33,7 @@ const ROUND_LABELS: Record<string, string> = {
   final: 'Final',
 };
 
-const emptyGameInfo = (): GameInfo => ({ gameName: '', platform: '', challengeDescription: '' });
+const emptyGameInfo = (): GameInfo => ({ gameName: '', platform: '', platformUrl: '', challengeDescription: '' });
 
 interface FormData {
   name: string;
@@ -149,6 +150,19 @@ export default function CreateTournamentPage() {
           onChange={(e) => onChange('platform', e.target.value)}
           className={inputClass}
           placeholder="e.g. Fightcade, GBA, Playstation..."
+        />
+      </div>
+      <div>
+        <label htmlFor={`${idPrefix}-platformUrl`} className="block text-sm font-medium text-gray-300">
+          Platform URL <span className="text-gray-500 text-xs">(optional)</span>
+        </label>
+        <input
+          type="url"
+          id={`${idPrefix}-platformUrl`}
+          value={game.platformUrl}
+          onChange={(e) => onChange('platformUrl', e.target.value)}
+          className={inputClass}
+          placeholder="https://..."
         />
       </div>
       <div>

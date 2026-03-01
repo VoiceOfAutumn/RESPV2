@@ -1,6 +1,7 @@
 export interface GameInfo {
   gameName: string;
   platform: string;
+  platformUrl?: string;
   challengeDescription: string;
 }
 

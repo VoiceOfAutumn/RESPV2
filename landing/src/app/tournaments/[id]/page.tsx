@@ -326,7 +326,11 @@ export default function TournamentDetailPage() {
                             <p className="text-sm"><span className="text-gray-400">Game:</span> <span className="text-white">{info.gameName}</span></p>
                           )}
                           {info.platform && (
-                            <p className="text-sm"><span className="text-gray-400">Platform:</span> <span className="text-white">{info.platform}</span></p>
+                            <p className="text-sm"><span className="text-gray-400">Platform:</span> {info.platformUrl ? (
+                              <a href={info.platformUrl} target="_blank" rel="noopener noreferrer" className="text-purple-400 hover:text-purple-300 underline underline-offset-2 transition-colors">{info.platform}</a>
+                            ) : (
+                              <span className="text-white">{info.platform}</span>
+                            )}</p>
                           )}
                           {info.challengeDescription && (
                             <p className="text-sm mt-1"><span className="text-gray-400">Challenge:</span> <span className="text-white">{info.challengeDescription}</span></p>
@@ -341,7 +345,11 @@ export default function TournamentDetailPage() {
                     <p className="text-sm"><span className="text-gray-400">Game:</span> <span className="text-white">{tournament.game_data.game.gameName}</span></p>
                   )}
                   {tournament.game_data.game.platform && (
-                    <p className="text-sm"><span className="text-gray-400">Platform:</span> <span className="text-white">{tournament.game_data.game.platform}</span></p>
+                    <p className="text-sm"><span className="text-gray-400">Platform:</span> {tournament.game_data.game.platformUrl ? (
+                      <a href={tournament.game_data.game.platformUrl} target="_blank" rel="noopener noreferrer" className="text-purple-400 hover:text-purple-300 underline underline-offset-2 transition-colors">{tournament.game_data.game.platform}</a>
+                    ) : (
+                      <span className="text-white">{tournament.game_data.game.platform}</span>
+                    )}</p>
                   )}
                   {tournament.game_data.game.challengeDescription && (
                     <p className="text-sm mt-1"><span className="text-gray-400">Challenge:</span> <span className="text-white">{tournament.game_data.game.challengeDescription}</span></p>
