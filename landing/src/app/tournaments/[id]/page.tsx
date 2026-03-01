@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Navbar from '../../components/Navbar';
 import TopBar from '../../components/TopBar';
-import TournamentStaffControls from '@/components/TournamentStaffControls';
+import { EditInfoModal } from '@/components/TournamentStaffControls';
 import { useToast } from '@/app/components/ToastContext';
 import { Tournament, TournamentUpdate, GameData, GameInfo } from '@/types/tournament';
 import { API_BASE_URL } from '@/lib/api';
@@ -21,6 +21,7 @@ export default function TournamentDetailPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [user, setUser] = useState<User | null>(null);
+  const [showEditModal, setShowEditModal] = useState(false);
   const { showToast } = useToast();
   const router = useRouter();
 
@@ -294,6 +295,16 @@ export default function TournamentDetailPage() {
                       Cancel Signup
                     </button>
                   )}
+
+                  {isStaff && (
+                    <button
+                      onClick={() => setShowEditModal(true)}
+                      className="bg-blue-500/10 text-blue-400 hover:bg-blue-500/20 font-semibold py-2 px-6 rounded-lg 
+                        transition-all duration-300 transform hover:scale-105 active:scale-95"
+                    >
+                      Edit Info
+                    </button>
+                  )}
                 </div>
               </div>
             </div>
@@ -418,11 +429,16 @@ export default function TournamentDetailPage() {
             )}
           </div>
 
-          {/* Staff Controls */}
-          {isStaff && (
-            <div className="bg-neutral-800/50 backdrop-blur rounded-xl shadow-lg border border-gray-700/50 p-6">
-              <TournamentStaffControls tournament={tournament} setTournament={handleTournamentUpdate} />
-            </div>
+          {/* Edit Info Modal */}
+          {showEditModal && tournament && (
+            <EditInfoModal
+              tournament={tournament}
+              onClose={() => setShowEditModal(false)}
+              onSave={(updated) => {
+                handleTournamentUpdate({ id: tournament.id, ...updated });
+                setShowEditModal(false);
+              }}
+            />
           )}
         </div>
       </div>

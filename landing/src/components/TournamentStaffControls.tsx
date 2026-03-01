@@ -199,13 +199,13 @@ export default function TournamentStaffControls({ tournament, setTournament }: P
 
 /* ─── Edit Info Modal ─── */
 
-interface EditInfoModalProps {
+export interface EditInfoModalProps {
   tournament: Tournament;
   onClose: () => void;
   onSave: (updated: Partial<Tournament>) => void;
 }
 
-function EditInfoModal({ tournament, onClose, onSave }: EditInfoModalProps) {
+export function EditInfoModal({ tournament, onClose, onSave }: EditInfoModalProps) {
   const { showToast } = useToast();
   const [saving, setSaving] = useState(false);
 

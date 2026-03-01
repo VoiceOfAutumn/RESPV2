@@ -40,7 +40,7 @@ router.post('/', authMiddleware, async (req, res) => {
       `INSERT INTO tournaments (name, description, date, image, status, game_data)
        VALUES ($1, $2, $3, $4, 'registration_open', $5)
        RETURNING *`,
-      [name, description || null, date, image || null, game_data ? JSON.stringify(game_data) : null]
+      [name, description || null, date || null, image || null, game_data ? JSON.stringify(game_data) : null]
     );
 
     res.status(201).json(result.rows[0]);
