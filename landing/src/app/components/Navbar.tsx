@@ -40,10 +40,10 @@ export default function Navbar({ mobileOpen, onClose }: NavbarProps) {
 
       <nav className={`
         w-64 h-screen flex flex-col py-8 px-6 fixed top-16 left-0 z-40
-        bg-gradient-to-b from-black/95 via-gray-900/95 to-black/95 backdrop-blur-sm
+        bg-black/95 backdrop-blur-sm lg:bg-transparent lg:backdrop-blur-none
         transition-transform duration-300 ease-in-out
         ${mobileOpen ? 'translate-x-0' : '-translate-x-full'}
-        lg:translate-x-0 lg:bg-transparent lg:backdrop-blur-none
+        lg:translate-x-0
       `}>
       {/* Logo */}
       <Link href="/" className="mb-6" onClick={onClose}>
