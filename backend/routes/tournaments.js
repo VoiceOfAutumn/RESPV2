@@ -343,7 +343,7 @@ router.put('/:id/status', authMiddleware, async (req, res) => {
     }
 
     const { status } = req.body;
-    const validStatuses = ['registration_open', 'registration_closed', 'check_in', 'brackets_generated', 'in_progress', 'completed', 'cancelled'];
+    const validStatuses = ['registration_open', 'registration_closed', 'brackets_generated', 'in_progress', 'completed', 'cancelled'];
     if (!validStatuses.includes(status)) {
       return res.status(400).json({ message: 'Invalid status' });
     }
