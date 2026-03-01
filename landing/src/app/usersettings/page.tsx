@@ -2,8 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation'; // For redirection
-import TopBar from '../components/TopBar';
-import Navbar from '../components/Navbar';
+import PageShell from '../components/PageShell';
 import { API_BASE_URL } from '@/lib/api';
 
 export default function UserSettings() {
@@ -177,9 +176,8 @@ export default function UserSettings() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-black via-gray-800 to-black text-white pt-16 pl-16">
-      <TopBar />
-      <Navbar />
+    <div className="min-h-screen bg-gradient-to-br from-black via-gray-800 to-black text-white pt-16 pl-0 lg:pl-16">
+      <PageShell />
 
       <main className="max-w-4xl mx-auto px-6 py-5 mt-5">
         <h1 className="text-3xl font-bold mb-6 border-b border-neutral-700 pb-2">Edit Your Profile</h1>        <div className="space-y-8">

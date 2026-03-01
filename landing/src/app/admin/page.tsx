@@ -2,8 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import TopBar from '../components/TopBar';
-import Navbar from '../components/Navbar';
+import PageShell from '../components/PageShell';
 import { API_BASE_URL } from '@/lib/api';
 
 interface Seal {
@@ -196,9 +195,8 @@ export default function AdminToolsPage() {
 
   if (loading) {
     return (
-      <main className="min-h-screen bg-gradient-to-br from-black via-gray-800 to-black text-white pt-16 pl-64">
-        <TopBar />
-        <Navbar />
+      <main className="min-h-screen bg-gradient-to-br from-black via-gray-800 to-black text-white pt-16 pl-0 lg:pl-64">
+        <PageShell />
         <section className="flex items-center justify-center py-32">
           <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-purple-500" />
         </section>
@@ -215,9 +213,8 @@ export default function AdminToolsPage() {
   const btnDangerClass = "bg-red-600/20 hover:bg-red-600/40 text-red-400 px-3 py-1.5 rounded-lg transition text-xs font-medium";
 
   return (
-    <main className="min-h-screen bg-gradient-to-br from-black via-gray-800 to-black text-white pt-16 pl-64">
-      <TopBar />
-      <Navbar />
+    <main className="min-h-screen bg-gradient-to-br from-black via-gray-800 to-black text-white pt-16 pl-0 lg:pl-64">
+      <PageShell />
       <section className="px-8 py-12 max-w-6xl mx-auto">
         <h1 className="text-3xl font-bold mb-2 bg-gradient-to-r from-white to-purple-400 bg-clip-text text-transparent">
           Admin Tools

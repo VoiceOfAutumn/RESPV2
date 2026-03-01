@@ -15,7 +15,12 @@ import {
   faUsers,
 } from '@fortawesome/free-solid-svg-icons';
 
-export default function Navbar() {
+interface NavbarProps {
+  mobileOpen?: boolean;
+  onClose?: () => void;
+}
+
+export default function Navbar({ mobileOpen, onClose }: NavbarProps) {
   const pathname = usePathname();
 
   const navItems = [
@@ -27,9 +32,21 @@ export default function Navbar() {
   ];
 
   return (
-    <nav className="w-64 h-screen flex flex-col py-8 px-6 fixed top-16 left-0">
+    <>
+      {/* Mobile overlay */}
+      {mobileOpen && (
+        <div className="fixed inset-0 bg-black/60 z-40 lg:hidden" onClick={onClose} />
+      )}
+
+      <nav className={`
+        w-64 h-screen flex flex-col py-8 px-6 fixed top-16 left-0 z-40
+        bg-gradient-to-b from-black/95 via-gray-900/95 to-black/95 backdrop-blur-sm
+        transition-transform duration-300 ease-in-out
+        ${mobileOpen ? 'translate-x-0' : '-translate-x-full'}
+        lg:translate-x-0 lg:bg-transparent lg:backdrop-blur-none
+      `}>
       {/* Logo */}
-      <Link href="/" className="mb-6">
+      <Link href="/" className="mb-6" onClick={onClose}>
         <img src="/images/Logotemp.png" alt="Logo" className="w-40 opacity-80 hover:opacity-100 transition-opacity duration-200" />
       </Link>
 
@@ -44,7 +61,7 @@ export default function Navbar() {
             }`}
           >
             <FontAwesomeIcon icon={icon} className="h-5 w-5" />
-            <Link href={href}>{label}</Link>
+            <Link href={href} onClick={onClose}>{label}</Link>
           </li>
         ))}        {/* Clubs - Coming Soon */}
         <li className="flex items-center space-x-2 text-[#81878C] hover:text-[#E5E5E5]">
@@ -101,7 +118,7 @@ export default function Navbar() {
             }`}
           >
             <FontAwesomeIcon icon={icon} className="h-5 w-5" />
-            <Link href={href}>{label}</Link>
+            <Link href={href} onClick={onClose}>{label}</Link>
           </li>
         ))}
 
@@ -112,6 +129,7 @@ export default function Navbar() {
           <a href="https://discord.gg/hjGrrbTKVT" target="_blank" rel="noopener noreferrer">Discord</a>
         </li>
       </ul>
-    </nav>
+      </nav>
+    </>
   );
 }

@@ -1,13 +1,11 @@
 'use client';
 
-import TopBar from "../components/TopBar";
-import Navbar from "../components/Navbar";
+import PageShell from "../components/PageShell";
 
 export default function Rules() {
   return (
-    <div className="min-h-screen bg-gradient-to-br from-black via-gray-800 to-black text-white pt-16 pl-64">
-      <TopBar />
-      <Navbar />
+    <div className="min-h-screen bg-gradient-to-br from-black via-gray-800 to-black text-white pt-16 pl-0 lg:pl-64">
+      <PageShell />
 
       <main className="max-w-6xl mx-auto px-6 py-12">
         <h1 className="text-4xl font-semibold text-center mb-8">Rules & Guidelines</h1>

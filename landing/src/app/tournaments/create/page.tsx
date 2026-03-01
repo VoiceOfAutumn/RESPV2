@@ -2,8 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import TopBar from '../../components/TopBar';
-import Navbar from '../../components/Navbar';
+import PageShell from '../../components/PageShell';
 import { useToast } from '@/app/components/ToastContext';
 
 interface GameInfo {
@@ -183,9 +182,8 @@ export default function CreateTournamentPage() {
   );
 
   return (
-    <main className="min-h-screen bg-gradient-to-br from-black via-gray-800 to-black text-white pt-16 pl-64">
-      <Navbar />
-      <TopBar />
+    <main className="min-h-screen bg-gradient-to-br from-black via-gray-800 to-black text-white pt-16 pl-0 lg:pl-64">
+      <PageShell />
       
       <div className="p-8">
         <div className="max-w-4xl mx-auto bg-neutral-800/50 backdrop-blur rounded-xl shadow-lg p-8 border border-gray-700/50">

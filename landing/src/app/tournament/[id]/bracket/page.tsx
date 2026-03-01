@@ -2,8 +2,7 @@
 
 import { useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import Navbar from '@/app/components/Navbar';
-import TopBar from '@/app/components/TopBar';
+import PageShell from '@/app/components/PageShell';
 
 export default function BracketRedirectPage() {
   const { id } = useParams();
@@ -16,9 +15,8 @@ export default function BracketRedirectPage() {
 
   // Render a simple loading state while redirecting
   return (
-    <main className="min-h-screen bg-gradient-to-br from-black via-gray-800 to-black text-white pt-16 pl-64">
-      <TopBar />
-      <Navbar />
+    <main className="min-h-screen bg-gradient-to-br from-black via-gray-800 to-black text-white pt-16 pl-0 lg:pl-64">
+      <PageShell />
       
       <div className="container mx-auto px-4 py-8">
         <div className="flex justify-center items-center h-64">

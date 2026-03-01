@@ -2,8 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
-import TopBar from '../../components/TopBar';
-import Navbar from '../../components/Navbar';
+import PageShell from '../../components/PageShell';
 import { getFlagImageProps } from '@/lib/countryFlags';
 import { API_BASE_URL } from '@/lib/api';
 
@@ -69,9 +68,8 @@ export default function UserProfile() {
 
   if (loading) {
     return (
-      <main className="min-h-screen bg-gradient-to-br from-black via-gray-800 to-black text-white pt-16 pl-64">
-        <TopBar />
-        <Navbar />
+      <main className="min-h-screen bg-gradient-to-br from-black via-gray-800 to-black text-white pt-16 pl-0 lg:pl-64">
+        <PageShell />
         <section className="flex flex-col items-center justify-center text-center px-4 py-32">
           <LoadingSkeleton />
         </section>
@@ -81,9 +79,8 @@ export default function UserProfile() {
 
   if (error) {
     return (
-      <main className="min-h-screen bg-gradient-to-br from-black via-gray-800 to-black text-white pt-16 pl-64">
-        <TopBar />
-        <Navbar />
+      <main className="min-h-screen bg-gradient-to-br from-black via-gray-800 to-black text-white pt-16 pl-0 lg:pl-64">
+        <PageShell />
         <section className="flex flex-col items-center justify-center text-center px-4 py-32">
           <div className="bg-red-500/10 border border-red-500 text-red-500 p-4 rounded-lg">
             <p className="text-lg font-semibold">{error}</p>
@@ -96,9 +93,8 @@ export default function UserProfile() {
 
   if (!user) {
     return (
-      <main className="min-h-screen bg-gradient-to-br from-black via-gray-800 to-black text-white pt-16 pl-64">
-        <TopBar />
-        <Navbar />
+      <main className="min-h-screen bg-gradient-to-br from-black via-gray-800 to-black text-white pt-16 pl-0 lg:pl-64">
+        <PageShell />
         <section className="flex flex-col items-center justify-center text-center px-4 py-32">
           <div className="bg-yellow-500/10 border border-yellow-500 text-yellow-500 p-4 rounded-lg">
             <p className="text-lg font-semibold">No user data found</p>
@@ -110,9 +106,8 @@ export default function UserProfile() {
   }
 
   return (
-    <main className="min-h-screen bg-gradient-to-br from-black via-gray-800 to-black text-white pt-16 pl-64">
-      <TopBar />
-      <Navbar />
+    <main className="min-h-screen bg-gradient-to-br from-black via-gray-800 to-black text-white pt-16 pl-0 lg:pl-64">
+      <PageShell />
       <section className="flex flex-col items-center justify-center text-center px-4 py-32">
         <div className="max-w-3xl mx-auto">
           {/* Profile Card */}

@@ -2,8 +2,7 @@
 
 import React, { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
-import Navbar from '../../../components/Navbar';
-import TopBar from '../../../components/TopBar';
+import PageShell from '../../../components/PageShell';
 import HybridBracket from '@/components/HybridBracket';
 import { useToast } from '@/app/components/ToastContext';
 import { API_BASE_URL } from '@/lib/api';
@@ -321,9 +320,8 @@ export default function TournamentBracketPage() {
   };
   if (loading) {
     return (
-      <main className="min-h-screen bg-gradient-to-br from-black via-gray-800 to-black text-white pt-16 pl-64">
-        <TopBar />
-        <Navbar />
+      <main className="min-h-screen bg-gradient-to-br from-black via-gray-800 to-black text-white pt-16 pl-0 lg:pl-64">
+        <PageShell />
         <div className="container mx-auto px-4 py-8">
           <div className="bg-neutral-800/50 backdrop-blur rounded-xl shadow-lg border border-gray-700/50 p-8">
             <div className="flex flex-col justify-center items-center h-64 space-y-6">
@@ -340,9 +338,8 @@ export default function TournamentBracketPage() {
   
   if (error || !data || !data.tournament) {
     return (
-      <main className="min-h-screen bg-gradient-to-br from-black via-gray-800 to-black text-white pt-16 pl-64">
-        <TopBar />
-        <Navbar />
+      <main className="min-h-screen bg-gradient-to-br from-black via-gray-800 to-black text-white pt-16 pl-0 lg:pl-64">
+        <PageShell />
         <div className="container mx-auto px-4 py-8">
           <div className={`bg-neutral-800/50 backdrop-blur rounded-xl shadow-lg p-8 border ${isBracketNotGeneratedYet ? 'border-yellow-500/20' : 'border-red-500/20'}`}>
             <div className="text-center">
@@ -387,9 +384,8 @@ export default function TournamentBracketPage() {
     );
   }
   return (
-    <main className="min-h-screen bg-gradient-to-br from-black via-gray-800 to-black text-white pt-16 pl-64">
-      <TopBar />
-      <Navbar />
+    <main className="min-h-screen bg-gradient-to-br from-black via-gray-800 to-black text-white pt-16 pl-0 lg:pl-64">
+      <PageShell />
       
       <div className="container mx-auto px-4 py-8">
         <div className="flex flex-col space-y-6">

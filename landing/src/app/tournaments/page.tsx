@@ -4,8 +4,7 @@ import React, { useEffect, useState, useRef } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { createPortal } from 'react-dom';
-import Navbar from '../components/Navbar';
-import TopBar from '../components/TopBar';
+import PageShell from '../components/PageShell';
 import { Search, Calendar, Users, TrendingUp, ChevronLeft, ChevronRight } from 'lucide-react';
 import { API_BASE_URL } from '@/lib/api';
 
@@ -307,9 +306,8 @@ export default function TournamentsPage() {
   };
 
   return (
-    <main className="min-h-screen bg-gradient-to-br from-black via-gray-800 to-black text-white pt-16 pl-64">
-      <Navbar />
-      <TopBar />
+    <main className="min-h-screen bg-gradient-to-br from-black via-gray-800 to-black text-white pt-16 pl-0 lg:pl-64">
+      <PageShell />
       
       <div className="container mx-auto px-4 py-8">
         <div className="flex justify-between items-center mb-6">

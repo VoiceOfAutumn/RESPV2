@@ -2,8 +2,7 @@
 
 import React, { useState, useCallback, useRef, useEffect } from 'react';
 import HybridBracket from '@/components/HybridBracket';
-import Navbar from '@/app/components/Navbar';
-import TopBar from '@/app/components/TopBar';
+import PageShell from '@/app/components/PageShell';
 import { Match, Tournament } from '@/app/tournament/[id]/bracket/types';
 
 // ==================== HELPERS ====================
@@ -318,9 +317,8 @@ export default function BracketDemo() {
   const bracketSize = Math.pow(2, Math.ceil(Math.log2(numParticipants)));
 
   return (
-    <main className="min-h-screen bg-gradient-to-br from-black via-gray-800 to-black text-white pt-16 pl-64">
-      <TopBar />
-      <Navbar />
+    <main className="min-h-screen bg-gradient-to-br from-black via-gray-800 to-black text-white pt-16 pl-0 lg:pl-64">
+      <PageShell />
 
       <div className="container mx-auto px-4 py-8">
         {/* Demo Controls */}

@@ -6,7 +6,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { apiRequest } from '@/lib/api';
 
-export default function TopBar() {
+export default function TopBar({ onMenuToggle }: { onMenuToggle?: () => void }) {
   const [user, setUser] = useState<{ displayName: string; profile_picture?: string | null; role?: string } | null>(null);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement | null>(null);
@@ -101,9 +101,19 @@ export default function TopBar() {
   };
 
   return (
-    <div className="fixed top-0 left-0 right-0 h-16 bg-transparent text-white flex justify-between items-center px-6 shadow z-50 border-b border-gray-800">
-      {/* Empty left side */}
-      <div></div>
+    <div className="fixed top-0 left-0 right-0 h-16 bg-transparent text-white flex justify-between items-center px-4 sm:px-6 shadow z-50 border-b border-gray-800">
+      {/* Hamburger menu for mobile */}
+      <button
+        onClick={onMenuToggle}
+        className="lg:hidden p-2 text-gray-400 hover:text-white transition-colors"
+        aria-label="Toggle menu"
+      >
+        <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+        </svg>
+      </button>
+      {/* Spacer for desktop (no hamburger) */}
+      <div className="hidden lg:block"></div>
 
       {/* User profile dropdown (only when user is logged in) */}
       {user ? (

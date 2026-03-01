@@ -2,8 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import Navbar from '../../components/Navbar';
-import TopBar from '../../components/TopBar';
+import PageShell from '../../components/PageShell';
 import { EditInfoModal } from '@/components/TournamentStaffControls';
 import { useToast } from '@/app/components/ToastContext';
 import { Tournament, TournamentUpdate, GameData, GameInfo } from '@/types/tournament';
@@ -186,9 +185,8 @@ export default function TournamentDetailPage() {
 
   if (loading) {
     return (
-      <main className="min-h-screen bg-gradient-to-br from-black via-gray-800 to-black text-white pt-16 pl-64">
-        <TopBar />
-        <Navbar />
+      <main className="min-h-screen bg-gradient-to-br from-black via-gray-800 to-black text-white pt-16 pl-0 lg:pl-64">
+        <PageShell />
         <div className="flex justify-center items-center h-full">
           <div className="animate-spin rounded-full h-16 w-16 border-4 border-purple-500 border-t-transparent shadow-lg shadow-purple-500/20"></div>
         </div>
@@ -198,9 +196,8 @@ export default function TournamentDetailPage() {
 
   if (error || !tournament) {
     return (
-      <main className="min-h-screen bg-gradient-to-br from-black via-gray-800 to-black text-white pt-16 pl-64">
-        <TopBar />
-        <Navbar />
+      <main className="min-h-screen bg-gradient-to-br from-black via-gray-800 to-black text-white pt-16 pl-0 lg:pl-64">
+        <PageShell />
         <div className="flex justify-center items-center h-full">
           <div className="bg-neutral-800/50 backdrop-blur rounded-xl shadow-lg p-6 border border-red-500/20">
             <div className="text-center">
@@ -226,9 +223,8 @@ export default function TournamentDetailPage() {
   const canCancel = tournament.status === 'registration_open' && user && tournament.is_signed_up;
 
   return (
-    <main className="min-h-screen bg-gradient-to-br from-black via-gray-800 to-black text-white pt-16 pl-64">
-      <TopBar />
-      <Navbar />
+    <main className="min-h-screen bg-gradient-to-br from-black via-gray-800 to-black text-white pt-16 pl-0 lg:pl-64">
+      <PageShell />
       
       <div className="p-8">
         <div className="max-w-7xl mx-auto space-y-8">
