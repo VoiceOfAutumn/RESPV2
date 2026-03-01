@@ -87,7 +87,8 @@ const RecentTournaments = () => {
     );
   }
 
-  const formatDate = (dateString: string) => {
+  const formatDate = (dateString: string | null) => {
+    if (!dateString) return 'T.B.D.';
     const date = new Date(dateString);
     return date.toLocaleDateString('en-US', {
       month: 'short',

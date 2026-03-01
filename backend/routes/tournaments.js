@@ -32,8 +32,8 @@ router.post('/', authMiddleware, async (req, res) => {
 
     const { name, description, date, image, game_data } = req.body;
 
-    if (!name || !date) {
-      return res.status(400).json({ message: 'Name and date are required' });
+    if (!name) {
+      return res.status(400).json({ message: 'Name is required' });
     }
 
     const result = await pool.query(
@@ -47,6 +47,43 @@ router.post('/', authMiddleware, async (req, res) => {
   } catch (err) {
     console.error('Error creating tournament:', err);
     res.status(500).json({ message: 'Error creating tournament' });
+  }
+});
+
+// PUT /tournaments/:id  (edit tournament info — admin only)
+router.put('/:id', authMiddleware, async (req, res) => {
+  try {
+    const userResult = await pool.query('SELECT role FROM users WHERE id = $1', [req.session.userId]);
+    if (userResult.rows.length === 0) {
+      return res.status(401).json({ message: 'User not found' });
+    }
+    const role = userResult.rows[0].role;
+    if (role !== 'admin') {
+      return res.status(403).json({ message: 'Only admin can edit tournaments' });
+    }
+
+    const { name, description, date, image, game_data } = req.body;
+
+    if (!name) {
+      return res.status(400).json({ message: 'Name is required' });
+    }
+
+    const result = await pool.query(
+      `UPDATE tournaments
+       SET name = $1, description = $2, date = $3, image = $4, game_data = $5
+       WHERE id = $6
+       RETURNING *`,
+      [name, description || null, date || null, image || null, game_data ? JSON.stringify(game_data) : null, req.params.id]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ message: 'Tournament not found' });
+    }
+
+    res.json(result.rows[0]);
+  } catch (err) {
+    console.error('Error editing tournament:', err);
+    res.status(500).json({ message: 'Error editing tournament' });
   }
 });
 

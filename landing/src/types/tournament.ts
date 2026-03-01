@@ -15,7 +15,7 @@ export interface Tournament {
   id: number;
   name: string;
   description: string;
-  date: string;
+  date: string | null;
   status: 'registration_open' | 'registration_closed' | 'check_in' | 'in_progress' | 'completed' | 'cancelled';
   format: 'SINGLE_ELIMINATION' | 'DOUBLE_ELIMINATION';
   seedType: 'RANDOM' | 'MANUAL';

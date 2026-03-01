@@ -74,7 +74,7 @@ export default function CreateTournamentPage() {
 
     const submissionData = {
       ...formData,
-      date: new Date(formData.date).toISOString(),
+      date: formData.date ? new Date(formData.date).toISOString() : null,
       game_data,
     };
 
@@ -222,17 +222,16 @@ export default function CreateTournamentPage() {
             
             <div>
               <label htmlFor="date" className="block text-sm font-medium text-gray-300">
-                Tournament Date <span className="text-gray-500 text-xs">(UTC)</span>
+                Tournament Date <span className="text-gray-500 text-xs">(UTC, optional)</span>
               </label>
               <input
                 type="datetime-local"
                 id="date"
-                required
                 value={formData.date}
                 onChange={(e) => setFormData(prev => ({ ...prev, date: e.target.value }))}
                 className={inputClass}
               />
-              <p className="mt-1 text-sm text-gray-400">All times are in UTC timezone</p>
+              <p className="mt-1 text-sm text-gray-400">All times are in UTC timezone. Leave empty to display as T.B.D.</p>
             </div>
 
             <div>
