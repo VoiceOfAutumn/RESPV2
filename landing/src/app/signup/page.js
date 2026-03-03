@@ -11,6 +11,7 @@ export default function SignupPage() {
     display_name: '',
     email: '',
     password: '',
+    confirmPassword: '',
     country_id: ''
   });
   const [message, setMessage] = useState('');
@@ -225,6 +226,13 @@ export default function SignupPage() {
     setMessage('');
     setIsLoading(true);
 
+    // Validate that passwords match
+    if (formData.password !== formData.confirmPassword) {
+      setMessage('❌ Passwords do not match');
+      setIsLoading(false);
+      return;
+    }
+
     // Validate that a country is selected
     if (!formData.country_id || formData.country_id.trim() === '') {
       setMessage('❌ Please select a country');
@@ -233,13 +241,14 @@ export default function SignupPage() {
     }
 
     try {
+      const { confirmPassword, ...submitData } = formData;
       const data = await apiRequest('/signup', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          ...formData,
+          ...submitData,
           country_id: countries.indexOf(formData.country_id) + 1,
         }),
       });
@@ -350,6 +359,20 @@ export default function SignupPage() {
                   name="password"
                   placeholder="••••••••"
                   value={formData.password}
+                  onChange={handleChange}
+                  required
+                />
+              </div>
+
+              {/* Confirm Password Field */}
+              <div>
+                <label className="block text-sm text-gray-400 mb-1.5">Confirm Password</label>
+                <input
+                  className="w-full p-3 rounded-lg bg-gray-900/60 border border-gray-700/50 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-purple-500/50 focus:border-purple-500/50 transition-all duration-200"
+                  type="password"
+                  name="confirmPassword"
+                  placeholder="••••••••"
+                  value={formData.confirmPassword}
                   onChange={handleChange}
                   required
                 />

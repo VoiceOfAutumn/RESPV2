@@ -30,6 +30,34 @@ export default function TournamentDetailPage() {
     setTournamentState({ ...tournament, ...update });
   };
 
+  const fetchTournament = async () => {
+    try {
+      // Include auth token to get proper signup status
+      const authToken = localStorage.getItem('authToken');
+      const headers: HeadersInit = {};
+      
+      if (authToken) {
+        headers['Authorization'] = `Bearer ${authToken}`;
+      }
+
+      const res = await fetch(`${API_BASE_URL}/tournaments/${id}`, {
+        headers,
+        credentials: 'include'
+      });
+      if (res.ok) {
+        const data = await res.json();
+        console.log('Tournament data with signup status:', data);
+        setTournamentState(data);
+      } else {
+        setError('Tournament not found');
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'An error occurred');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
     const fetchUser = async () => {
       try {
@@ -59,34 +87,6 @@ export default function TournamentDetailPage() {
       }
     };
 
-    const fetchTournament = async () => {
-      try {
-        // Include auth token to get proper signup status
-        const authToken = localStorage.getItem('authToken');
-        const headers: HeadersInit = {};
-        
-        if (authToken) {
-          headers['Authorization'] = `Bearer ${authToken}`;
-        }
-
-        const res = await fetch(`${API_BASE_URL}/tournaments/${id}`, {
-          headers,
-          credentials: 'include'
-        });
-        if (res.ok) {
-          const data = await res.json();
-          console.log('Tournament data with signup status:', data);
-          setTournamentState(data);
-        } else {
-          setError('Tournament not found');
-        }
-      } catch (err) {
-        setError(err instanceof Error ? err.message : 'An error occurred');
-      } finally {
-        setLoading(false);
-      }
-    };
-
     fetchUser();
     fetchTournament();
   }, [id]);
@@ -108,11 +108,7 @@ export default function TournamentDetailPage() {
       });
       
       if (res.ok && tournament) {
-        handleTournamentUpdate({
-          id: tournament.id,
-          is_signed_up: true,
-          participant_count: tournament.participant_count + 1
-        });
+        await fetchTournament();
         showToast({
           title: 'Success',
           message: 'Successfully signed up for tournament!',
@@ -152,11 +148,7 @@ export default function TournamentDetailPage() {
       });
       
       if (res.ok && tournament) {
-        handleTournamentUpdate({
-          id: tournament.id,
-          is_signed_up: false,
-          participant_count: tournament.participant_count - 1
-        });
+        await fetchTournament();
         showToast({
           title: 'Success',
           message: 'Successfully cancelled tournament signup',
