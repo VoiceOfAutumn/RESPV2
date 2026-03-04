@@ -114,7 +114,7 @@ const FrontPageLeaderboard = () => {
                     alt={`${entry.display_name}'s avatar`}
                     width={24}
                     height={24}
-                    className="rounded-full object-cover ring-1 ring-gray-700 group-hover:ring-purple-500/50 transition-all duration-300"
+                    className="w-6 h-6 rounded-full object-cover ring-1 ring-gray-700 group-hover:ring-purple-500/50 transition-all duration-300"
                   />
                 </div>
                 <Link 
