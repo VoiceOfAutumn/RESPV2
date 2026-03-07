@@ -274,7 +274,7 @@ export function EditInfoModal({ tournament, onClose, onSave }: EditInfoModalProp
     const body = {
       name,
       description,
-      date: date ? new Date(date).toISOString() : null,
+      date: date ? new Date(date + 'Z').toISOString() : null,
       image: image || null,
       game_data,
     };

@@ -73,7 +73,7 @@ export default function CreateTournamentPage() {
 
     const submissionData = {
       ...formData,
-      date: formData.date ? new Date(formData.date).toISOString() : null,
+      date: formData.date ? new Date(formData.date + 'Z').toISOString() : null,
       game_data,
     };
 
