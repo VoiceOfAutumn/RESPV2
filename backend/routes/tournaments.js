@@ -6,7 +6,7 @@ const authMiddleware = require('../middleware/authMiddleware');
 router.get('/', async (req, res) => {
   try {
     const result = await pool.query(`
-      SELECT id, name, date, status, image
+      SELECT id, name, date, signup_close_date, status, image
       FROM tournaments
       ORDER BY date
     `);
@@ -30,17 +30,17 @@ router.post('/', authMiddleware, async (req, res) => {
       return res.status(403).json({ message: 'Only admin can create tournaments' });
     }
 
-    const { name, description, date, image, game_data } = req.body;
+    const { name, description, date, signup_close_date, image, game_data } = req.body;
 
     if (!name) {
       return res.status(400).json({ message: 'Name is required' });
     }
 
     const result = await pool.query(
-      `INSERT INTO tournaments (name, description, date, image, status, game_data)
-       VALUES ($1, $2, $3, $4, 'registration_open', $5)
+      `INSERT INTO tournaments (name, description, date, signup_close_date, image, status, game_data)
+       VALUES ($1, $2, $3, $4, $5, 'registration_open', $6)
        RETURNING *`,
-      [name, description || null, date || null, image || null, game_data ? JSON.stringify(game_data) : null]
+      [name, description || null, date || null, signup_close_date || null, image || null, game_data ? JSON.stringify(game_data) : null]
     );
 
     res.status(201).json(result.rows[0]);
@@ -62,7 +62,7 @@ router.put('/:id', authMiddleware, async (req, res) => {
       return res.status(403).json({ message: 'Only admin can edit tournaments' });
     }
 
-    const { name, description, date, image, game_data } = req.body;
+    const { name, description, date, signup_close_date, image, game_data } = req.body;
 
     if (!name) {
       return res.status(400).json({ message: 'Name is required' });
@@ -70,10 +70,10 @@ router.put('/:id', authMiddleware, async (req, res) => {
 
     const result = await pool.query(
       `UPDATE tournaments
-       SET name = $1, description = $2, date = $3, image = $4, game_data = $5
-       WHERE id = $6
+       SET name = $1, description = $2, date = $3, signup_close_date = $4, image = $5, game_data = $6
+       WHERE id = $7
        RETURNING *`,
-      [name, description || null, date || null, image || null, game_data ? JSON.stringify(game_data) : null, req.params.id]
+      [name, description || null, date || null, signup_close_date || null, image || null, game_data ? JSON.stringify(game_data) : null, req.params.id]
     );
 
     if (result.rows.length === 0) {

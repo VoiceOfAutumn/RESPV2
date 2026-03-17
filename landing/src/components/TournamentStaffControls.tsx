@@ -230,6 +230,7 @@ export function EditInfoModal({ tournament, onClose, onSave }: EditInfoModalProp
   const [name, setName] = useState(tournament.name);
   const [description, setDescription] = useState(tournament.description || '');
   const [date, setDate] = useState(toDateTimeLocal(tournament.date));
+  const [signupCloseDate, setSignupCloseDate] = useState(toDateTimeLocal(tournament.signup_close_date));
   const [image, setImage] = useState(tournament.image || '');
 
   // Game data state
@@ -275,6 +276,7 @@ export function EditInfoModal({ tournament, onClose, onSave }: EditInfoModalProp
       name,
       description,
       date: date ? new Date(date + 'Z').toISOString() : null,
+      signup_close_date: signupCloseDate ? new Date(signupCloseDate + 'Z').toISOString() : null,
       image: image || null,
       game_data,
     };
@@ -297,6 +299,7 @@ export function EditInfoModal({ tournament, onClose, onSave }: EditInfoModalProp
           name: data.name,
           description: data.description,
           date: data.date,
+          signup_close_date: data.signup_close_date,
           image: data.image,
           game_data: typeof data.game_data === 'string' ? JSON.parse(data.game_data) : data.game_data,
         });
@@ -361,6 +364,13 @@ export function EditInfoModal({ tournament, onClose, onSave }: EditInfoModalProp
             <label className="block text-sm font-medium text-gray-300">Tournament Date <span className="text-gray-500 text-xs">(UTC, optional)</span></label>
             <input type="datetime-local" value={date} onChange={(e) => setDate(e.target.value)} className={inputClass} />
             <p className="mt-1 text-sm text-gray-400">Leave empty to display as T.B.D.</p>
+          </div>
+
+          {/* Signup Close Date */}
+          <div>
+            <label className="block text-sm font-medium text-gray-300">Signup Close Date <span className="text-gray-500 text-xs">(UTC, optional)</span></label>
+            <input type="datetime-local" value={signupCloseDate} onChange={(e) => setSignupCloseDate(e.target.value)} className={inputClass} />
+            <p className="mt-1 text-sm text-gray-400">When signups close. Leave empty to display as T.B.D.</p>
           </div>
 
           {/* Image */}

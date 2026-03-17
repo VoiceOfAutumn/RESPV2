@@ -38,6 +38,7 @@ interface FormData {
   name: string;
   description: string;
   date: string;
+  signupCloseDate: string;
   image: string;
 }
 
@@ -48,6 +49,7 @@ export default function CreateTournamentPage() {
     name: '',
     description: '',
     date: '',
+    signupCloseDate: '',
     image: ''
   });
   const [differsPerRound, setDiffersPerRound] = useState(false);
@@ -74,6 +76,7 @@ export default function CreateTournamentPage() {
     const submissionData = {
       ...formData,
       date: formData.date ? new Date(formData.date + 'Z').toISOString() : null,
+      signup_close_date: formData.signupCloseDate ? new Date(formData.signupCloseDate + 'Z').toISOString() : null,
       game_data,
     };
 
@@ -230,6 +233,20 @@ export default function CreateTournamentPage() {
                 className={inputClass}
               />
               <p className="mt-1 text-sm text-gray-400">All times are in UTC timezone. Leave empty to display as T.B.D.</p>
+            </div>
+
+            <div>
+              <label htmlFor="signupCloseDate" className="block text-sm font-medium text-gray-300">
+                Signup Close Date <span className="text-gray-500 text-xs">(UTC, optional)</span>
+              </label>
+              <input
+                type="datetime-local"
+                id="signupCloseDate"
+                value={formData.signupCloseDate}
+                onChange={(e) => setFormData(prev => ({ ...prev, signupCloseDate: e.target.value }))}
+                className={inputClass}
+              />
+              <p className="mt-1 text-sm text-gray-400">When signups close. Leave empty to display as T.B.D.</p>
             </div>
 
             <div>

@@ -12,6 +12,7 @@ interface Tournament {
   id: number;
   name: string;
   date: string;
+  signup_close_date: string | null;
   status: string;
   format: 'SINGLE_ELIMINATION' | 'DOUBLE_ELIMINATION';
   participant_count: number;
@@ -390,6 +391,7 @@ export default function TournamentsPage() {
                 <tr className="bg-gray-800/50">
                   <th className="px-6 py-3 text-left text-sm font-semibold text-gray-300">Tournament</th>
                   <th className="px-6 py-3 text-left text-sm font-semibold text-gray-300">Date</th>
+                  <th className="px-6 py-3 text-left text-sm font-semibold text-gray-300">Signup Closes</th>
                   <th className="px-6 py-3 text-left text-sm font-semibold text-gray-300">Status</th>
                   <th className="px-6 py-3 text-right text-sm font-semibold text-gray-300">Actions</th>
                 </tr>
@@ -419,6 +421,21 @@ export default function TournamentsPage() {
                             {new Date(tournament.date).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric', timeZone: 'UTC' })}{' '}
                             <span className="text-gray-400">
                               {new Date(tournament.date).toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit', timeZone: 'UTC' })}
+                            </span>{' '}
+                            <span className="text-gray-500 text-xs">UTC</span>
+                          </>
+                        ) : (
+                          <span className="text-gray-300">T.B.D.</span>
+                        )}
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="text-sm text-gray-300">
+                        {tournament.signup_close_date ? (
+                          <>
+                            {new Date(tournament.signup_close_date).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric', timeZone: 'UTC' })}{' '}
+                            <span className="text-gray-400">
+                              {new Date(tournament.signup_close_date).toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit', timeZone: 'UTC' })}
                             </span>{' '}
                             <span className="text-gray-500 text-xs">UTC</span>
                           </>

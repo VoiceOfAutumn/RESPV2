@@ -250,6 +250,14 @@ export default function TournamentDetailPage() {
                     )}
                   </div>
                   <div>
+                    <span className="text-gray-400">Signup Closes:</span>{' '}
+                    {tournament.signup_close_date ? (
+                      <span className="font-medium">{new Date(tournament.signup_close_date).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric', timeZone: 'UTC' })}{' '}{new Date(tournament.signup_close_date).toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit', timeZone: 'UTC' })} <span className="text-gray-500 text-xs">UTC</span></span>
+                    ) : (
+                      <span className="font-medium">T.B.D.</span>
+                    )}
+                  </div>
+                  <div>
                     <span className="text-gray-400">Status:</span>{' '}
                     <span className={`font-medium ${getStatusColor(tournament.status)}`}>
                       {tournament.status.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase())}
