@@ -70,44 +70,101 @@ const FrontPageLeaderboard = () => {
     );
   }
 
-  const getRankDecoration = (index: number) => {
-    const medals = {
-      0: { emoji: '🥇', color: 'from-yellow-400/20 to-transparent' },
-      1: { emoji: '🥈', color: 'from-gray-400/20 to-transparent' },
-      2: { emoji: '🥉', color: 'from-orange-400/20 to-transparent' },
-    };
-    return medals[index as keyof typeof medals];
+  const podiumStyles = {
+    0: {
+      border: 'border-yellow-500',
+      glow: 'shadow-[0_0_15px_rgba(234,179,8,0.3)]',
+      bg: 'bg-gradient-to-b from-yellow-500/10 to-transparent',
+      icon: '👑',
+      label: 'text-yellow-400',
+      expBg: 'bg-yellow-500/20 border-yellow-500/40',
+    },
+    1: {
+      border: 'border-gray-400',
+      glow: 'shadow-[0_0_15px_rgba(156,163,175,0.3)]',
+      bg: 'bg-gradient-to-b from-gray-400/10 to-transparent',
+      icon: '🥈',
+      label: 'text-gray-300',
+      expBg: 'bg-gray-400/20 border-gray-500/40',
+    },
+    2: {
+      border: 'border-orange-600',
+      glow: 'shadow-[0_0_15px_rgba(234,88,12,0.3)]',
+      bg: 'bg-gradient-to-b from-orange-600/10 to-transparent',
+      icon: '🥉',
+      label: 'text-orange-400',
+      expBg: 'bg-orange-500/20 border-orange-500/40',
+    },
   };
 
-  return (    <div className="bg-neutral-800/50 backdrop-blur rounded-xl shadow-lg p-6 flex-1 border border-gray-700/50">
+  const top3 = leaderboardData.slice(0, 3);
+  const rest = leaderboardData.slice(3);
+
+  return (
+    <div className="bg-neutral-800/50 backdrop-blur rounded-xl shadow-lg p-6 flex-1 border border-gray-700/50">
       <div className="flex items-center justify-between mb-6">
         <h2 className="text-lg font-bold text-white">Leaderboard</h2>
         <div className="text-xs font-medium text-gray-400">Top 10</div>
       </div>
-      
+
+      {/* Top 3 Podium Cards */}
+      {top3.length >= 3 && (
+        <div className="grid grid-cols-3 gap-3 mb-4">
+          {[1, 0, 2].map((podiumIndex) => {
+            const entry = top3[podiumIndex];
+            const style = podiumStyles[podiumIndex as keyof typeof podiumStyles];
+            const avatarSrc = entry.profile_picture && entry.profile_picture.trim() !== ''
+              ? entry.profile_picture
+              : '/images/default-avatar.png';
+
+            return (
+              <div
+                key={entry.display_name}
+                className={`relative flex flex-col items-center p-3 rounded-xl border ${style.border} ${style.glow} ${style.bg} bg-neutral-800/60 backdrop-blur transition-all duration-300 hover:scale-[1.02]`}
+              >
+                <span className="text-xl mb-1">{style.icon}</span>
+                <img
+                  src={avatarSrc}
+                  alt={`${entry.display_name}'s avatar`}
+                  className={`w-12 h-12 rounded-full object-cover border-2 ${style.border}`}
+                  onError={(e) => {
+                    e.currentTarget.src = '/images/default-avatar.png';
+                    e.currentTarget.onerror = null;
+                  }}
+                />
+                <Link
+                  href={`/user/${entry.display_name}`}
+                  className={`mt-1.5 font-semibold text-xs text-center truncate max-w-full hover:text-white transition-colors ${style.label}`}
+                >
+                  {entry.display_name}
+                </Link>
+                <div className={`mt-1.5 px-2 py-0.5 rounded-lg border text-white font-bold text-xs ${style.expBg}`}>
+                  {entry.points.toLocaleString()} EXP
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      {/* #4 - #10 normal list */}
       <div className="space-y-2">
-        {leaderboardData.map((entry, index) => {
+        {rest.map((entry, index) => {
+          const rank = index + 4;
           const avatarSrc = entry.profile_picture && entry.profile_picture.trim() !== ''
             ? entry.profile_picture
             : '/images/default-avatar.png';
-          const medal = getRankDecoration(index);
 
           return (
             <div
-              key={entry.display_name}              className={`group relative flex items-center justify-between p-2 rounded-lg transition-all duration-300 hover:bg-white/5 
-                ${medal ? `bg-gradient-to-r ${medal.color}` : ''}`}
+              key={entry.display_name}
+              className="group relative flex items-center justify-between p-2 rounded-lg transition-all duration-300 hover:bg-white/5"
             >
-              {/* Rank */}
-              <div className="w-6 text-white font-bold text-center">
-                {medal ? (
-                  <span className="text-sm">{medal.emoji}</span>
-                ) : (
-                  `#${index + 1}`
-                )}
+              <div className="w-6 text-white font-bold text-center text-sm">
+                {`#${rank}`}
               </div>
-
-              {/* Avatar + Name */}
-              <div className="flex items-center gap-3 flex-1 ml-2">                <div className="relative">
+              <div className="flex items-center gap-3 flex-1 ml-2">
+                <div className="relative">
                   <div className="absolute inset-0 rounded-full bg-purple-500 opacity-0 group-hover:opacity-10 transition-opacity duration-300"></div>
                   <Image
                     src={avatarSrc}
@@ -117,22 +174,22 @@ const FrontPageLeaderboard = () => {
                     className="w-6 h-6 rounded-full object-cover ring-1 ring-gray-700 group-hover:ring-purple-500/50 transition-all duration-300"
                   />
                 </div>
-                <Link 
-                  href={`/user/${entry.display_name}`} 
+                <Link
+                  href={`/user/${entry.display_name}`}
                   className="text-gray-300 hover:text-white font-medium transition-colors duration-300"
                 >
                   {entry.display_name}
                 </Link>
               </div>
-
-              {/* Points */}
               <div className="text-white font-bold bg-gray-700/50 px-3 py-1 rounded-full text-sm">
                 {entry.points.toLocaleString()} EXP
               </div>
             </div>
           );
         })}
-      </div>      <div className="flex justify-center mt-6">
+      </div>
+
+      <div className="flex justify-center mt-6">
         <Link 
           href="/leaderboards"
           className="inline-flex items-center gap-2 py-2 px-4 rounded-lg bg-purple-500/10 text-purple-400 

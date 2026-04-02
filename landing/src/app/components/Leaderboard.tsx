@@ -214,7 +214,7 @@ const Leaderboard = () => {
 
                 {/* EXP */}
                 <div className={`mt-2 px-3 py-1 rounded-lg border text-white font-bold text-sm ${style.expBg}`}>
-                  {entry.points.toLocaleString()}
+                  {entry.points.toLocaleString()} EXP
                 </div>
               </div>
             );
