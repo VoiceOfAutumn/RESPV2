@@ -111,9 +111,40 @@ const Leaderboard = () => {
     return medals[index as keyof typeof medals];
   };
 
+  const podiumStyles = {
+    0: {
+      border: 'border-yellow-500',
+      glow: 'shadow-[0_0_15px_rgba(234,179,8,0.3)]',
+      bg: 'bg-gradient-to-b from-yellow-500/10 to-transparent',
+      icon: '👑',
+      label: 'text-yellow-400',
+      expBg: 'bg-yellow-500/20 border-yellow-500/40',
+    },
+    1: {
+      border: 'border-gray-400',
+      glow: 'shadow-[0_0_15px_rgba(156,163,175,0.3)]',
+      bg: 'bg-gradient-to-b from-gray-400/10 to-transparent',
+      icon: '🥈',
+      label: 'text-gray-300',
+      expBg: 'bg-gray-400/20 border-gray-500/40',
+    },
+    2: {
+      border: 'border-orange-600',
+      glow: 'shadow-[0_0_15px_rgba(234,88,12,0.3)]',
+      bg: 'bg-gradient-to-b from-orange-600/10 to-transparent',
+      icon: '🥉',
+      label: 'text-orange-400',
+      expBg: 'bg-orange-500/20 border-orange-500/40',
+    },
+  };
+
+  const isFirstPage = currentPage === 1;
+  const top3 = leaderboardData.slice(0, 3);
   const indexOfLastUser = currentPage * itemsPerPage;
   const indexOfFirstUser = indexOfLastUser - itemsPerPage;
-  const currentUsers = leaderboardData.slice(indexOfFirstUser, indexOfLastUser);
+  const tableUsers = isFirstPage
+    ? leaderboardData.slice(3, 10)
+    : leaderboardData.slice(indexOfFirstUser, indexOfLastUser);
   const totalPages = Math.ceil(leaderboardData.length / itemsPerPage);
 
   const handleNextPage = () => {
@@ -129,7 +160,9 @@ const Leaderboard = () => {
   };
 
   return (
-    <div className="w-full">      {/* Search Bar */}      <form onSubmit={handleSearch} className="flex justify-center mb-3">
+    <div className="w-full">
+      {/* Search Bar */}
+      <form onSubmit={handleSearch} className="flex justify-center mb-3">
         <input
           type="text"
           placeholder="Find player..."
@@ -140,18 +173,69 @@ const Leaderboard = () => {
         />
       </form>
 
-      {/* Leaderboard Table */}      <div className="max-w-4xl mx-auto bg-neutral-800/50 backdrop-blur rounded-xl shadow-lg border border-gray-700/50 overflow-hidden mb-4">
+      {/* Top 3 Podium Cards */}
+      {isFirstPage && top3.length >= 3 && (
+        <div className="max-w-4xl mx-auto grid grid-cols-3 gap-4 mb-4">
+          {/* Render in visual order: Silver (#2), Gold (#1), Bronze (#3) */}
+          {[1, 0, 2].map((podiumIndex) => {
+            const entry = top3[podiumIndex];
+            const style = podiumStyles[podiumIndex as keyof typeof podiumStyles];
+            const avatarSrc = entry.profile_picture || '/images/default-avatar.png';
+
+            return (
+              <div
+                key={entry.display_name}
+                id={`rank-${podiumIndex + 1}`}
+                className={`relative flex flex-col items-center p-4 rounded-xl border ${style.border} ${style.glow} ${style.bg} bg-neutral-800/60 backdrop-blur transition-all duration-300 hover:scale-[1.02] ${
+                  podiumIndex + 1 === highlightedRank ? 'ring-2 ring-yellow-400 animate-pulse' : ''
+                }`}
+              >
+                {/* Medal / Crown icon */}
+                <span className="text-2xl mb-2">{style.icon}</span>
+
+                {/* Avatar */}
+                <img
+                  src={avatarSrc}
+                  alt={`${entry.display_name}'s avatar`}
+                  className={`w-16 h-16 rounded-full object-cover border-2 ${style.border}`}
+                  onError={(e) => {
+                    e.currentTarget.src = '/images/default-avatar.png';
+                    e.currentTarget.onerror = null;
+                  }}
+                />
+
+                {/* Username */}
+                <Link
+                  href={`/user/${entry.display_name}`}
+                  className={`mt-2 font-semibold text-sm text-center truncate max-w-full hover:text-white transition-colors ${style.label}`}
+                >
+                  {entry.display_name}
+                </Link>
+
+                {/* EXP */}
+                <div className={`mt-2 px-3 py-1 rounded-lg border text-white font-bold text-sm ${style.expBg}`}>
+                  {entry.points.toLocaleString()}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      {/* Leaderboard Table */}
+      <div className="max-w-4xl mx-auto bg-neutral-800/50 backdrop-blur rounded-xl shadow-lg border border-gray-700/50 overflow-hidden mb-4">
         <div className="overflow-x-auto">
           <table className="w-full table-auto">
             <thead>
-              <tr className="border-b border-gray-700/50">                <th className="w-24 px-6 py-2.5 text-left text-sm font-semibold text-gray-400">Rank</th>
+              <tr className="border-b border-gray-700/50">
+                <th className="w-24 px-6 py-2.5 text-left text-sm font-semibold text-gray-400">Rank</th>
                 <th className="px-6 py-2.5 text-left text-sm font-semibold text-gray-400">Player</th>
                 <th className="w-40 px-6 py-2.5 text-right text-sm font-semibold text-gray-400">Experience</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-700/50">
-              {currentUsers.map((entry, index) => {
-                const rank = indexOfFirstUser + index + 1;
+              {tableUsers.map((entry, index) => {
+                const rank = isFirstPage ? index + 4 : indexOfFirstUser + index + 1;
                 const isHighlighted = rank === highlightedRank;
                 const medal = getRankDecoration(rank - 1);
                 const avatarSrc = entry.profile_picture || '/images/default-avatar.png';
@@ -163,22 +247,19 @@ const Leaderboard = () => {
                     className={`transition-colors duration-300 ${
                       isHighlighted ? 'bg-yellow-500/10 animate-pulse' : 'hover:bg-white/5'
                     } ${medal ? `bg-gradient-to-r ${medal.color}` : ''}`}
-                  >                    <td className="w-24 px-6 py-2.5 whitespace-nowrap">                      <div className="text-sm font-bold text-white">
-                        {medal ? (
-                          <span>{medal.emoji}</span>
-                        ) : (
-                          `#${rank}`
-                        )}
+                  >
+                    <td className="w-24 px-6 py-2.5 whitespace-nowrap">
+                      <div className="text-sm font-bold text-white">
+                        {`#${rank}`}
                       </div>
                     </td>
                     <td className="px-6 py-2.5 whitespace-nowrap">
                       <div className="flex items-center gap-3">
                         <div className="relative flex-shrink-0">
-                          <div className="absolute inset-0 rounded-full bg-purple-500 opacity-0 group-hover:opacity-10 transition-opacity duration-300"></div>
                           <img
                             src={avatarSrc}
                             alt={`${entry.display_name}'s avatar`}
-                            className="h-8 w-8 rounded-full object-cover ring-1 ring-gray-700 group-hover:ring-purple-500/50 transition-all duration-300"
+                            className="h-8 w-8 rounded-full object-cover ring-1 ring-gray-700 hover:ring-purple-500/50 transition-all duration-300"
                           />
                         </div>
                         <Link 
