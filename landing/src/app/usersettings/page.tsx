@@ -22,6 +22,12 @@ export default function UserSettings() {
     country: false,
     profile_picture: false,
   });
+  const [feedback, setFeedback] = useState<Record<string, { type: 'success' | 'error'; message: string } | null>>({});
+
+  const showFeedback = (field: string, type: 'success' | 'error', message: string) => {
+    setFeedback((prev) => ({ ...prev, [field]: { type, message } }));
+    setTimeout(() => setFeedback((prev) => ({ ...prev, [field]: null })), 4000);
+  };
 
   const [isClient, setIsClient] = useState(false); // Track if we're on the client
   const router = useRouter(); // For redirection
@@ -155,7 +161,7 @@ export default function UserSettings() {
         throw new Error(data.message || 'Update failed');
       }
 
-      alert(`${field.charAt(0).toUpperCase() + field.slice(1)} updated successfully!`);
+      showFeedback(field, 'success', `${field === 'country_id' ? 'Country' : field === 'profile_picture' ? 'Profile picture' : field.charAt(0).toUpperCase() + field.slice(1)} updated successfully!`);
 
       if (field === 'password') {
         setCurrentPassword('');
@@ -169,7 +175,7 @@ export default function UserSettings() {
       }
     } catch (err) {
       console.error(err);
-      alert(err instanceof Error ? err.message : `Failed to update ${field}`);
+      showFeedback(field, 'error', err instanceof Error ? err.message : `Failed to update ${field}`);
     } finally {
       setLoadingFields((prev) => ({ ...prev, [field]: false }));
     }
@@ -200,6 +206,11 @@ export default function UserSettings() {
                 {loadingFields.email ? 'Updating...' : 'Update Email'}
               </button>
             </div>
+            {feedback.email && (
+              <p className={`mt-3 text-sm font-medium ${feedback.email.type === 'success' ? 'text-green-400' : 'text-red-400'}`}>
+                {feedback.email.message}
+              </p>
+            )}
           </div>
 
           {/* Password Field */}
@@ -237,6 +248,11 @@ export default function UserSettings() {
                 </button>
               </div>
             </div>
+            {feedback.password && (
+              <p className={`mt-3 text-sm font-medium ${feedback.password.type === 'success' ? 'text-green-400' : 'text-red-400'}`}>
+                {feedback.password.message}
+              </p>
+            )}
           </div>
 
           {/* Profile Picture Field */}
@@ -259,7 +275,7 @@ export default function UserSettings() {
                 onClick={() => {
                   const url = userData.profile_picture.toLowerCase();
                   if (!url.match(/\.(png|jpg|jpeg)$/)) {
-                    alert('Please enter a valid image URL ending with .png, .jpg, or .jpeg');
+                    showFeedback('profile_picture', 'error', 'Please enter a valid image URL ending with .png, .jpg, or .jpeg');
                     return;
                   }
                   handleUpdate('profile_picture');
@@ -270,6 +286,11 @@ export default function UserSettings() {
                 {loadingFields.profile_picture ? 'Updating...' : 'Update Picture'}
               </button>
             </div>
+            {feedback.profile_picture && (
+              <p className={`mt-3 text-sm font-medium ${feedback.profile_picture.type === 'success' ? 'text-green-400' : 'text-red-400'}`}>
+                {feedback.profile_picture.message}
+              </p>
+            )}
             {userData.profile_picture && (
               <div className="mt-4">
                 <img
@@ -308,6 +329,11 @@ export default function UserSettings() {
                 {loadingFields.country ? 'Updating...' : 'Update Country'}
               </button>
             </div>
+            {feedback.country_id && (
+              <p className={`mt-3 text-sm font-medium ${feedback.country_id.type === 'success' ? 'text-green-400' : 'text-red-400'}`}>
+                {feedback.country_id.message}
+              </p>
+            )}
           </div>
         </div>
       </main>
