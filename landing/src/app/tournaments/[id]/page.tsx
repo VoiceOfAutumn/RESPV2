@@ -21,6 +21,8 @@ export default function TournamentDetailPage() {
   const [error, setError] = useState<string | null>(null);
   const [user, setUser] = useState<User | null>(null);
   const [showEditModal, setShowEditModal] = useState(false);
+  const [showSignupModal, setShowSignupModal] = useState(false);
+  const [signupAgreed, setSignupAgreed] = useState(false);
   const { showToast } = useToast();
   const router = useRouter();
 
@@ -274,7 +276,7 @@ export default function TournamentDetailPage() {
 
                   {canSignUp && (
                     <button
-                      onClick={handleSignup}
+                      onClick={() => { setSignupAgreed(false); setShowSignupModal(true); }}
                       className="bg-purple-500/10 text-purple-400 hover:bg-purple-500/20 font-semibold py-2 px-6 rounded-lg 
                         transition-all duration-300 transform hover:scale-105 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
                     >
@@ -305,6 +307,49 @@ export default function TournamentDetailPage() {
               </div>
             </div>
           </div>
+
+          {/* Sign-up Confirmation Modal */}
+          {showSignupModal && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm" onClick={() => setShowSignupModal(false)}>
+              <div className="bg-neutral-900 border border-gray-700/50 rounded-2xl shadow-2xl w-full max-w-md mx-4 p-6" onClick={(e) => e.stopPropagation()}>
+                <h3 className="text-xl font-bold text-white mb-4">Confirm Sign Up</h3>
+                <p className="text-gray-300 text-sm leading-relaxed mb-4">
+                  Before signing up, please make sure you&apos;ve read our{' '}
+                  <Link href="/guide" className="text-purple-400 hover:text-purple-300 underline">New Player Guide</Link>{' '}
+                  and our{' '}
+                  <Link href="/rules" className="text-purple-400 hover:text-purple-300 underline">Rules &amp; Guidelines</Link>.
+                  These contain important information about how our tournaments work and what is expected of all participants.
+                  Not following these guidelines can lead to disqualification, so please ensure you understand them before signing up.
+                </p>
+                <label className="flex items-start gap-3 cursor-pointer group mb-6">
+                  <input
+                    type="checkbox"
+                    checked={signupAgreed}
+                    onChange={(e) => setSignupAgreed(e.target.checked)}
+                    className="mt-0.5 w-5 h-5 rounded border-gray-600 bg-gray-800 text-purple-500 focus:ring-purple-500 focus:ring-offset-0 cursor-pointer"
+                  />
+                  <span className="text-gray-300 text-sm leading-relaxed group-hover:text-white transition-colors">
+                    By checking this box, you agree to have read the guides and shall follow the rules to uphold fair play throughout the tournament.
+                  </span>
+                </label>
+                <div className="flex gap-3 justify-end">
+                  <button
+                    onClick={() => setShowSignupModal(false)}
+                    className="px-5 py-2 rounded-lg bg-white/5 hover:bg-white/10 border border-gray-700/50 text-gray-300 font-medium transition-colors"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={() => { setShowSignupModal(false); handleSignup(); }}
+                    disabled={!signupAgreed}
+                    className="px-5 py-2 rounded-lg bg-purple-600 hover:bg-purple-700 text-white font-medium transition-all disabled:opacity-40 disabled:cursor-not-allowed"
+                  >
+                    Sign Up
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* Game Information Section */}
           {tournament.game_data && (

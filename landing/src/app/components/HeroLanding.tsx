@@ -17,7 +17,7 @@ export default function HeroLanding() {
               alt=""
               className="w-full h-full object-cover"
             />
-            <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
+            <div className="absolute inset-0 bg-black/20 flex items-center justify-center">
               <div className="flex items-center gap-4 sm:gap-8">
                 <div className="flex flex-col items-center gap-1.5">
                   <Swords className="text-white" size={26} />

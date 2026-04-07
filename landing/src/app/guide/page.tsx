@@ -53,7 +53,7 @@ export default function TutorialPage() {
             {/* Hero card */}
             <div className="relative rounded-2xl border border-purple-500/20 overflow-hidden">
               <img
-                src="/images/EmptyHeaderBar.png"
+                src="/images/EmptyHeaderBarBig.png"
                 alt=""
                 className="w-full object-cover h-48 sm:h-56"
               />
