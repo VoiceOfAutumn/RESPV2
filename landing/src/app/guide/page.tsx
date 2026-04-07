@@ -58,10 +58,10 @@ export default function TutorialPage() {
                 className="w-full object-cover h-48 sm:h-56"
               />
               <div className="absolute inset-0 bg-black/50 flex flex-col items-center justify-center p-8 sm:p-10 text-center">
-                <h2 className="text-3xl font-bold mb-3">Compete. Win. Level Up.</h2>
+                <h2 className="text-3xl font-bold mb-3">Compete | Win | Level Up!</h2>
                 <p className="text-gray-300 text-lg max-w-2xl mx-auto leading-relaxed">
                   Retro Rivals is a competitive retro gaming platform where players go head-to-head in tournaments across classic titles.
-                  Win matches, earn experience, unlock features, and prove you&apos;re the best.
+                  Win matches, earn experience and prove you&apos;re the best.
                 </p>
               </div>
             </div>
@@ -71,19 +71,19 @@ export default function TutorialPage() {
               <FeatureCard
                 icon={<Swords className="text-purple-400" size={28} />}
                 title="Compete in Tournaments"
-                description="Enter single or double elimination brackets across a variety of retro games. Every tournament is a chance to prove your skill."
+                description="Compete across a variety of retro games. Every tournament is a chance to prove your skill!"
                 accent="purple"
               />
               <FeatureCard
                 icon={<Zap className="text-yellow-400" size={28} />}
                 title="Earn EXP & Multipliers"
-                description="Every match you win earns you EXP. The deeper you go, the more you earn — and winning the tournament grants an EXP multiplier on top."
+                description="Every match you win earns you EXP. The deeper you go, the more you earn. Winning the tournament grants an EXP multiplier on top!"
                 accent="yellow"
               />
               <FeatureCard
                 icon={<Users className="text-blue-400" size={28} />}
                 title="Climb the Leaderboards"
-                description="Accumulate EXP to rise through the global rankings. Higher levels unlock more site features over time."
+                description="Accumulate EXP to rise through the global rankings and level up. Higher levels unlock more site features over time!"
                 accent="blue"
               />
             </div>
@@ -219,7 +219,7 @@ export default function TutorialPage() {
                 <TimelineStep
                   number={2}
                   title="Wait for Your Match"
-                  description="Matches are played in bracket order, from top to bottom. Multiple matches may run simultaneously, so stay alert — your turn can come up quickly."
+                  description="Matches are played in bracket order, from top to bottom. Multiple matches may run simultaneously, so stay alert and keep an eye on the bracket progression"
                   icon={<Users size={20} />}
                   color="blue"
                 />
@@ -233,7 +233,7 @@ export default function TutorialPage() {
                 <TimelineStep
                   number={4}
                   title="Return & Repeat"
-                  description="After your match, the Game Master moves you back to the waiting room. If you won, you'll wait for your next match. If you lost, you're free to leave — or stick around and watch!"
+                  description="After your match, the Game Master moves you back to the waiting room. If you won, you'll wait for your next match. If you lost, you're free to leave"
                   icon={<Trophy size={20} />}
                   color="yellow"
                 />
@@ -247,7 +247,7 @@ export default function TutorialPage() {
                 <FaqItem
                   index={0}
                   question="What happens if I'm late to the tournament?"
-                  answer="If you're not present for your match, it's counted as a forfeit. There's no rescheduling — make sure to be in the waiting room on time."
+                  answer="If you're not present for your match, it's counted as a forfeit. There's no rescheduling - make sure to be in the waiting room on time."
                   expanded={expandedFaq}
                   onToggle={setExpandedFaq}
                 />
