@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import PageShell from '../components/PageShell';
-import { Trophy, Users, Zap, BookOpen, MessageSquare, Monitor, Clock, Swords, ArrowRight, ChevronDown, CheckCircle2 } from 'lucide-react';
+import { Trophy, Users, Zap, MessageSquare, Monitor, Clock, Swords, ArrowRight, ChevronDown, CheckCircle2, BookOpen } from 'lucide-react';
 
 const steps = [
   { id: 'overview', label: 'What is Retro Rivals?' },
@@ -22,13 +22,9 @@ export default function TutorialPage() {
       <main className="max-w-5xl mx-auto px-6 py-12">
         {/* Header */}
         <div className="text-center mb-12">
-          <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-purple-500/10 border border-purple-500/20 text-purple-400 text-sm font-medium mb-4">
-            <BookOpen size={16} />
-            Getting Started
-          </div>
           <h1 className="text-4xl sm:text-5xl font-bold mb-4">How It Works</h1>
           <p className="text-gray-400 text-lg max-w-2xl mx-auto">
-            Everything you need to know to compete in Retro Rivals tournaments, earn EXP, and climb the leaderboards.
+            Everything you need to know to compete at Retro Rivals.
           </p>
         </div>
 
@@ -55,16 +51,23 @@ export default function TutorialPage() {
         {activeSection === 'overview' && (
           <div className="space-y-8">
             {/* Hero card */}
-            <div className="bg-gradient-to-br from-purple-900/30 via-neutral-900/80 to-neutral-900/80 rounded-2xl border border-purple-500/20 p-8 sm:p-10 text-center">
-              <h2 className="text-3xl font-bold mb-3">Compete. Win. Level Up.</h2>
-              <p className="text-gray-300 text-lg max-w-2xl mx-auto leading-relaxed">
-                Retro Rivals is a competitive retro gaming platform where players go head-to-head in tournaments across classic titles.
-                Win matches, earn experience, unlock features, and prove you&apos;re the best.
-              </p>
+            <div className="relative rounded-2xl border border-purple-500/20 overflow-hidden">
+              <img
+                src="/images/EmptyHeaderBar.png"
+                alt=""
+                className="w-full object-cover h-48 sm:h-56"
+              />
+              <div className="absolute inset-0 bg-black/50 flex flex-col items-center justify-center p-8 sm:p-10 text-center">
+                <h2 className="text-3xl font-bold mb-3">Compete. Win. Level Up.</h2>
+                <p className="text-gray-300 text-lg max-w-2xl mx-auto leading-relaxed">
+                  Retro Rivals is a competitive retro gaming platform where players go head-to-head in tournaments across classic titles.
+                  Win matches, earn experience, unlock features, and prove you&apos;re the best.
+                </p>
+              </div>
             </div>
 
             {/* Feature cards */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
               <FeatureCard
                 icon={<Swords className="text-purple-400" size={28} />}
                 title="Compete in Tournaments"
@@ -73,15 +76,9 @@ export default function TutorialPage() {
               />
               <FeatureCard
                 icon={<Zap className="text-yellow-400" size={28} />}
-                title="Earn EXP"
-                description="Every match you win earns you EXP. The deeper you go in the bracket, the more EXP each win is worth."
+                title="Earn EXP & Multipliers"
+                description="Every match you win earns you EXP. The deeper you go, the more you earn — and winning the tournament grants an EXP multiplier on top."
                 accent="yellow"
-              />
-              <FeatureCard
-                icon={<Trophy className="text-green-400" size={28} />}
-                title="Win for Multipliers"
-                description="Taking 1st place earns you an EXP multiplier on top of your match winnings — making the grand finals extra rewarding."
-                accent="green"
               />
               <FeatureCard
                 icon={<Users className="text-blue-400" size={28} />}
@@ -89,20 +86,6 @@ export default function TutorialPage() {
                 description="Accumulate EXP to rise through the global rankings. Higher levels unlock more site features over time."
                 accent="blue"
               />
-            </div>
-
-            {/* Visual flow */}
-            <div className="bg-neutral-800/50 border border-gray-700/50 rounded-2xl p-8">
-              <h3 className="text-xl font-bold text-center mb-6">Your Journey</h3>
-              <div className="flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-0">
-                <FlowStep number={1} label="Sign Up" sublabel="Create your account" />
-                <FlowArrow />
-                <FlowStep number={2} label="Enter Tournament" sublabel="Pick your game" />
-                <FlowArrow />
-                <FlowStep number={3} label="Win Matches" sublabel="Earn EXP" />
-                <FlowArrow />
-                <FlowStep number={4} label="Rank Up" sublabel="Climb the leaderboard" />
-              </div>
             </div>
 
             <div className="flex justify-center">
@@ -225,10 +208,7 @@ export default function TutorialPage() {
 
             {/* Timeline */}
             <div className="relative">
-              {/* Vertical line */}
-              <div className="absolute left-6 sm:left-8 top-0 bottom-0 w-0.5 bg-gradient-to-b from-purple-500 via-purple-500/50 to-transparent" />
-
-              <div className="space-y-8">
+              <div className="space-y-5">
                 <TimelineStep
                   number={1}
                   title="Join the Waiting Room"
@@ -262,7 +242,7 @@ export default function TutorialPage() {
 
             {/* Quick FAQ */}
             <div className="bg-neutral-800/50 border border-gray-700/50 rounded-2xl p-6 sm:p-8">
-              <h3 className="text-xl font-bold mb-4">Quick FAQ</h3>
+              <h3 className="text-xl font-bold mb-4">FAQ</h3>
               <div className="space-y-2">
                 <FaqItem
                   index={0}
@@ -273,22 +253,8 @@ export default function TutorialPage() {
                 />
                 <FaqItem
                   index={1}
-                  question="Can I spectate matches I'm not in?"
-                  answer="Absolutely! If the game supports spectating, you're welcome to watch other matches while waiting for yours."
-                  expanded={expandedFaq}
-                  onToggle={setExpandedFaq}
-                />
-                <FaqItem
-                  index={2}
                   question="What if I disconnect mid-match?"
                   answer="Disconnections or crashes after a match starts are counted as forfeits unless the Game Master rules otherwise."
-                  expanded={expandedFaq}
-                  onToggle={setExpandedFaq}
-                />
-                <FaqItem
-                  index={3}
-                  question="Do I need a webcam or microphone?"
-                  answer="No webcam needed. A microphone is helpful for communicating with your opponent and Game Master but not mandatory — you can use text chat."
                   expanded={expandedFaq}
                   onToggle={setExpandedFaq}
                 />
@@ -336,26 +302,6 @@ function FeatureCard({ icon, title, description, accent }: { icon: React.ReactNo
   );
 }
 
-function FlowStep({ number, label, sublabel }: { number: number; label: string; sublabel: string }) {
-  return (
-    <div className="flex flex-col items-center text-center w-36">
-      <div className="w-10 h-10 rounded-full bg-purple-600 flex items-center justify-center text-white font-bold text-sm mb-2">
-        {number}
-      </div>
-      <div className="font-semibold text-sm">{label}</div>
-      <div className="text-xs text-gray-500 mt-0.5">{sublabel}</div>
-    </div>
-  );
-}
-
-function FlowArrow() {
-  return (
-    <div className="hidden sm:flex items-center px-2 text-gray-600">
-      <ArrowRight size={20} />
-    </div>
-  );
-}
-
 function ChecklistItem({ number, title, description, children }: { number: number; title: string; description: string; children?: React.ReactNode }) {
   return (
     <div className="flex gap-4 bg-neutral-800/50 border border-gray-700/50 rounded-xl p-5 hover:border-gray-600/50 transition-colors">
@@ -386,8 +332,8 @@ function TimelineStep({ number, title, description, icon, color }: { number: num
   const c = colorMap[color] || colorMap.purple;
 
   return (
-    <div className="relative flex gap-4 sm:gap-6 pl-2">
-      <div className={`relative z-10 flex-shrink-0 w-10 h-10 sm:w-12 sm:h-12 rounded-full ${c.bg} border ${c.border} flex items-center justify-center ${c.text}`}>
+    <div className="flex items-center gap-4 sm:gap-6">
+      <div className={`flex-shrink-0 w-10 h-10 sm:w-12 sm:h-12 rounded-full ${c.bg} border ${c.border} flex items-center justify-center ${c.text}`}>
         {icon}
       </div>
       <div className="bg-neutral-800/50 border border-gray-700/50 rounded-xl p-5 flex-1 hover:border-gray-600/50 transition-colors">
