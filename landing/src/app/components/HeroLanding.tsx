@@ -15,7 +15,7 @@ export default function HeroLanding() {
             <img
               src="/images/EmptyHeaderBar.png"
               alt=""
-              className="w-full h-full object-contain"
+              className="w-full h-full object-cover"
             />
             <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
               <div className="flex items-center gap-4 sm:gap-8">
@@ -46,10 +46,12 @@ export default function HeroLanding() {
             />
             <div className="absolute inset-0 bg-gradient-to-l from-black/70 via-black/30 to-transparent" />
             {/* Text covering the right side empty space */}
-            <div className="absolute right-4 sm:right-6 top-1/2 -translate-y-1/2 text-right">
-              <p className="text-white font-extrabold text-base sm:text-xl lg:text-2xl tracking-[0.15em] uppercase leading-tight">NEW</p>
-              <p className="text-white font-extrabold text-base sm:text-xl lg:text-2xl tracking-[0.15em] uppercase leading-tight">PLAYER</p>
-              <p className="text-white font-extrabold text-base sm:text-xl lg:text-2xl tracking-[0.15em] uppercase leading-tight">GUIDE</p>
+            <div className="absolute inset-y-0 right-0 w-3/5 flex items-center justify-center pb-10">
+              <div className="text-center">
+                <p className="text-white font-extrabold text-lg sm:text-2xl lg:text-3xl tracking-[0.15em] uppercase leading-tight">NEW</p>
+                <p className="text-white font-extrabold text-lg sm:text-2xl lg:text-3xl tracking-[0.15em] uppercase leading-tight">PLAYER</p>
+                <p className="text-white font-extrabold text-lg sm:text-2xl lg:text-3xl tracking-[0.15em] uppercase leading-tight">GUIDE</p>
+              </div>
             </div>
             {/* Arrow button in bottom right */}
             <div className="absolute bottom-3 right-3 w-10 h-10 rounded-full bg-white/10 backdrop-blur-sm border border-white/20 group-hover:bg-purple-500/80 group-hover:border-purple-400/60 flex items-center justify-center transition-all duration-300 group-hover:scale-110 group-hover:shadow-lg group-hover:shadow-purple-500/40">
