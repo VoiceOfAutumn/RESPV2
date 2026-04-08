@@ -5,6 +5,7 @@ import { useParams } from 'next/navigation';
 import PageShell from '../../components/PageShell';
 import { getFlagImageProps } from '@/lib/countryFlags';
 import { API_BASE_URL } from '@/lib/api';
+import { getLevelData } from '@/lib/leveling';
 import { MapPin, Award } from 'lucide-react';
 
 function LoadingSkeleton() {
@@ -106,8 +107,17 @@ export default function UserProfile() {
     );
   }
 
+  const levelData = getLevelData(user.points);
+  const { level, tier, progress, expIntoLevel, isMaxLevel } = levelData;
+  const expToNext = isMaxLevel ? 0 : levelData.expForNextLevel - levelData.expForCurrentLevel;
+
+  // Find next tier name
+  const TIER_ORDER = ['Newcomer', 'Contender', 'Veteran', 'Rival', 'Elite', 'Legend'];
+  const currentTierIdx = TIER_ORDER.indexOf(tier.name);
+  const nextTierName = currentTierIdx < TIER_ORDER.length - 1 ? TIER_ORDER[currentTierIdx + 1] : null;
+
   return (
-    <main className="min-h-screen bg-gradient-to-br from-black via-gray-900 to-black text-white pt-16 pl-0 lg:pl-64">
+    <main className="min-h-screen bg-gradient-to-br from-black via-gray-800 to-black text-white pt-16 pl-0 lg:pl-64">
       <PageShell />
 
       {/* ── BANNER ── */}
@@ -131,6 +141,13 @@ export default function UserProfile() {
                 className="w-full h-full object-cover"
                 loading="lazy"
               />
+            </div>
+            {/* Level badge */}
+            <div
+              className="absolute -bottom-1 left-1/2 -translate-x-1/2 px-2.5 py-0.5 rounded-full text-xs font-bold border"
+              style={{ backgroundColor: tier.accent + '22', borderColor: tier.accent, color: tier.accent }}
+            >
+              Lv.{level}
             </div>
           </div>
 
@@ -174,31 +191,73 @@ export default function UserProfile() {
 
       {/* ── MAIN CONTENT ── */}
       <div className="max-w-7xl mx-auto px-4 md:px-8 mt-8 pb-20">
-        {/* Seals */}
-        <section className="bg-white/[0.02] rounded-2xl border border-white/[0.06] p-5">
-          <h2 className="text-sm font-bold text-white uppercase tracking-wider mb-4 flex items-center gap-2">
-            <Award className="w-4 h-4 text-purple-400" /> Seals
-          </h2>
-          <div className="flex flex-wrap gap-3">
-            {userSeals.length === 0 ? (
-              <p className="text-gray-500 text-sm italic">No seals earned yet. Seals are awarded for special accomplishments.</p>
-            ) : (
-              userSeals.map((seal) => (
-                <div key={seal.id} className="group relative flex flex-col items-center gap-1">
-                  <div className="w-12 h-12 rounded-full bg-gray-800 border-2 border-purple-500/30 overflow-hidden flex items-center justify-center group-hover:border-purple-400 group-hover:scale-110 transition-all">
-                    <img src={seal.image_url} alt={seal.name} className="w-full h-full object-cover" />
-                  </div>
-                  <span className="text-[10px] text-gray-400 font-medium max-w-[70px] text-center truncate">{seal.name}</span>
-                  {seal.description && (
-                    <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-1.5 text-xs text-white bg-gray-800 border border-gray-700 rounded-lg shadow-lg whitespace-nowrap z-50 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
-                      {seal.description}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+
+          {/* ── LEFT COLUMN (2/3) ── */}
+          <div className="lg:col-span-2 space-y-6">
+            {/* Seals */}
+            <section className="bg-white/[0.02] rounded-2xl border border-white/[0.06] p-5">
+              <h2 className="text-sm font-bold text-white uppercase tracking-wider mb-4 flex items-center gap-2">
+                <Award className="w-4 h-4 text-purple-400" /> Seals
+              </h2>
+              <div className="flex flex-wrap gap-3">
+                {userSeals.length === 0 ? (
+                  <p className="text-gray-500 text-sm italic">No seals earned yet. Seals are awarded for special accomplishments.</p>
+                ) : (
+                  userSeals.map((seal) => (
+                    <div key={seal.id} className="group relative flex flex-col items-center gap-1">
+                      <div className="w-12 h-12 rounded-full bg-gray-800 border-2 border-purple-500/30 overflow-hidden flex items-center justify-center group-hover:border-purple-400 group-hover:scale-110 transition-all">
+                        <img src={seal.image_url} alt={seal.name} className="w-full h-full object-cover" />
+                      </div>
+                      <span className="text-[10px] text-gray-400 font-medium max-w-[70px] text-center truncate">{seal.name}</span>
+                      {seal.description && (
+                        <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-1.5 text-xs text-white bg-gray-800 border border-gray-700 rounded-lg shadow-lg whitespace-nowrap z-50 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
+                          {seal.description}
+                        </div>
+                      )}
                     </div>
-                  )}
-                </div>
-              ))
-            )}
+                  ))
+                )}
+              </div>
+            </section>
           </div>
-        </section>
+
+          {/* ── RIGHT COLUMN (1/3) ── */}
+          <div className="space-y-6">
+            {/* Tier Badge + EXP Progress */}
+            <section className="bg-white/[0.02] rounded-2xl border border-white/[0.06] p-5">
+              <div className="flex items-center gap-3">
+                <div
+                  className="w-12 h-12 rounded-xl flex items-center justify-center bg-white/[0.04] border text-lg font-bold"
+                  style={{ borderColor: tier.accent, color: tier.accent }}
+                >
+                  {level}
+                </div>
+                <div>
+                  <p className="text-lg font-bold" style={{ color: tier.accent }}>{tier.name}</p>
+                  <p className="text-[10px] text-gray-500">Level {level} · {user.points} EXP</p>
+                </div>
+              </div>
+              {/* EXP Progress */}
+              <div className="mt-4">
+                <div className="flex justify-between text-[10px] text-gray-500 mb-1.5">
+                  <span>{user.points} EXP</span>
+                  <span>{nextTierName ? `Next: ${nextTierName}` : 'Max Tier'}</span>
+                </div>
+                <div className="h-2 bg-white/[0.04] rounded-full overflow-hidden">
+                  <div
+                    className="h-full rounded-full transition-all duration-700"
+                    style={{ width: isMaxLevel ? '100%' : `${Math.round(progress * 100)}%`, backgroundColor: tier.accent }}
+                  />
+                </div>
+                {!isMaxLevel && (
+                  <p className="text-[10px] text-gray-600 mt-1.5">{expIntoLevel} / {expToNext} EXP to next level</p>
+                )}
+              </div>
+            </section>
+          </div>
+
+        </div>
       </div>
     </main>
   );
