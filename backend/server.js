@@ -598,6 +598,7 @@ app.get('/user/:displayname', async (req, res) => {
   try {
     const result = await pool.query(`
       SELECT 
+        users.id,
         users.display_name, 
         users.profile_picture,
         users.points,
@@ -614,6 +615,26 @@ app.get('/user/:displayname', async (req, res) => {
       return res.status(404).json({ message: 'User not found' });
     }
 
+    // Fetch tournament count and win rate
+    const statsResult = await pool.query(`
+      SELECT
+        COUNT(DISTINCT tp.tournament_id) AS tournaments_played,
+        COUNT(CASE WHEN tm.winner_id = $1 AND tm.bye_match = false THEN 1 END) AS wins,
+        COUNT(CASE WHEN tm.winner_id IS NOT NULL AND tm.bye_match = false AND (tm.player1_id = $1 OR tm.player2_id = $1) THEN 1 END) AS completed_matches
+      FROM tournament_participants tp
+      LEFT JOIN tournament_matches tm
+        ON tm.tournament_id = tp.tournament_id
+        AND (tm.player1_id = $1 OR tm.player2_id = $1)
+      WHERE tp.user_id = $1
+    `, [user.id]);
+
+    const stats = statsResult.rows[0];
+    const completedMatches = parseInt(stats.completed_matches) || 0;
+    const wins = parseInt(stats.wins) || 0;
+    user.tournaments_played = parseInt(stats.tournaments_played) || 0;
+    user.win_rate = completedMatches > 0 ? Math.round((wins / completedMatches) * 100) : 0;
+
+    delete user.id;
     res.status(200).json(user);
   } catch (err) {
     console.error(err);

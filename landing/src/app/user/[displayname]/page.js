@@ -111,11 +111,6 @@ export default function UserProfile() {
   const { level, tier, progress, expIntoLevel, isMaxLevel } = levelData;
   const expToNext = isMaxLevel ? 0 : levelData.expForNextLevel - levelData.expForCurrentLevel;
 
-  // Find next tier name
-  const TIER_ORDER = ['Newcomer', 'Contender', 'Veteran', 'Rival', 'Elite', 'Legend'];
-  const currentTierIdx = TIER_ORDER.indexOf(tier.name);
-  const nextTierName = currentTierIdx < TIER_ORDER.length - 1 ? TIER_ORDER[currentTierIdx + 1] : null;
-
   return (
     <main className="min-h-screen bg-gradient-to-br from-black via-gray-800 to-black text-white pt-16 pl-0 lg:pl-64">
       <PageShell />
@@ -144,8 +139,8 @@ export default function UserProfile() {
             </div>
             {/* Level badge */}
             <div
-              className="absolute -bottom-1 left-1/2 -translate-x-1/2 px-2.5 py-0.5 rounded-full text-xs font-bold border"
-              style={{ backgroundColor: tier.accent + '22', borderColor: tier.accent, color: tier.accent }}
+              className="absolute -bottom-1 -right-1 px-2.5 py-1 rounded-full text-xs font-bold bg-gray-900 border-2"
+              style={{ borderColor: tier.accent, color: tier.accent }}
             >
               Lv.{level}
             </div>
@@ -177,15 +172,18 @@ export default function UserProfile() {
 
       {/* ── STATS BAR ── */}
       <div className="max-w-7xl mx-auto px-4 md:px-8 mt-6">
-        <div className="grid grid-cols-2 gap-3">
-          <div className="bg-white/[0.03] backdrop-blur-sm rounded-xl p-4 border border-white/[0.06] text-center">
-            <p className="text-2xl md:text-3xl font-bold text-purple-400">{user.points}</p>
-            <p className="text-[10px] text-gray-500 uppercase tracking-wider mt-1">EXP</p>
-          </div>
-          <div className="bg-white/[0.03] backdrop-blur-sm rounded-xl p-4 border border-white/[0.06] text-center">
-            <p className="text-2xl md:text-3xl font-bold text-white">{userRank ? `#${userRank}` : '-'}</p>
-            <p className="text-[10px] text-gray-500 uppercase tracking-wider mt-1">Rank</p>
-          </div>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+          {[
+            { label: 'EXP', value: user.points, color: 'text-purple-400' },
+            { label: 'Rank', value: userRank ? `#${userRank}` : '-', color: 'text-white' },
+            { label: 'Win Rate', value: `${user.win_rate ?? 0}%`, color: 'text-green-400' },
+            { label: 'Tournaments', value: user.tournaments_played ?? 0, color: 'text-blue-400' },
+          ].map((s) => (
+            <div key={s.label} className="bg-white/[0.03] backdrop-blur-sm rounded-xl p-4 border border-white/[0.06] text-center">
+              <p className={`text-2xl md:text-3xl font-bold ${s.color}`}>{s.value}</p>
+              <p className="text-[10px] text-gray-500 uppercase tracking-wider mt-1">{s.label}</p>
+            </div>
+          ))}
         </div>
       </div>
 
@@ -240,19 +238,15 @@ export default function UserProfile() {
               </div>
               {/* EXP Progress */}
               <div className="mt-4">
-                <div className="flex justify-between text-[10px] text-gray-500 mb-1.5">
-                  <span>{user.points} EXP</span>
-                  <span>{nextTierName ? `Next: ${nextTierName}` : 'Max Tier'}</span>
-                </div>
                 <div className="h-2 bg-white/[0.04] rounded-full overflow-hidden">
                   <div
                     className="h-full rounded-full transition-all duration-700"
                     style={{ width: isMaxLevel ? '100%' : `${Math.round(progress * 100)}%`, backgroundColor: tier.accent }}
                   />
                 </div>
-                {!isMaxLevel && (
-                  <p className="text-[10px] text-gray-600 mt-1.5">{expIntoLevel} / {expToNext} EXP to next level</p>
-                )}
+                <p className="text-[10px] text-gray-600 mt-1.5 text-right">
+                  {isMaxLevel ? 'MAX' : `${expIntoLevel} / ${expToNext} EXP`}
+                </p>
               </div>
             </section>
           </div>

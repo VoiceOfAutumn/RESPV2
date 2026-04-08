@@ -139,41 +139,6 @@ export default function HybridBracket({
           className="w-full"
         />
       )}
-
-      {/* Staff info */}
-      {isStaff && (
-        <div
-          className={`mt-6 p-4 border rounded-lg ${
-            hasOfficialBrackets
-              ? 'bg-green-500/10 border-green-500/20'
-              : 'bg-yellow-500/10 border-yellow-500/20'
-          }`}
-        >
-          <h4
-            className={`font-medium mb-2 ${
-              hasOfficialBrackets ? 'text-green-400' : 'text-yellow-400'
-            }`}
-          >
-            {hasOfficialBrackets ? '✅ Official Tournament Brackets' : '⚠️ Preview Mode'}
-          </h4>
-          <ul className="text-sm text-gray-300 space-y-1">
-            {hasOfficialBrackets ? (
-              <>
-                <li>• Official brackets have been generated</li>
-                <li>• Match results are being tracked</li>
-                <li>• Tournament status: {tournament.status.replace('_', ' ').toUpperCase()}</li>
-                <li>• Click on matches to update scores</li>
-              </>
-            ) : (
-              <>
-                <li>• This is a preview of the bracket structure</li>
-                <li>• Use &quot;Generate Bracket&quot; to create official matches</li>
-                <li>• Tournament status: {tournament.status.replace('_', ' ').toUpperCase()}</li>
-              </>
-            )}
-          </ul>
-        </div>
-      )}
     </div>
   );
 }
