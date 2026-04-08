@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useMemo, useCallback } from 'react';
+import React, { useState, useMemo, useCallback, useRef, useEffect } from 'react';
 import PageShell from '../components/PageShell';
 import { Trophy, ChevronRight, Check, Lock, BarChart3, RotateCcw, Users } from 'lucide-react';
 
@@ -172,71 +172,7 @@ function getRoundName(round: number, totalRounds: number): string {
 }
 
 /* ═══════════════════════════════════════════
-   PLAYER SLOT COMPONENT
-   ═══════════════════════════════════════════ */
-
-function PlayerSlot({
-  player,
-  isWinner,
-  canSelect,
-  onSelect,
-  communityPct,
-  showCommunity,
-}: {
-  player: Player | null;
-  isWinner: boolean;
-  canSelect: boolean;
-  onSelect: () => void;
-  communityPct?: number;
-  showCommunity: boolean;
-}) {
-  if (!player) {
-    return (
-      <div className="flex items-center gap-2.5 px-3 py-2.5 rounded-lg bg-white/[0.02] border border-dashed border-white/[0.06]">
-        <div className="w-6 h-6 rounded-full bg-gray-800 border border-gray-700/50" />
-        <span className="text-xs text-gray-600 italic">TBD</span>
-      </div>
-    );
-  }
-
-  return (
-    <button
-      onClick={canSelect ? onSelect : undefined}
-      disabled={!canSelect}
-      className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-lg border transition-all text-left group relative ${
-        isWinner
-          ? 'bg-purple-500/10 border-purple-500/30 ring-1 ring-purple-500/20'
-          : canSelect
-            ? 'bg-white/[0.02] border-white/[0.06] hover:bg-white/[0.05] hover:border-purple-500/20 cursor-pointer'
-            : 'bg-white/[0.02] border-white/[0.06] opacity-70'
-      }`}
-    >
-      <div className={`w-6 h-6 rounded-full flex items-center justify-center text-[9px] font-bold flex-shrink-0 ${
-        isWinner ? 'bg-purple-500/30 text-purple-300 ring-1 ring-purple-500/40' : 'bg-gray-700 text-gray-400'
-      }`}>
-        {player.seed}
-      </div>
-      <span className={`text-sm font-medium flex-1 truncate ${
-        isWinner ? 'text-purple-300' : 'text-gray-300'
-      }`}>
-        {player.name}
-      </span>
-      {isWinner && (
-        <Check className="w-3.5 h-3.5 text-purple-400 flex-shrink-0" />
-      )}
-      {showCommunity && communityPct !== undefined && (
-        <span className={`text-[10px] font-mono flex-shrink-0 ${
-          communityPct >= 60 ? 'text-green-400' : communityPct >= 40 ? 'text-yellow-400' : 'text-red-400'
-        }`}>
-          {communityPct}%
-        </span>
-      )}
-    </button>
-  );
-}
-
-/* ═══════════════════════════════════════════
-   MATCH CARD COMPONENT
+   MATCH CARD — matches SingleEliminationBracket design
    ═══════════════════════════════════════════ */
 
 function PredictionMatchCard({
@@ -253,57 +189,98 @@ function PredictionMatchCard({
   totalRounds: number;
 }) {
   const communityData = COMMUNITY_PREDICTIONS[match.matchId];
-  const isFinal = match.round === totalRounds;
   const isPredicted = match.predictedWinner !== null;
 
-  return (
-    <div className={`w-64 rounded-lg border shadow-lg p-3 transition-all ${
-      isFinal
-        ? isPredicted
-          ? 'bg-yellow-500/[0.06] border-yellow-500/20 backdrop-blur'
-          : 'bg-neutral-800/50 border-yellow-500/10 backdrop-blur'
-        : isPredicted
-          ? 'bg-neutral-800/50 border-purple-500/20 backdrop-blur'
-          : 'bg-neutral-800/50 border-white/[0.06] backdrop-blur'
-    }`}>
-      {/* Match label */}
-      <div className="flex items-center justify-between mb-2">
-        <span className="text-[10px] text-gray-600 font-medium">
-          Match {match.matchNumber}
-        </span>
-        {isPredicted && (
-          <span className="text-[10px] text-purple-400 font-medium flex items-center gap-0.5">
-            <Check className="w-2.5 h-2.5" /> Predicted
+  const renderPlayerRow = (player: Player | null, isPicked: boolean, communityPct?: number) => {
+    if (!player) {
+      return (
+        <div className="flex justify-between items-center p-2 rounded-md">
+          <div className="flex items-center gap-2 min-w-0 flex-1">
+            <div className="w-6 h-6 rounded-full flex-shrink-0">
+              <div className="w-full h-full bg-gray-700/50 rounded-full" />
+            </div>
+            <span className="text-sm truncate text-gray-500 italic">TBD</span>
+          </div>
+        </div>
+      );
+    }
+
+    const isClickable = canPredict && match.player1 !== null && match.player2 !== null;
+
+    return (
+      <button
+        onClick={isClickable ? () => onPredict(match.matchId, player.id) : undefined}
+        disabled={!isClickable}
+        className={`w-full flex justify-between items-center p-2 rounded-md transition-colors text-left ${
+          isPicked
+            ? 'bg-purple-500/10'
+            : isClickable
+              ? 'hover:bg-white/[0.04] cursor-pointer'
+              : ''
+        }`}
+      >
+        <div className="flex items-center gap-2 min-w-0 flex-1">
+          <div className="w-6 h-6 rounded-full flex-shrink-0">
+            <div className={`w-full h-full rounded-full flex items-center justify-center text-[8px] font-bold ${
+              isPicked
+                ? 'bg-purple-500/30 text-purple-300 ring-1 ring-purple-500/40'
+                : 'bg-gray-700/80 text-gray-400 ring-1 ring-gray-700/50'
+            }`}>
+              {player.seed}
+            </div>
+          </div>
+          <span className={`text-sm truncate ${
+            isPicked ? 'font-semibold text-purple-400' : 'text-gray-300'
+          }`}>
+            {player.name}
           </span>
+        </div>
+        <div className="flex items-center gap-1.5 ml-2">
+          {showCommunity && communityPct !== undefined && (
+            <span className={`text-[10px] font-mono tabular-nums ${
+              communityPct >= 60 ? 'text-green-400' : communityPct >= 40 ? 'text-yellow-400' : 'text-red-400'
+            }`}>
+              {communityPct}%
+            </span>
+          )}
+          {isPicked && <Check className="w-3.5 h-3.5 text-purple-400 flex-shrink-0" />}
+        </div>
+      </button>
+    );
+  };
+
+  return (
+    <div className={`bg-neutral-800/50 backdrop-blur rounded-lg border shadow-lg p-4 w-64 transition-colors ${
+      isPredicted ? 'border-purple-500/20' : 'border-gray-700/50 hover:border-gray-600/50'
+    }`}>
+      {/* Match header */}
+      <div className="text-center mb-2">
+        <div className="text-xs text-gray-500">Match {match.matchNumber}</div>
+        {isPredicted && (
+          <div className="text-xs text-purple-400/70">Predicted</div>
         )}
       </div>
 
-      {/* Players */}
-      <div className="space-y-1.5">
-        <PlayerSlot
-          player={match.player1}
-          isWinner={match.predictedWinner === match.player1?.id}
-          canSelect={canPredict && match.player1 !== null && match.player2 !== null}
-          onSelect={() => match.player1 && onPredict(match.matchId, match.player1.id)}
-          communityPct={communityData && match.player1 ? communityData[match.player1.id] : undefined}
-          showCommunity={showCommunity}
-        />
+      {/* Player rows */}
+      <div className="space-y-1">
+        {renderPlayerRow(
+          match.player1,
+          match.predictedWinner === match.player1?.id,
+          communityData && match.player1 ? communityData[match.player1.id] : undefined
+        )}
         <div className="text-center">
-          <span className="text-[9px] text-gray-700 uppercase tracking-widest">vs</span>
+          <span className="text-xs text-gray-600">vs</span>
         </div>
-        <PlayerSlot
-          player={match.player2}
-          isWinner={match.predictedWinner === match.player2?.id}
-          canSelect={canPredict && match.player1 !== null && match.player2 !== null}
-          onSelect={() => match.player2 && onPredict(match.matchId, match.player2.id)}
-          communityPct={communityData && match.player2 ? communityData[match.player2.id] : undefined}
-          showCommunity={showCommunity}
-        />
+        {renderPlayerRow(
+          match.player2,
+          match.predictedWinner === match.player2?.id,
+          communityData && match.player2 ? communityData[match.player2.id] : undefined
+        )}
       </div>
 
-      {/* Community bar (started mode) */}
+      {/* Community prediction bar (started mode) */}
       {showCommunity && communityData && match.player1 && match.player2 && (
-        <div className="mt-2.5">
+        <div className="mt-3 px-1">
           <div className="h-1.5 bg-white/[0.04] rounded-full overflow-hidden flex">
             <div
               className="h-full rounded-l-full bg-purple-500/60 transition-all duration-500"
@@ -314,52 +291,9 @@ function PredictionMatchCard({
               style={{ width: `${communityData[match.player2.id] ?? 50}%` }}
             />
           </div>
-          <div className="flex justify-between mt-0.5">
-            <span className="text-[8px] text-gray-600">{communityData[match.player1.id] ?? 50}%</span>
-            <span className="text-[8px] text-gray-600">{communityData[match.player2.id] ?? 50}%</span>
-          </div>
         </div>
       )}
     </div>
-  );
-}
-
-/* ═══════════════════════════════════════════
-   CONNECTOR LINES
-   ═══════════════════════════════════════════ */
-
-function ConnectorLines({ roundIndex, matchCount, matchHeight, gap }: {
-  roundIndex: number;
-  matchCount: number;
-  matchHeight: number;
-  gap: number;
-}) {
-  const lines = [];
-  for (let i = 0; i < matchCount; i += 2) {
-    const topY = i * (matchHeight + gap) + matchHeight / 2;
-    const bottomY = (i + 1) * (matchHeight + gap) + matchHeight / 2;
-    const midY = (topY + bottomY) / 2;
-
-    lines.push(
-      <g key={i}>
-        {/* Horizontal from top match */}
-        <line x1="0" y1={topY} x2="20" y2={topY} stroke="rgba(255,255,255,0.06)" strokeWidth="1" />
-        {/* Vertical connecting top to bottom */}
-        <line x1="20" y1={topY} x2="20" y2={bottomY} stroke="rgba(255,255,255,0.06)" strokeWidth="1" />
-        {/* Horizontal from bottom match */}
-        <line x1="0" y1={bottomY} x2="20" y2={bottomY} stroke="rgba(255,255,255,0.06)" strokeWidth="1" />
-        {/* Horizontal to next round */}
-        <line x1="20" y1={midY} x2="48" y2={midY} stroke="rgba(255,255,255,0.06)" strokeWidth="1" />
-      </g>
-    );
-  }
-
-  const totalHeight = matchCount * matchHeight + (matchCount - 1) * gap;
-
-  return (
-    <svg className="flex-shrink-0" width="48" height={totalHeight} style={{ minWidth: 48 }}>
-      {lines}
-    </svg>
   );
 }
 
@@ -422,9 +356,48 @@ export default function PredictionDemo() {
 
   const canPredict = mode === 'predicting';
 
-  // Match card height estimate for connectors
-  const MATCH_H = 140;
-  const BASE_GAP = 16;
+  // Drag-to-scroll
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const isDragging = useRef(false);
+  const startX = useRef(0);
+  const startY = useRef(0);
+  const scrollLeftStart = useRef(0);
+  const scrollTopStart = useRef(0);
+  const hasMoved = useRef(false);
+
+  const handleMouseDown = (e: React.MouseEvent) => {
+    if (e.button !== 0) return;
+    const tag = (e.target as HTMLElement).closest('a, button, input, select, textarea');
+    if (tag) return;
+    isDragging.current = true;
+    hasMoved.current = false;
+    startX.current = e.pageX;
+    startY.current = e.pageY;
+    scrollLeftStart.current = scrollRef.current?.scrollLeft ?? 0;
+    scrollTopStart.current = scrollRef.current?.scrollTop ?? 0;
+    document.body.style.userSelect = 'none';
+  };
+
+  useEffect(() => {
+    const handleMouseMove = (e: MouseEvent) => {
+      if (!isDragging.current || !scrollRef.current) return;
+      const dx = e.pageX - startX.current;
+      const dy = e.pageY - startY.current;
+      if (Math.abs(dx) > 3 || Math.abs(dy) > 3) hasMoved.current = true;
+      scrollRef.current.scrollLeft = scrollLeftStart.current - dx;
+      scrollRef.current.scrollTop = scrollTopStart.current - dy;
+    };
+    const handleMouseUp = () => {
+      isDragging.current = false;
+      document.body.style.userSelect = '';
+    };
+    window.addEventListener('mousemove', handleMouseMove);
+    window.addEventListener('mouseup', handleMouseUp);
+    return () => {
+      window.removeEventListener('mousemove', handleMouseMove);
+      window.removeEventListener('mouseup', handleMouseUp);
+    };
+  }, []);
 
   return (
     <main className="min-h-screen bg-gradient-to-br from-black via-gray-800 to-black text-white pt-16 pl-0 lg:pl-64">
@@ -512,10 +485,18 @@ export default function PredictionDemo() {
                 ? 'bg-yellow-500/[0.06] border-yellow-500/20'
                 : 'bg-white/[0.02] border-white/[0.06]'
             }`}>
-              <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
-                champion ? 'bg-yellow-500/20' : 'bg-white/[0.04]'
+              <div className={`w-10 h-10 rounded-full flex-shrink-0 overflow-hidden ${
+                champion ? 'ring-2 ring-yellow-500/40' : 'bg-white/[0.04] flex items-center justify-center'
               }`}>
-                <Trophy className={`w-5 h-5 ${champion ? 'text-yellow-400' : 'text-gray-600'}`} />
+                {champion ? (
+                  <img
+                    src="/images/default-avatar.png"
+                    alt={champion.name}
+                    className="w-full h-full object-cover"
+                  />
+                ) : (
+                  <Trophy className="w-5 h-5 text-gray-600" />
+                )}
               </div>
               <div>
                 <p className="text-[10px] text-gray-500 uppercase tracking-wider">Champion Pick</p>
@@ -543,107 +524,45 @@ export default function PredictionDemo() {
 
         {/* ── BRACKET ── */}
         <div className="bg-neutral-900/30 rounded-2xl border border-white/[0.06] overflow-hidden">
-          <div className="overflow-x-auto p-6" style={{ cursor: 'grab' }}>
-            <div className="flex items-start gap-0" style={{ minWidth: 'max-content' }}>
-              {rounds.map((round, roundIndex) => {
-                const gap = BASE_GAP * Math.pow(2, roundIndex);
-                const matchesInRound = round.matches.length;
+          <div
+            ref={scrollRef}
+            onMouseDown={handleMouseDown}
+            className="flex gap-8 pb-6 p-6 overflow-x-auto cursor-grab active:cursor-grabbing select-none"
+          >
+            {rounds.map((round, roundIndex) => {
+              const spacingMultiplier = Math.pow(2, roundIndex);
+              const matchGap = roundIndex === 0 ? 16 : 16 * spacingMultiplier;
 
-                return (
-                  <React.Fragment key={round.round}>
-                    <div className="flex flex-col flex-shrink-0">
-                      {/* Round header */}
-                      <div className={`text-center mb-4 px-3 py-1.5 rounded-lg mx-auto ${
-                        round.round === totalRounds
-                          ? 'bg-yellow-500/10 text-yellow-400'
-                          : 'bg-purple-500/10 text-purple-400'
-                      }`}>
-                        <span className="text-xs font-semibold">{round.name}</span>
-                      </div>
+              return (
+                <div key={round.round} className="flex-shrink-0 flex flex-col">
+                  {/* Round header */}
+                  <div className="text-sm font-medium text-gray-400 mb-4 px-3 py-1 bg-green-500/10 rounded-lg text-center whitespace-nowrap">
+                    {round.name}
+                  </div>
 
-                      {/* Match cards */}
-                      <div
-                        className="flex flex-col"
-                        style={{
-                          justifyContent: roundIndex === 0 ? 'flex-start' : 'space-around',
-                          gap: `${gap}px`,
-                          minHeight: roundIndex === 0
-                            ? undefined
-                            : `${rounds[0].matches.length * (MATCH_H + BASE_GAP) - BASE_GAP}px`,
-                        }}
-                      >
-                        {round.matches.map((match) => (
-                          <PredictionMatchCard
-                            key={match.matchId}
-                            match={match}
-                            onPredict={handlePredict}
-                            canPredict={canPredict}
-                            showCommunity={mode === 'started'}
-                            totalRounds={totalRounds}
-                          />
-                        ))}
-                      </div>
-                    </div>
-
-                    {/* Connector lines between rounds */}
-                    {roundIndex < rounds.length - 1 && (
-                      <div
-                        className="flex-shrink-0 flex items-start"
-                        style={{
-                          paddingTop: `${40 + MATCH_H / 2}px`,
-                          minHeight: roundIndex === 0
-                            ? undefined
-                            : `${rounds[0].matches.length * (MATCH_H + BASE_GAP)}px`,
-                        }}
-                      >
-                        <ConnectorLines
-                          roundIndex={roundIndex}
-                          matchCount={matchesInRound}
-                          matchHeight={MATCH_H}
-                          gap={gap}
+                  {/* Matches */}
+                  <div
+                    className="flex flex-col justify-around flex-1"
+                    style={{ gap: `${matchGap}px` }}
+                  >
+                    {round.matches.map((match) => (
+                      <div key={match.matchId} className="relative">
+                        <PredictionMatchCard
+                          match={match}
+                          onPredict={handlePredict}
+                          canPredict={canPredict}
+                          showCommunity={mode === 'started'}
+                          totalRounds={totalRounds}
                         />
                       </div>
-                    )}
-                  </React.Fragment>
-                );
-              })}
-            </div>
+                    ))}
+                  </div>
+                </div>
+              );
+            })}
           </div>
         </div>
 
-        {/* ── INFO CARD ── */}
-        <div className="mt-6 bg-white/[0.02] rounded-2xl border border-white/[0.06] p-6">
-          <h3 className="text-sm font-bold text-white uppercase tracking-wider mb-3">How predictions work</h3>
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            <div className="flex gap-3">
-              <div className="w-8 h-8 rounded-lg bg-purple-500/10 border border-purple-500/20 flex items-center justify-center flex-shrink-0">
-                <span className="text-xs font-bold text-purple-400">1</span>
-              </div>
-              <div>
-                <p className="text-xs font-medium text-white">Pick winners</p>
-                <p className="text-[10px] text-gray-500">Click on who you think will win each match, round by round.</p>
-              </div>
-            </div>
-            <div className="flex gap-3">
-              <div className="w-8 h-8 rounded-lg bg-purple-500/10 border border-purple-500/20 flex items-center justify-center flex-shrink-0">
-                <span className="text-xs font-bold text-purple-400">2</span>
-              </div>
-              <div>
-                <p className="text-xs font-medium text-white">Forward propagation</p>
-                <p className="text-[10px] text-gray-500">Your picks automatically advance winners into the next round.</p>
-              </div>
-            </div>
-            <div className="flex gap-3">
-              <div className="w-8 h-8 rounded-lg bg-purple-500/10 border border-purple-500/20 flex items-center justify-center flex-shrink-0">
-                <span className="text-xs font-bold text-purple-400">3</span>
-              </div>
-              <div>
-                <p className="text-xs font-medium text-white">Community odds</p>
-                <p className="text-[10px] text-gray-500">Once the tournament starts, see what % of players predicted each winner.</p>
-              </div>
-            </div>
-          </div>
-        </div>
       </div>
     </main>
   );
