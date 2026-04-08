@@ -1,12 +1,13 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { useParams } from 'next/navigation';
 import PageShell from '../../components/PageShell';
 import { getFlagImageProps } from '@/lib/countryFlags';
 import { API_BASE_URL } from '@/lib/api';
 import { getLevelData } from '@/lib/leveling';
-import { MapPin, Award } from 'lucide-react';
+import { MapPin, Award, TrendingUp, Users, X, Plus, Trash2 } from 'lucide-react';
 
 function LoadingSkeleton() {
   return (
@@ -25,10 +26,65 @@ function LoadingSkeleton() {
   );
 }
 
+function VodOverlay({ url, onClose }) {
+  const getEmbedUrl = (rawUrl) => {
+    try {
+      const parsed = new URL(rawUrl);
+      let videoId = null;
+      if (parsed.hostname.includes('youtube.com')) {
+        videoId = parsed.searchParams.get('v');
+      } else if (parsed.hostname.includes('youtu.be')) {
+        videoId = parsed.pathname.slice(1);
+      }
+      if (videoId) return `https://www.youtube-nocookie.com/embed/${videoId}`;
+    } catch {}
+    return null;
+  };
+
+  const embedUrl = getEmbedUrl(url);
+
+  return createPortal(
+    <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/80 backdrop-blur-sm" onClick={onClose}>
+      <div className="relative w-full max-w-4xl mx-4" onClick={(e) => e.stopPropagation()}>
+        <button onClick={onClose} className="absolute -top-10 right-0 text-white hover:text-gray-300 text-2xl">
+          <X className="w-6 h-6" />
+        </button>
+        {embedUrl ? (
+          <div className="relative w-full" style={{ paddingBottom: '56.25%' }}>
+            <iframe
+              className="absolute inset-0 w-full h-full rounded-lg"
+              src={embedUrl}
+              title="Match VOD"
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+              allowFullScreen
+            />
+          </div>
+        ) : (
+          <div className="bg-neutral-900 rounded-lg p-8 text-center">
+            <p className="text-gray-300 mb-4">Could not embed this video. Click below to open it directly.</p>
+            <a href={url} target="_blank" rel="noopener noreferrer"
+              className="inline-block px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700 transition-colors">
+              Open Video ↗
+            </a>
+          </div>
+        )}
+      </div>
+    </div>,
+    document.body
+  );
+}
+
 export default function UserProfile() {
   const { displayname } = useParams();  const [user, setUser] = useState(null);
   const [userRank, setUserRank] = useState(null);
   const [userSeals, setUserSeals] = useState([]);
+  const [matchHistory, setMatchHistory] = useState([]);
+  const [rivals, setRivals] = useState([]);
+  const [currentUser, setCurrentUser] = useState(null);
+  const [vodUrl, setVodUrl] = useState(null);
+  const [rivalInput, setRivalInput] = useState('');
+  const [rivalAdding, setRivalAdding] = useState(false);
+  const [rivalError, setRivalError] = useState('');
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(true);
 
@@ -57,6 +113,30 @@ export default function UserProfile() {
         const sealsRes = await fetch(`${API_BASE_URL}/seals/user/${displayname}`);
         if (sealsRes.ok) {
           setUserSeals(await sealsRes.json());
+        }
+
+        // Fetch match history
+        const matchRes = await fetch(`${API_BASE_URL}/user/${displayname}/matches?limit=5`);
+        if (matchRes.ok) {
+          setMatchHistory(await matchRes.json());
+        }
+
+        // Fetch rivals
+        const rivalsRes = await fetch(`${API_BASE_URL}/user/${displayname}/rivals`);
+        if (rivalsRes.ok) {
+          setRivals(await rivalsRes.json());
+        }
+
+        // Fetch current logged-in user
+        const authToken = localStorage.getItem('authToken');
+        if (authToken) {
+          const meRes = await fetch(`${API_BASE_URL}/user/me`, {
+            headers: { Authorization: `Bearer ${authToken}` },
+            credentials: 'include',
+          });
+          if (meRes.ok) {
+            setCurrentUser(await meRes.json());
+          }
         }
       } catch (err) {
         setError(err.message);
@@ -110,6 +190,57 @@ export default function UserProfile() {
   const levelData = getLevelData(user.points);
   const { level, tier, progress, expIntoLevel, isMaxLevel } = levelData;
   const expToNext = isMaxLevel ? 0 : levelData.expForNextLevel - levelData.expForCurrentLevel;
+
+  // Admin override: admins get all tier features unlocked but display real tier/exp
+  const isAdmin = user.role === 'admin';
+  const featureLevel = isAdmin ? 50 : level;
+  const hasMatchHistory = featureLevel >= 5;   // Contender (level 5+)
+  const hasRivalsFeature = featureLevel >= 10; // Veteran (level 10+)
+
+  // Check if the current logged-in user is viewing their own profile
+  const isOwnProfile = currentUser && currentUser.displayName &&
+    currentUser.displayName.toLowerCase() === user.display_name.toLowerCase();
+
+  const handleAddRival = async () => {
+    if (!rivalInput.trim() || rivalAdding) return;
+    setRivalAdding(true);
+    setRivalError('');
+    try {
+      const authToken = localStorage.getItem('authToken');
+      const res = await fetch(`${API_BASE_URL}/user/rivals`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${authToken}` },
+        credentials: 'include',
+        body: JSON.stringify({ rival_name: rivalInput.trim() }),
+      });
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.message || 'Failed to add rival');
+      }
+      // Refresh rivals
+      const rivalsRes = await fetch(`${API_BASE_URL}/user/${displayname}/rivals`);
+      if (rivalsRes.ok) setRivals(await rivalsRes.json());
+      setRivalInput('');
+    } catch (err) {
+      setRivalError(err.message);
+    } finally {
+      setRivalAdding(false);
+    }
+  };
+
+  const handleRemoveRival = async (rivalName) => {
+    try {
+      const authToken = localStorage.getItem('authToken');
+      await fetch(`${API_BASE_URL}/user/rivals/${encodeURIComponent(rivalName)}`, {
+        method: 'DELETE',
+        headers: { Authorization: `Bearer ${authToken}` },
+        credentials: 'include',
+      });
+      setRivals(rivals.filter(r => r.display_name !== rivalName));
+    } catch (err) {
+      console.error('Error removing rival:', err);
+    }
+  };
 
   return (
     <main className="min-h-screen bg-gradient-to-br from-black via-gray-800 to-black text-white pt-16 pl-0 lg:pl-64">
@@ -193,6 +324,50 @@ export default function UserProfile() {
 
           {/* ── LEFT COLUMN (2/3) ── */}
           <div className="lg:col-span-2 space-y-6">
+            {/* Match History (Contender+) */}
+            {hasMatchHistory && (
+              <section className="bg-white/[0.02] rounded-2xl border border-white/[0.06] p-6">
+                <h2 className="text-sm font-bold text-white uppercase tracking-wider mb-4 flex items-center gap-2">
+                  <TrendingUp className="w-4 h-4 text-green-400" /> Match History
+                </h2>
+                {matchHistory.length === 0 ? (
+                  <p className="text-gray-500 text-sm italic">No matches played yet.</p>
+                ) : (
+                  <div className="space-y-2">
+                    {matchHistory.map((m) => (
+                      <div key={m.id} className="flex items-center gap-4 bg-white/[0.02] rounded-lg px-4 py-3 border border-white/[0.04] hover:bg-white/[0.04] transition-colors">
+                        <span className={`w-8 h-8 rounded-lg flex items-center justify-center text-xs font-bold ${
+                          m.result === 'W' ? 'bg-green-500/10 text-green-400' : 'bg-red-500/10 text-red-400'
+                        }`}>
+                          {m.result}
+                        </span>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm text-white font-medium">
+                            vs <span className="text-purple-400">{m.opponent}</span>
+                          </p>
+                          <p className="text-[10px] text-gray-500">{m.tournament}</p>
+                        </div>
+                        <span className="text-sm text-gray-300 font-mono">{m.score}</span>
+                        {m.vod_url && (
+                          <button
+                            onClick={() => setVodUrl(m.vod_url)}
+                            className="text-xs px-2 py-1 rounded bg-red-600/20 border border-red-500/30 text-red-400 hover:bg-red-600/30 transition-colors flex items-center gap-1"
+                            title="Watch VOD"
+                          >
+                            <svg className="w-3 h-3" viewBox="0 0 24 24" fill="currentColor"><path d="M10 15l5.19-3L10 9v6m11.56-7.83c.13.47.22 1.1.28 1.9.07.8.1 1.49.1 2.09L22 12c0 2.19-.16 3.8-.44 4.83-.25.9-.83 1.48-1.73 1.73-.47.13-1.33.22-2.65.28-1.3.07-2.49.1-3.59.1L12 19c-4.19 0-6.8-.16-7.83-.44-.9-.25-1.48-.83-1.73-1.73-.13-.47-.22-1.1-.28-1.9-.07-.8-.1-1.49-.1-2.09L2 12c0-2.19.16-3.8.44-4.83.25-.9.83-1.48 1.73-1.73.47-.13 1.33-.22 2.65-.28 1.3-.07 2.49-.1 3.59-.1L12 5c4.19 0 6.8.16 7.83.44.9.25 1.48.83 1.73 1.73z"/></svg>
+                            VOD
+                          </button>
+                        )}
+                        <span className="text-[10px] text-gray-600 hidden sm:block">
+                          {new Date(m.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </section>
+            )}
+
             {/* Seals */}
             <section className="bg-white/[0.02] rounded-2xl border border-white/[0.06] p-5">
               <h2 className="text-sm font-bold text-white uppercase tracking-wider mb-4 flex items-center gap-2">
@@ -249,10 +424,85 @@ export default function UserProfile() {
                 </p>
               </div>
             </section>
+
+            {/* Rivals (Veteran+) */}
+            {hasRivalsFeature && (
+              <section className="bg-white/[0.02] rounded-2xl border border-white/[0.06] p-5">
+                <h2 className="text-sm font-bold text-white uppercase tracking-wider mb-4 flex items-center gap-2">
+                  <Users className="w-4 h-4 text-red-400" /> Rivals
+                </h2>
+                <div className="space-y-2">
+                  {rivals.length === 0 && !isOwnProfile && (
+                    <p className="text-gray-500 text-sm italic">No rivals set.</p>
+                  )}
+                  {rivals.map((rival) => {
+                    const total = rival.wins + rival.losses;
+                    const winPct = total > 0 ? Math.round((rival.wins / total) * 100) : 0;
+                    return (
+                      <div key={rival.display_name} className="flex items-center gap-3 bg-white/[0.02] rounded-lg p-2.5 border border-white/[0.04]">
+                        <div className="w-8 h-8 rounded-full bg-gray-700 overflow-hidden flex items-center justify-center text-[10px] font-bold text-gray-400">
+                          {rival.profile_picture ? (
+                            <img src={rival.profile_picture} alt={rival.display_name} className="w-full h-full object-cover" />
+                          ) : (
+                            rival.display_name.charAt(0).toUpperCase()
+                          )}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-xs font-medium text-white truncate">{rival.display_name}</p>
+                          <p className="text-[10px] text-gray-500">
+                            <span className="text-green-400">{rival.wins}W</span> – <span className="text-red-400">{rival.losses}L</span>
+                            {total > 0 && <span className="text-gray-600 ml-1">({winPct}%)</span>}
+                          </p>
+                        </div>
+                        {isOwnProfile && (
+                          <button
+                            onClick={() => handleRemoveRival(rival.display_name)}
+                            className="text-gray-600 hover:text-red-400 transition-colors p-1"
+                            title="Remove rival"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        )}
+                      </div>
+                    );
+                  })}
+                  {/* Add rival input (own profile only, max 3) */}
+                  {isOwnProfile && rivals.length < 3 && (
+                    <div className="mt-3">
+                      <div className="flex gap-1.5">
+                        <input
+                          type="text"
+                          value={rivalInput}
+                          onChange={(e) => { setRivalInput(e.target.value); setRivalError(''); }}
+                          onKeyDown={(e) => e.key === 'Enter' && handleAddRival()}
+                          placeholder="Add rival by name..."
+                          className="flex-1 px-2.5 py-1.5 text-xs bg-white/[0.04] rounded-lg border border-white/[0.08] focus:border-purple-500/50 focus:outline-none text-gray-300 placeholder-gray-600"
+                        />
+                        <button
+                          onClick={handleAddRival}
+                          disabled={rivalAdding || !rivalInput.trim()}
+                          className="px-2.5 py-1.5 text-xs bg-purple-500/20 text-purple-400 rounded-lg border border-purple-500/30 hover:bg-purple-500/30 transition-colors disabled:opacity-40 flex items-center gap-1"
+                        >
+                          <Plus className="w-3 h-3" />
+                          {rivalAdding ? '...' : 'Add'}
+                        </button>
+                      </div>
+                      {rivalError && <p className="text-[10px] text-red-400 mt-1">{rivalError}</p>}
+                    </div>
+                  )}
+                  {rivals.length === 0 && isOwnProfile && rivals.length === 0 && !rivalInput && (
+                    <p className="text-gray-600 text-[10px] italic">Add up to 3 rivals to track your head-to-head record.</p>
+                  )}
+                </div>
+              </section>
+            )}
           </div>
 
         </div>
       </div>
+
+      {/* VOD Overlay */}
+      {vodUrl && <VodOverlay url={vodUrl} onClose={() => setVodUrl(null)} />}
     </main>
   );
 }

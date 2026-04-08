@@ -602,6 +602,7 @@ app.get('/user/:displayname', async (req, res) => {
         users.display_name, 
         users.profile_picture,
         users.points,
+        users.role,
         countries.code as country_code,
         countries.name as country_name
       FROM users 
@@ -638,6 +639,197 @@ app.get('/user/:displayname', async (req, res) => {
     res.status(200).json(user);
   } catch (err) {
     console.error(err);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+});
+
+// ==================== GET MATCH HISTORY FOR USER ====================
+
+app.get('/user/:displayname/matches', async (req, res) => {
+  const { displayname } = req.params;
+  const limit = Math.min(parseInt(req.query.limit) || 5, 20);
+
+  try {
+    const userResult = await pool.query(
+      'SELECT id FROM users WHERE LOWER(display_name) = LOWER($1)',
+      [displayname]
+    );
+    if (userResult.rows.length === 0) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+    const userId = userResult.rows[0].id;
+
+    const matchesResult = await pool.query(`
+      SELECT
+        tm.id,
+        tm.player1_id, tm.player2_id, tm.winner_id,
+        tm.player1_score, tm.player2_score,
+        tm.vod_url,
+        tm.updated_at,
+        t.id AS tournament_id, t.name AS tournament_name,
+        u1.display_name AS player1_name,
+        u2.display_name AS player2_name
+      FROM tournament_matches tm
+      JOIN tournaments t ON t.id = tm.tournament_id
+      LEFT JOIN users u1 ON u1.id = tm.player1_id
+      LEFT JOIN users u2 ON u2.id = tm.player2_id
+      WHERE (tm.player1_id = $1 OR tm.player2_id = $1)
+        AND tm.winner_id IS NOT NULL
+        AND tm.bye_match = false
+      ORDER BY tm.updated_at DESC
+      LIMIT $2
+    `, [userId, limit]);
+
+    const matches = matchesResult.rows.map(m => {
+      const isPlayer1 = m.player1_id === userId;
+      const won = m.winner_id === userId;
+      return {
+        id: m.id,
+        opponent: isPlayer1 ? m.player2_name : m.player1_name,
+        result: won ? 'W' : 'L',
+        score: isPlayer1
+          ? `${m.player1_score ?? 0} – ${m.player2_score ?? 0}`
+          : `${m.player2_score ?? 0} – ${m.player1_score ?? 0}`,
+        tournament: m.tournament_name,
+        tournament_id: m.tournament_id,
+        vod_url: m.vod_url || null,
+        date: m.updated_at,
+      };
+    });
+
+    res.json(matches);
+  } catch (err) {
+    console.error('Error fetching match history:', err);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+});
+
+// ==================== GET RIVALS FOR USER ====================
+
+app.get('/user/:displayname/rivals', async (req, res) => {
+  const { displayname } = req.params;
+
+  try {
+    const userResult = await pool.query(
+      'SELECT id FROM users WHERE LOWER(display_name) = LOWER($1)',
+      [displayname]
+    );
+    if (userResult.rows.length === 0) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+    const userId = userResult.rows[0].id;
+
+    const rivalsResult = await pool.query(`
+      SELECT
+        ur.rival_id,
+        u.display_name,
+        u.profile_picture
+      FROM user_rivals ur
+      JOIN users u ON u.id = ur.rival_id
+      WHERE ur.user_id = $1
+      ORDER BY ur.created_at
+    `, [userId]);
+
+    // For each rival, compute head-to-head record
+    const rivals = [];
+    for (const rival of rivalsResult.rows) {
+      const h2hResult = await pool.query(`
+        SELECT
+          COUNT(CASE WHEN winner_id = $1 THEN 1 END) AS wins,
+          COUNT(CASE WHEN winner_id = $2 THEN 1 END) AS losses
+        FROM tournament_matches
+        WHERE bye_match = false
+          AND winner_id IS NOT NULL
+          AND ((player1_id = $1 AND player2_id = $2) OR (player1_id = $2 AND player2_id = $1))
+      `, [userId, rival.rival_id]);
+
+      const wins = parseInt(h2hResult.rows[0].wins) || 0;
+      const losses = parseInt(h2hResult.rows[0].losses) || 0;
+
+      rivals.push({
+        display_name: rival.display_name,
+        profile_picture: rival.profile_picture,
+        wins,
+        losses,
+      });
+    }
+
+    res.json(rivals);
+  } catch (err) {
+    console.error('Error fetching rivals:', err);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+});
+
+// ==================== ADD RIVAL ====================
+
+app.post('/user/rivals', authMiddleware, async (req, res) => {
+  const userId = req.userId;
+  const { rival_name } = req.body;
+
+  if (!rival_name) {
+    return res.status(400).json({ message: 'rival_name is required' });
+  }
+
+  try {
+    // Find rival user
+    const rivalResult = await pool.query(
+      'SELECT id FROM users WHERE LOWER(display_name) = LOWER($1)',
+      [rival_name]
+    );
+    if (rivalResult.rows.length === 0) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+    const rivalId = rivalResult.rows[0].id;
+
+    if (rivalId === userId) {
+      return res.status(400).json({ message: 'You cannot add yourself as a rival' });
+    }
+
+    // Check limit (max 3)
+    const countResult = await pool.query(
+      'SELECT COUNT(*) FROM user_rivals WHERE user_id = $1',
+      [userId]
+    );
+    if (parseInt(countResult.rows[0].count) >= 3) {
+      return res.status(400).json({ message: 'You can have at most 3 rivals' });
+    }
+
+    await pool.query(
+      'INSERT INTO user_rivals (user_id, rival_id) VALUES ($1, $2) ON CONFLICT DO NOTHING',
+      [userId, rivalId]
+    );
+
+    res.status(201).json({ message: 'Rival added' });
+  } catch (err) {
+    console.error('Error adding rival:', err);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+});
+
+// ==================== REMOVE RIVAL ====================
+
+app.delete('/user/rivals/:rivalName', authMiddleware, async (req, res) => {
+  const userId = req.userId;
+  const { rivalName } = req.params;
+
+  try {
+    const rivalResult = await pool.query(
+      'SELECT id FROM users WHERE LOWER(display_name) = LOWER($1)',
+      [rivalName]
+    );
+    if (rivalResult.rows.length === 0) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    await pool.query(
+      'DELETE FROM user_rivals WHERE user_id = $1 AND rival_id = $2',
+      [userId, rivalResult.rows[0].id]
+    );
+
+    res.json({ message: 'Rival removed' });
+  } catch (err) {
+    console.error('Error removing rival:', err);
     res.status(500).json({ message: 'Internal server error' });
   }
 });
