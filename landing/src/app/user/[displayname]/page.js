@@ -5,6 +5,7 @@ import { useParams } from 'next/navigation';
 import PageShell from '../../components/PageShell';
 import { getFlagImageProps } from '@/lib/countryFlags';
 import { API_BASE_URL } from '@/lib/api';
+import { MapPin, Award } from 'lucide-react';
 
 function LoadingSkeleton() {
   return (
@@ -106,101 +107,99 @@ export default function UserProfile() {
   }
 
   return (
-    <main className="min-h-screen bg-gradient-to-br from-black via-gray-800 to-black text-white pt-16 pl-0 lg:pl-64">
+    <main className="min-h-screen bg-gradient-to-br from-black via-gray-900 to-black text-white pt-16 pl-0 lg:pl-64">
       <PageShell />
-      <section className="flex flex-col items-center justify-center text-center px-4 py-32">
-        <div className="max-w-3xl mx-auto">
-          {/* Profile Card */}
-          <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-2xl p-8 shadow-xl transition-all duration-300 hover:shadow-purple-500/10">
-            {/* Header Section */}
-            <div className="flex flex-col md:flex-row items-center gap-6 relative">
-              {/* Profile Picture */}
-              <div className="relative w-32 h-32 group">
-                <div className="absolute inset-0 bg-purple-500 rounded-full opacity-0 group-hover:opacity-10 transition-opacity duration-300"></div>
-                <img
-                  src={user.profile_picture || '/images/default-avatar.png'}
-                  alt={`${user.display_name}'s profile picture`}
-                  className="w-32 h-32 rounded-full border-4 border-gray-700 object-cover transition-transform duration-300 group-hover:scale-105"
-                  loading="lazy"
-                />
-              </div>
 
-              {/* User Info */}
-              <div className="flex flex-col items-center md:items-start">
-                <h1 className="text-4xl font-bold bg-gradient-to-r from-white to-purple-400 bg-clip-text text-transparent">
-                  {user.display_name}
-                </h1>                <div className="flex items-center gap-2 mt-2">
-                  {user.country_name ? (
-                    <>
-                      <img
-                        {...getFlagImageProps(user.country_name, user.country_code)}
-                      />
-                      <span className="text-gray-300">{user.country_name}</span>
-                    </>
-                  ) : (
-                    <>
-                      <span role="img" aria-label="Globe" className="text-xl">🌍</span>
-                      <span className="text-gray-300">Unknown Location</span>
-                    </>
-                  )}
-                </div>
-              </div>
+      {/* ── BANNER ── */}
+      <div
+        className="relative w-full h-48 md:h-64 overflow-hidden"
+        style={{ background: 'linear-gradient(135deg, #1f2937 0%, #111827 100%)' }}
+      >
+        {/* Bottom fade */}
+        <div className="absolute bottom-0 left-0 right-0 h-24 bg-gradient-to-t from-black via-black/80 to-transparent" />
+      </div>
 
-              {/* Stats Card */}
-              <div className="md:ml-auto bg-gray-900/50 rounded-xl p-4 backdrop-blur-sm border border-gray-700">
-                <div className="text-center">
-                  <p className="text-3xl font-bold text-purple-400">{user.points}</p>
-                  <p className="text-xs text-gray-500 mt-1">EXP</p>
-                </div>
-              </div>
+      {/* ── PROFILE HEADER (overlaps banner) ── */}
+      <div className="max-w-7xl mx-auto px-4 md:px-8 -mt-20 relative z-10">
+        <div className="flex flex-col md:flex-row items-center md:items-end gap-5">
+          {/* Avatar */}
+          <div className="relative flex-shrink-0">
+            <div className="w-36 h-36 md:w-40 md:h-40 rounded-full bg-gray-800 border-4 border-gray-700 overflow-hidden">
+              <img
+                src={user.profile_picture || '/images/default-avatar.png'}
+                alt={`${user.display_name}'s profile picture`}
+                className="w-full h-full object-cover"
+                loading="lazy"
+              />
             </div>
+          </div>
 
-            {/* Additional Stats/Badges Section */}
-            <div className="mt-8 grid grid-cols-1 md:grid-cols-2 gap-4">              <div className="bg-gray-900/30 rounded-lg p-4 border border-gray-700 transition-all duration-300 hover:border-purple-500/50">
-                <p className="text-gray-400 text-sm">Rank</p>
-                <p className="text-2xl font-semibold text-white">
-                  {userRank ? `#${userRank}` : '-'}
-                </p>
-              </div>
-              <div className="bg-gray-900/30 rounded-lg p-4 border border-gray-700 transition-all duration-300 hover:border-purple-500/50">
-                <p className="text-gray-400 text-sm">Member Since</p>
-                <p className="text-2xl font-semibold text-white">2025</p>
-              </div>
-            </div>
-
-            {/* Seals Section */}
-            <div className="mt-8">
-              <div className="bg-gray-900/30 rounded-lg p-6 border border-gray-700 transition-all duration-300 hover:border-purple-500/50">
-                <h2 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
-                  <svg className="w-5 h-5 text-purple-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z" />
-                  </svg>
-                  Seals
-                </h2>
-                <div className="flex flex-wrap gap-4">
-                  {userSeals.length === 0 ? (
-                    <p className="text-gray-500 text-sm italic">No seals earned yet. Seals are awarded for special accomplishments.</p>
-                  ) : (
-                    userSeals.map((seal) => (
-                      <div key={seal.id} className="group relative flex flex-col items-center gap-1">
-                        <div className="w-14 h-14 rounded-full border-2 border-purple-500/40 overflow-hidden bg-gray-800 transition-all duration-300 group-hover:border-purple-400 group-hover:scale-110">
-                          <img src={seal.image_url} alt={seal.name} className="w-full h-full object-cover" />
-                        </div>
-                        <span className="text-xs text-white font-medium max-w-[70px] text-center truncate">{seal.name}</span>
-                        {seal.description && (
-                          <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-1.5 text-xs text-white bg-gray-800 border border-gray-700 rounded-lg shadow-lg whitespace-nowrap z-50 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
-                            {seal.description}
-                          </div>
-                        )}
-                      </div>
-                    ))
-                  )}
-                </div>
-              </div>
+          {/* Name & Meta */}
+          <div className="flex-1 text-center md:text-left pb-1 min-w-0">
+            <h1 className="text-3xl md:text-4xl font-extrabold text-white truncate">
+              {user.display_name}
+            </h1>
+            <div className="flex items-center gap-4 mt-2 justify-center md:justify-start text-xs text-gray-500">
+              <span className="flex items-center gap-1">
+                {user.country_name ? (
+                  <>
+                    <img {...getFlagImageProps(user.country_name, user.country_code)} />
+                    <span>{user.country_name}</span>
+                  </>
+                ) : (
+                  <>
+                    <MapPin className="w-3 h-3" />
+                    <span>Unknown Location</span>
+                  </>
+                )}
+              </span>
             </div>
           </div>
         </div>
-      </section>
+      </div>
+
+      {/* ── STATS BAR ── */}
+      <div className="max-w-7xl mx-auto px-4 md:px-8 mt-6">
+        <div className="grid grid-cols-2 gap-3">
+          <div className="bg-white/[0.03] backdrop-blur-sm rounded-xl p-4 border border-white/[0.06] text-center">
+            <p className="text-2xl md:text-3xl font-bold text-purple-400">{user.points}</p>
+            <p className="text-[10px] text-gray-500 uppercase tracking-wider mt-1">EXP</p>
+          </div>
+          <div className="bg-white/[0.03] backdrop-blur-sm rounded-xl p-4 border border-white/[0.06] text-center">
+            <p className="text-2xl md:text-3xl font-bold text-white">{userRank ? `#${userRank}` : '-'}</p>
+            <p className="text-[10px] text-gray-500 uppercase tracking-wider mt-1">Rank</p>
+          </div>
+        </div>
+      </div>
+
+      {/* ── MAIN CONTENT ── */}
+      <div className="max-w-7xl mx-auto px-4 md:px-8 mt-8 pb-20">
+        {/* Seals */}
+        <section className="bg-white/[0.02] rounded-2xl border border-white/[0.06] p-5">
+          <h2 className="text-sm font-bold text-white uppercase tracking-wider mb-4 flex items-center gap-2">
+            <Award className="w-4 h-4 text-purple-400" /> Seals
+          </h2>
+          <div className="flex flex-wrap gap-3">
+            {userSeals.length === 0 ? (
+              <p className="text-gray-500 text-sm italic">No seals earned yet. Seals are awarded for special accomplishments.</p>
+            ) : (
+              userSeals.map((seal) => (
+                <div key={seal.id} className="group relative flex flex-col items-center gap-1">
+                  <div className="w-12 h-12 rounded-full bg-gray-800 border-2 border-purple-500/30 overflow-hidden flex items-center justify-center group-hover:border-purple-400 group-hover:scale-110 transition-all">
+                    <img src={seal.image_url} alt={seal.name} className="w-full h-full object-cover" />
+                  </div>
+                  <span className="text-[10px] text-gray-400 font-medium max-w-[70px] text-center truncate">{seal.name}</span>
+                  {seal.description && (
+                    <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-1.5 text-xs text-white bg-gray-800 border border-gray-700 rounded-lg shadow-lg whitespace-nowrap z-50 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
+                      {seal.description}
+                    </div>
+                  )}
+                </div>
+              ))
+            )}
+          </div>
+        </section>
+      </div>
     </main>
   );
 }
