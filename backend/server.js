@@ -873,6 +873,9 @@ app.get('/leaderboard', async (req, res) => {
 // ++++++++++++++++++++++ TOURNAMENT RELATED ++++++++++++++++++++++
 app.use('/tournaments', require('./routes/tournaments'));
 
+// ++++++++++++++++++++++ PREDICTIONS ++++++++++++++++++++++
+app.use('/predictions', require('./routes/predictions'));
+
 // ++++++++++++++++++++++ SEALS ++++++++++++++++++++++
 app.use('/seals', require('./routes/seals'));
 

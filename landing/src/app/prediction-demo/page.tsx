@@ -2,7 +2,8 @@
 
 import React, { useState, useMemo, useCallback, useRef, useEffect } from 'react';
 import PageShell from '../components/PageShell';
-import { Trophy, ChevronRight, Check, Lock, BarChart3, RotateCcw, Users } from 'lucide-react';
+import { Trophy, ChevronRight, Check, Lock, BarChart3, RotateCcw, Users, Send, AlertTriangle } from 'lucide-react';
+import { API_BASE_URL, apiRequest } from '../../lib/api';
 
 /* ═══════════════════════════════════════════
    TYPES
@@ -16,11 +17,12 @@ interface Player {
 
 interface MatchPrediction {
   matchId: string;          // "R{round}-M{match}"
+  dbMatchId?: number;       // actual DB match id (when loaded from real tournament)
   round: number;
   matchNumber: number;
-  player1: Player | null;   // null = TBD (depends on prior prediction)
+  player1: Player | null;
   player2: Player | null;
-  predictedWinner: number | null; // player id
+  predictedWinner: number | null;
 }
 
 /* ═══════════════════════════════════════════
@@ -304,6 +306,11 @@ function PredictionMatchCard({
 export default function PredictionDemo() {
   const [mode, setMode] = useState<'predicting' | 'started'>('predicting');
   const [matches, setMatches] = useState<MatchPrediction[]>(() => buildInitialBracket());
+  const [submitted, setSubmitted] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [submittedAt, setSubmittedAt] = useState<string | null>(null);
+  const [submitError, setSubmitError] = useState<string | null>(null);
+  const [apiStatus, setApiStatus] = useState<string | null>(null);
 
   const totalRounds = Math.log2(PLAYERS.length);
 
@@ -337,8 +344,28 @@ export default function PredictionDemo() {
     ? PLAYERS.find(p => p.id === finalMatch.predictedWinner)
     : null;
 
+  // Scoring breakdown
+  const scoringBreakdown = useMemo(() => {
+    const breakdown: { round: number; name: string; pointsPerCorrect: number; matchCount: number; maxPoints: number }[] = [];
+    for (let r = 1; r <= totalRounds; r++) {
+      const matchCount = bracket.filter(m => m.round === r).length;
+      const pointsPerCorrect = Math.pow(2, r - 1);
+      breakdown.push({
+        round: r,
+        name: getRoundName(r, totalRounds),
+        pointsPerCorrect,
+        matchCount,
+        maxPoints: pointsPerCorrect * matchCount,
+      });
+    }
+    return breakdown;
+  }, [bracket, totalRounds]);
+
+  const maxBasePoints = scoringBreakdown.reduce((sum, r) => sum + r.maxPoints, 0);
+  const maxWithChampionBonus = maxBasePoints * 2;
+
   const handlePredict = useCallback((matchId: string, winnerId: number) => {
-    if (mode === 'started') return;
+    if (mode === 'started' || submitted) return;
 
     setMatches(prev => {
       const updated = prev.map(m =>
@@ -351,10 +378,42 @@ export default function PredictionDemo() {
   }, [mode]);
 
   const handleReset = () => {
+    if (submitted) return;
     setMatches(buildInitialBracket());
+    setSubmitError(null);
   };
 
-  const canPredict = mode === 'predicting';
+  const handleSubmit = async () => {
+    if (!allPredicted || submitted || submitting) return;
+    setSubmitting(true);
+    setSubmitError(null);
+    setApiStatus(null);
+
+    // Build picks array from bracket
+    const picks = bracket.map(m => ({
+      match_id: m.dbMatchId ?? 0, // 0 for demo mode
+      predicted_winner_id: m.predictedWinner!,
+      round: m.round,
+    }));
+
+    // Try to submit to real API (tournament ID 1 for testing)
+    try {
+      const response = await apiRequest('/predictions/1', {
+        method: 'POST',
+        body: JSON.stringify({ picks }),
+      });
+      setApiStatus(`✅ API: Predictions saved to database (ID: ${response.predictionId})`);
+    } catch (err: any) {
+      // API call failed — still lock locally for demo purposes
+      setApiStatus(`⚠️ API: ${err.message || 'Not connected'} — predictions locked locally for demo`);
+    }
+
+    setSubmitted(true);
+    setSubmittedAt(new Date().toISOString());
+    setSubmitting(false);
+  };
+
+  const canPredict = mode === 'predicting' && !submitted;
 
   // Drag-to-scroll
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -413,13 +472,15 @@ export default function PredictionDemo() {
                 Spring Showdown 2026 — Predictions
               </h1>
               <p className="text-sm text-gray-500 mt-1">
-                {mode === 'predicting'
-                  ? 'Brackets generated. Predict who will win each match before the tournament starts.'
-                  : 'Tournament has started. Community prediction percentages are now visible.'}
+                {submitted
+                  ? 'Your predictions are locked in. Results will be scored after the tournament concludes.'
+                  : mode === 'predicting'
+                    ? 'Brackets generated. Predict who will win each match, then submit to lock in your picks.'
+                    : 'Tournament has started. Community prediction percentages are now visible.'}
               </p>
             </div>
 
-            {/* Mode toggle + stats */}
+            {/* Mode toggle + actions */}
             <div className="flex items-center gap-3">
               <div className="flex bg-white/[0.04] rounded-lg border border-white/[0.06] p-0.5">
                 <button
@@ -430,7 +491,7 @@ export default function PredictionDemo() {
                       : 'text-gray-500 hover:text-gray-300 border border-transparent'
                   }`}
                 >
-                  Predicting
+                  {submitted ? 'My Picks' : 'Predicting'}
                 </button>
                 <button
                   onClick={() => setMode('started')}
@@ -444,7 +505,7 @@ export default function PredictionDemo() {
                 </button>
               </div>
 
-              {canPredict && (
+              {canPredict && !submitted && (
                 <button
                   onClick={handleReset}
                   className="p-2 rounded-lg bg-white/[0.04] border border-white/[0.06] text-gray-500 hover:text-white hover:bg-white/[0.08] transition-all"
@@ -517,6 +578,105 @@ export default function PredictionDemo() {
                   <Users className="w-3 h-3 inline mr-0.5" />
                   247 players made predictions for this tournament
                 </p>
+              </div>
+            </div>
+          )}
+
+          {/* Locked banner (after submission) */}
+          {submitted && (
+            <div className="mt-3 bg-purple-500/[0.06] rounded-xl border border-purple-500/20 p-4 flex items-center gap-3">
+              <Lock className="w-5 h-5 text-purple-400 flex-shrink-0" />
+              <div className="flex-1">
+                <p className="text-xs text-purple-300 font-medium">Predictions locked in</p>
+                <p className="text-[10px] text-gray-500">
+                  Submitted {submittedAt ? new Date(submittedAt).toLocaleString() : ''} — your picks cannot be changed
+                </p>
+              </div>
+            </div>
+          )}
+
+          {/* API status message */}
+          {apiStatus && (
+            <div className={`mt-3 rounded-xl border p-4 text-xs ${
+              apiStatus.startsWith('✅')
+                ? 'bg-green-500/[0.06] border-green-500/20 text-green-300'
+                : 'bg-yellow-500/[0.06] border-yellow-500/20 text-yellow-300'
+            }`}>
+              {apiStatus}
+            </div>
+          )}
+
+          {/* Submit button + scoring breakdown */}
+          <div className="mt-4 flex flex-col sm:flex-row gap-4">
+            {/* Submit button */}
+            {!submitted ? (
+              <button
+                onClick={handleSubmit}
+                disabled={!allPredicted || submitting}
+                className={`flex items-center justify-center gap-2 px-6 py-3 rounded-xl font-bold text-sm transition-all ${
+                  allPredicted && !submitting
+                    ? 'bg-purple-600 hover:bg-purple-500 text-white shadow-lg shadow-purple-500/20 cursor-pointer'
+                    : 'bg-white/[0.04] text-gray-600 border border-white/[0.06] cursor-not-allowed'
+                }`}
+              >
+                {submitting ? (
+                  <>
+                    <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                    Submitting...
+                  </>
+                ) : (
+                  <>
+                    <Send className="w-4 h-4" />
+                    Submit Predictions
+                  </>
+                )}
+              </button>
+            ) : (
+              <div className="flex items-center gap-2 px-6 py-3 rounded-xl bg-purple-500/10 border border-purple-500/20 text-purple-300 font-bold text-sm">
+                <Check className="w-4 h-4" />
+                Predictions Submitted
+              </div>
+            )}
+
+            {!allPredicted && !submitted && (
+              <div className="flex items-center gap-2 text-xs text-gray-500">
+                <AlertTriangle className="w-4 h-4 text-yellow-500/60" />
+                Predict a winner for every match before submitting
+              </div>
+            )}
+
+            {/* Scoring info */}
+            <div className="flex-1 flex items-center justify-end">
+              <div className="flex items-center gap-3 text-[10px] text-gray-500">
+                {scoringBreakdown.map((r) => (
+                  <span key={r.round} className="px-2 py-1 rounded bg-white/[0.02] border border-white/[0.04]">
+                    {r.name}: <span className="text-purple-400 font-bold">{r.pointsPerCorrect}pt</span>
+                  </span>
+                ))}
+                <span className="px-2 py-1 rounded bg-yellow-500/[0.06] border border-yellow-500/20">
+                  Champion bonus: <span className="text-yellow-400 font-bold">2x total</span>
+                </span>
+              </div>
+            </div>
+          </div>
+
+          {/* Scoring breakdown card (after submission) */}
+          {submitted && (
+            <div className="mt-4 bg-white/[0.02] rounded-xl border border-white/[0.06] p-4">
+              <h3 className="text-xs font-bold text-white uppercase tracking-wider mb-3">Scoring Breakdown</h3>
+              <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
+                {scoringBreakdown.map((r) => (
+                  <div key={r.round} className="bg-white/[0.02] rounded-lg border border-white/[0.04] p-3 text-center">
+                    <p className="text-[10px] text-gray-500 uppercase">{r.name}</p>
+                    <p className="text-lg font-bold text-purple-400">{r.pointsPerCorrect}<span className="text-xs text-gray-500">pt</span></p>
+                    <p className="text-[10px] text-gray-600">{r.matchCount} match{r.matchCount > 1 ? 'es' : ''}</p>
+                    <p className="text-[10px] text-gray-500">Max: {r.maxPoints}pt</p>
+                  </div>
+                ))}
+              </div>
+              <div className="mt-3 flex items-center justify-between text-xs">
+                <span className="text-gray-500">Maximum base points: <span className="text-white font-bold">{maxBasePoints}</span></span>
+                <span className="text-gray-500">With champion bonus: <span className="text-yellow-400 font-bold">{maxWithChampionBonus}</span></span>
               </div>
             </div>
           )}
