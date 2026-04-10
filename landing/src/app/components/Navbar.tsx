@@ -91,19 +91,16 @@ export default function Navbar({ mobileOpen, onClose }: NavbarProps) {
           </div>
         </li>
 
-        {/* Betting - Coming Soon */}
-        <li className="flex items-center space-x-2 text-[#81878C] hover:text-[#E5E5E5]">
-          <FontAwesomeIcon
-            icon={faCoins}
-            className="h-5 w-5 text-[#81878C] hover:text-[#81878C]"
-          />
-          <span className="line-through text-gray-400">Betting</span>
-          <div className="relative group">
-            <AiOutlineInfoCircle className="text-[#81878C] ml-2" />
-            <span className="absolute left-full top-1/2 transform -translate-y-1/2 ml-2 bg-gray-800 text-white text-xs rounded-lg py-1 px-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300 whitespace-nowrap z-10">
-              Coming Soon
-            </span>
-          </div>
+        {/* Shop */}
+        <li
+          className={`flex items-center space-x-2 ${
+            pathname === '/shop'
+              ? 'text-[#E5E5E5]'
+              : 'text-[#81878C] hover:text-[#E5E5E5]'
+          }`}
+        >
+          <FontAwesomeIcon icon={faCoins} className="h-5 w-5" />
+          <Link href="/shop" onClick={onClose}>Shop</Link>
         </li>
 
         <hr className="w-full border-t border-gray-600 my-4" />
