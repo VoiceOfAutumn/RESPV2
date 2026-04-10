@@ -111,8 +111,9 @@ function getRoundName(round: number, totalRounds: number): string {
    COMMUNITY CHAMPION CARD
    ═══════════════════════════════════════════ */
 
-function CommunityChampionCard({ champion }: {
+function CommunityChampionCard({ champion, totalPredictors }: {
   champion: { picks: { playerId: number; name: string; profilePicture: string | null; count: number; percentage: number }[]; percentage: number; tied: boolean };
+  totalPredictors: number;
 }) {
   const [expanded, setExpanded] = useState(false);
   const single = champion.picks.length === 1;
@@ -122,16 +123,10 @@ function CommunityChampionCard({ champion }: {
     return (
       <div className="mt-4 w-full sm:w-72 rounded-xl border p-4 flex items-center gap-3 bg-green-500/[0.06] border-green-500/20">
         <div className="w-10 h-10 rounded-full flex-shrink-0 overflow-hidden ring-2 ring-green-500/40">
-          {top.profilePicture ? (
-            <img src={top.profilePicture} alt={top.name} className="w-full h-full object-cover" />
-          ) : (
-            <div className="w-full h-full bg-green-500/20 flex items-center justify-center">
-              <Trophy className="w-5 h-5 text-green-400" />
-            </div>
-          )}
+          <img src={top.profilePicture || '/images/default-avatar.png'} alt={top.name} className="w-full h-full object-cover" />
         </div>
         <div className="min-w-0">
-          <p className="text-[10px] text-gray-500 uppercase tracking-wider">Most Predicted Champion</p>
+          <p className="text-[10px] text-gray-500 uppercase tracking-wider">Most Predicted Champion ({totalPredictors} {totalPredictors === 1 ? 'vote' : 'votes'})</p>
           <p className="text-sm font-bold text-green-300 truncate">{top.name}</p>
           <p className="text-[10px] text-gray-500">{top.percentage}% of predictions</p>
         </div>
@@ -150,7 +145,7 @@ function CommunityChampionCard({ champion }: {
           <Users className="w-5 h-5 text-green-400" />
         </div>
         <div className="min-w-0 flex-1">
-          <p className="text-[10px] text-gray-500 uppercase tracking-wider">Most Predicted Champion</p>
+          <p className="text-[10px] text-gray-500 uppercase tracking-wider">Most Predicted Champion ({totalPredictors} {totalPredictors === 1 ? 'vote' : 'votes'})</p>
           <p className="text-sm font-bold text-green-300">{champion.picks.length} players tied</p>
           <p className="text-[10px] text-gray-500">{champion.percentage}% each — click to see</p>
         </div>
@@ -163,13 +158,7 @@ function CommunityChampionCard({ champion }: {
           {champion.picks.map(p => (
             <div key={p.playerId} className="flex items-center gap-2 p-2 rounded-lg hover:bg-white/[0.03]">
               <div className="w-7 h-7 rounded-full flex-shrink-0 overflow-hidden">
-                {p.profilePicture ? (
-                  <img src={p.profilePicture} alt={p.name} className="w-full h-full object-cover rounded-full" />
-                ) : (
-                  <div className="w-full h-full rounded-full bg-green-500/20 flex items-center justify-center text-[9px] font-bold text-green-400">
-                    {p.name.charAt(0)}
-                  </div>
-                )}
+                <img src={p.profilePicture || '/images/default-avatar.png'} alt={p.name} className="w-full h-full object-cover rounded-full" />
               </div>
               <span className="text-sm text-gray-300 font-medium truncate">{p.name}</span>
               <span className="text-[10px] text-gray-500 ml-auto">{p.percentage}%</span>
@@ -245,39 +234,31 @@ function PredictionMatchCard({
       >
         <div className="flex items-center gap-2 min-w-0 flex-1">
           <div className="w-6 h-6 rounded-full flex-shrink-0 overflow-hidden">
-            {player.profilePicture ? (
-              <img src={player.profilePicture} alt={player.name} className="w-full h-full object-cover rounded-full" />
-            ) : (
-              <div className={`w-full h-full rounded-full flex items-center justify-center text-[8px] font-bold ${
-                isCommunityMode
-                  ? isActualWinner
-                    ? 'bg-green-500/30 text-green-300 ring-1 ring-green-500/40'
-                    : 'bg-gray-700/80 text-gray-400 ring-1 ring-gray-700/50'
-                  : isActualWinner
-                    ? 'bg-green-500/30 text-green-300 ring-1 ring-green-500/40'
-                    : isPicked
-                      ? 'bg-purple-500/30 text-purple-300 ring-1 ring-purple-500/40'
-                      : 'bg-gray-700/80 text-gray-400 ring-1 ring-gray-700/50'
-              }`}>
-                {player.seed}
-              </div>
-            )}
+            <img src={player.profilePicture || '/images/default-avatar.png'} alt={player.name} className="w-full h-full object-cover rounded-full" />
           </div>
-          <span className={`text-sm truncate ${
-            isCommunityMode
-              ? isActualWinner
-                ? 'font-semibold text-green-400'
-                : 'text-gray-300'
-              : isActualWinner
+          {isCommunityMode ? (
+            <span
+              onClick={(e) => { e.stopPropagation(); e.preventDefault(); window.location.href = `/user/${encodeURIComponent(player.name)}`; }}
+              title={player.name}
+              className={`text-sm truncate hover:underline cursor-pointer ${
+                isActualWinner ? 'font-semibold text-green-400' : 'text-gray-300'
+              }`}
+            >
+              {player.name}
+            </span>
+          ) : (
+            <span className={`text-sm truncate ${
+              isActualWinner
                 ? 'font-semibold text-green-400'
                 : isActualLoser
                   ? 'text-gray-600'
                   : isPicked
                     ? 'font-semibold text-purple-400'
                     : 'text-gray-300'
-          }`}>
-            {player.name}
-          </span>
+            }`}>
+              {player.name}
+            </span>
+          )}
         </div>
         <div className="flex items-center gap-1.5 ml-2">
           {showCommunityPct && communityPct !== undefined && (
@@ -294,13 +275,13 @@ function PredictionMatchCard({
     );
   };
 
-  const p1Pct = communityData && match.player1 ? communityData[match.player1.id] : undefined;
-  const p2Pct = communityData && match.player2 ? communityData[match.player2.id] : undefined;
   const bothPlayersPresent = match.player1 !== null && match.player2 !== null;
   // Only show community % when both players are actually in the match
   const showCommunityPct = mode === 'community' && bothPlayersPresent;
   // Check if this matchup has any community prediction data at all
   const hasAnyCommunityData = communityData && Object.keys(communityData).length > 0;
+  const p1Pct = communityData && match.player1 ? (communityData[match.player1.id] ?? (hasAnyCommunityData ? 0 : undefined)) : undefined;
+  const p2Pct = communityData && match.player2 ? (communityData[match.player2.id] ?? (hasAnyCommunityData ? 0 : undefined)) : undefined;
 
   return (
     <div className={`bg-neutral-800/50 backdrop-blur rounded-lg border shadow-lg p-4 w-64 transition-colors ${
@@ -335,21 +316,6 @@ function PredictionMatchCard({
         {renderPlayerRow(match.player2, match.predictedWinner === match.player2?.id, p2Pct)}
       </div>
 
-      {/* Community prediction bar */}
-      {showCommunityPct && p1Pct !== undefined && p2Pct !== undefined && (
-        <div className="mt-3 px-1">
-          <div className="h-1.5 bg-white/[0.04] rounded-full overflow-hidden flex">
-            <div
-              className="h-full rounded-l-full bg-purple-500/60 transition-all duration-500"
-              style={{ width: `${p1Pct}%` }}
-            />
-            <div
-              className="h-full rounded-r-full bg-gray-500/40 transition-all duration-500"
-              style={{ width: `${p2Pct}%` }}
-            />
-          </div>
-        </div>
-      )}
       {/* No community data for this matchup */}
       {mode === 'community' && bothPlayersPresent && !hasAnyCommunityData && (
         <div className="mt-2 text-center">
@@ -814,26 +780,52 @@ export default function TournamentPredictions() {
 
           {/* Community champion card */}
           {mode === 'community' && communityChampion && (
-            <CommunityChampionCard champion={communityChampion} />
+            <CommunityChampionCard champion={communityChampion} totalPredictors={communityData?.totalPredictors ?? 0} />
           )}
 
-          {/* Locked banner — only in 'mine' mode */}
+          {/* Locked banner + champion pick — only in 'mine' mode */}
           {submitted && mode === 'mine' && (
-            <div className="mt-3 bg-purple-500/[0.06] rounded-xl border border-purple-500/20 p-4 flex items-center gap-3">
-              <Lock className="w-5 h-5 text-purple-400 flex-shrink-0" />
-              <div className="flex-1">
-                <p className="text-xs text-purple-300 font-medium">Predictions locked in</p>
-                <p className="text-[10px] text-gray-500">
-                  Submitted {submittedAt ? new Date(submittedAt).toLocaleString() : ''} — your picks cannot be changed
-                </p>
-              </div>
-              {pointsAwarded > 0 && (
-                <div className="text-right">
-                  <p className="text-lg font-bold text-yellow-400">{pointsAwarded} pts</p>
+            <div className="mt-3 flex flex-col sm:flex-row gap-3">
+              <div className="flex-1 bg-purple-500/[0.06] rounded-xl border border-purple-500/20 p-4 flex items-center gap-3">
+                <Lock className="w-5 h-5 text-purple-400 flex-shrink-0" />
+                <div className="flex-1">
+                  <p className="text-xs text-purple-300 font-medium">Predictions locked in</p>
                   <p className="text-[10px] text-gray-500">
-                    {bracket.filter(m => m.isCorrect === true).length}/{bracket.filter(m => m.isCorrect !== null).length} correct
-                    {championCorrect && <span className="text-yellow-400 ml-1">★ Champion bonus</span>}
+                    Submitted {submittedAt ? new Date(submittedAt).toLocaleString() : ''} — your picks cannot be changed
                   </p>
+                </div>
+                {pointsAwarded > 0 && (
+                  <div className="text-right">
+                    <p className="text-lg font-bold text-yellow-400">{pointsAwarded} pts</p>
+                    <p className="text-[10px] text-gray-500">
+                      {bracket.filter(m => m.isCorrect === true).length}/{bracket.filter(m => m.isCorrect !== null).length} correct
+                      {championCorrect && <span className="text-yellow-400 ml-1">★ Champion bonus</span>}
+                    </p>
+                  </div>
+                )}
+              </div>
+              {champion && (
+                <div className={`w-full sm:w-64 rounded-xl border p-4 flex items-center gap-3 ${
+                  championCorrect
+                    ? 'bg-green-500/[0.06] border-green-500/20'
+                    : 'bg-yellow-500/[0.06] border-yellow-500/20'
+                }`}>
+                  <div className={`w-10 h-10 rounded-full flex-shrink-0 overflow-hidden ring-2 ${
+                    championCorrect ? 'ring-green-500/40' : 'ring-yellow-500/40'
+                  }`}>
+                    <img
+                      src={champion.profilePicture || '/images/default-avatar.png'}
+                      alt={champion.name}
+                      className="w-full h-full object-cover"
+                    />
+                  </div>
+                  <div>
+                    <p className="text-[10px] text-gray-500 uppercase tracking-wider">Champion Pick</p>
+                    <p className={`text-sm font-bold ${championCorrect ? 'text-green-300' : 'text-yellow-300'}`}>
+                      {champion.name}
+                    </p>
+                    {championCorrect && <p className="text-[10px] text-green-400">★ Correct!</p>}
+                  </div>
                 </div>
               )}
             </div>
@@ -914,20 +906,6 @@ export default function TournamentPredictions() {
         {/* ── BRACKET ── */}
         {(mode === 'community' || !predictionsClosed) && (
           <>
-            {/* Community stats bar */}
-            {mode === 'community' && communityData && (
-              <div className="mb-4 bg-green-500/[0.04] rounded-xl border border-green-500/20 p-4 flex items-center gap-3">
-                <div className="w-8 h-8 rounded-full bg-green-500/10 flex items-center justify-center">
-                  <span className="text-sm font-bold text-green-400">{communityData.totalPredictors}</span>
-                </div>
-                <div>
-                  <p className="text-xs text-green-300 font-medium">Community Predictions</p>
-                  <p className="text-[10px] text-gray-500">
-                    {communityData.totalPredictors} {communityData.totalPredictors === 1 ? 'user has' : 'users have'} submitted predictions for this tournament
-                  </p>
-                </div>
-              </div>
-            )}
             {mode === 'community' && communityLoading && (
               <div className="mb-4 text-center py-4">
                 <div className="w-6 h-6 border-2 border-green-500/30 border-t-green-500 rounded-full animate-spin mx-auto" />
