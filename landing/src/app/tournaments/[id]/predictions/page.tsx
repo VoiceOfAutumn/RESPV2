@@ -26,6 +26,8 @@ interface MatchPrediction {
   player2: Player | null;
   predictedWinner: number | null;
   actualWinner: number | null;
+  nextMatchId: number | null;
+  nextMatchSlot: number | null;  // 1 = feeds into player1, 2 = feeds into player2
 }
 
 interface TournamentInfo {
@@ -52,54 +54,47 @@ interface BracketMatch {
   winner_name: string | null;
   bye_match: boolean;
   bracket_type: string;
+  next_match_id: number | null;
+  next_match_slot: number | null;
 }
 
 /* ═══════════════════════════════════════════
    FORWARD PROPAGATION
    ═══════════════════════════════════════════ */
 
-function propagatePredictions(matches: MatchPrediction[], totalRounds: number): MatchPrediction[] {
+function propagatePredictions(matches: MatchPrediction[]): MatchPrediction[] {
   const updated = matches.map(m => ({ ...m }));
-  // Keep a copy of the original API-provided players to preserve bye recipients
-  const original = matches.map(m => ({ ...m }));
+  const byDbId = new Map(updated.map(m => [m.dbMatchId, m]));
 
-  for (let r = 2; r <= totalRounds; r++) {
-    const prevRoundMatches = updated.filter(m => m.round === r - 1).sort((a, b) => a.matchNumber - b.matchNumber);
-    const currRoundMatches = updated.filter(m => m.round === r).sort((a, b) => a.matchNumber - b.matchNumber);
+  // Process rounds in order so earlier predictions propagate forward
+  const maxRound = Math.max(...updated.map(m => m.round));
+  for (let r = 1; r <= maxRound; r++) {
+    const roundMatches = updated.filter(m => m.round === r);
+    for (const match of roundMatches) {
+      if (!match.nextMatchId || !match.predictedWinner) continue;
 
-    for (let i = 0; i < currRoundMatches.length; i++) {
-      const feederA = prevRoundMatches[i * 2];
-      const feederB = prevRoundMatches[i * 2 + 1];
-      const target = updated.find(m => m.matchId === currRoundMatches[i].matchId)!;
-      const originalTarget = original.find(m => m.matchId === target.matchId)!;
+      const nextMatch = byDbId.get(match.nextMatchId);
+      if (!nextMatch) continue;
 
-      // For each slot: if there's a feeder match, use the predicted winner from it.
-      // If there's no feeder match (bye recipient placed directly by API), keep the API player.
-      const newP1 = feederA
-        ? (feederA.predictedWinner
-            ? (feederA.player1?.id === feederA.predictedWinner ? feederA.player1
-               : feederA.player2?.id === feederA.predictedWinner ? feederA.player2 : null)
-            : null)
-        : originalTarget.player1; // No feeder = bye recipient, preserve API data
+      // Resolve predicted winner to a Player object
+      const winner = match.player1?.id === match.predictedWinner ? match.player1
+        : match.player2?.id === match.predictedWinner ? match.player2 : null;
 
-      const newP2 = feederB
-        ? (feederB.predictedWinner
-            ? (feederB.player1?.id === feederB.predictedWinner ? feederB.player1
-               : feederB.player2?.id === feederB.predictedWinner ? feederB.player2 : null)
-            : null)
-        : originalTarget.player2; // No feeder = bye recipient, preserve API data
-
-      const p1Changed = target.player1?.id !== newP1?.id;
-      const p2Changed = target.player2?.id !== newP2?.id;
-
-      target.player1 = newP1;
-      target.player2 = newP2;
-
-      if (p1Changed || p2Changed) {
-        if (target.predictedWinner &&
-            target.predictedWinner !== newP1?.id &&
-            target.predictedWinner !== newP2?.id) {
-          target.predictedWinner = null;
+      const slot = match.nextMatchSlot ?? 1;
+      if (slot === 1) {
+        if (nextMatch.player1?.id !== winner?.id) {
+          nextMatch.player1 = winner;
+          // If the previous occupant was the predicted winner, clear it
+          if (nextMatch.predictedWinner && nextMatch.predictedWinner !== nextMatch.player1?.id && nextMatch.predictedWinner !== nextMatch.player2?.id) {
+            nextMatch.predictedWinner = null;
+          }
+        }
+      } else {
+        if (nextMatch.player2?.id !== winner?.id) {
+          nextMatch.player2 = winner;
+          if (nextMatch.predictedWinner && nextMatch.predictedWinner !== nextMatch.player1?.id && nextMatch.predictedWinner !== nextMatch.player2?.id) {
+            nextMatch.predictedWinner = null;
+          }
         }
       }
     }
@@ -323,6 +318,8 @@ export default function TournamentPredictions() {
           player2: m.player2_id ? playerMap.get(m.player2_id) ?? null : null,
           predictedWinner: null,
           actualWinner: m.winner_id,
+          nextMatchId: m.next_match_id,
+          nextMatchSlot: m.next_match_slot,
         }));
 
         // Check for existing predictions
@@ -358,8 +355,8 @@ export default function TournamentPredictions() {
   // Forward-propagated bracket
   const bracket = useMemo(() => {
     if (matches.length === 0 || totalRounds === 0) return matches;
-    return propagatePredictions(matches, totalRounds);
-  }, [matches, totalRounds]);
+    return propagatePredictions(matches);
+  }, [matches]);
 
   // Grouped by round
   const rounds = useMemo(() => {
@@ -403,9 +400,9 @@ export default function TournamentPredictions() {
           ? { ...m, predictedWinner: m.predictedWinner === winnerId ? null : winnerId }
           : m
       );
-      return propagatePredictions(updated, totalRounds);
+      return propagatePredictions(updated);
     });
-  }, [submitted, totalRounds]);
+  }, [submitted]);
 
   const handleReset = () => {
     if (submitted) return;
