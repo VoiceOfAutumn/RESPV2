@@ -60,6 +60,8 @@ interface BracketMatch {
 
 function propagatePredictions(matches: MatchPrediction[], totalRounds: number): MatchPrediction[] {
   const updated = matches.map(m => ({ ...m }));
+  // Keep a copy of the original API-provided players to preserve bye recipients
+  const original = matches.map(m => ({ ...m }));
 
   for (let r = 2; r <= totalRounds; r++) {
     const prevRoundMatches = updated.filter(m => m.round === r - 1).sort((a, b) => a.matchNumber - b.matchNumber);
@@ -68,18 +70,24 @@ function propagatePredictions(matches: MatchPrediction[], totalRounds: number): 
     for (let i = 0; i < currRoundMatches.length; i++) {
       const feederA = prevRoundMatches[i * 2];
       const feederB = prevRoundMatches[i * 2 + 1];
-
-      const newP1 = feederA?.predictedWinner
-        ? (feederA.player1?.id === feederA.predictedWinner ? feederA.player1
-           : feederA.player2?.id === feederA.predictedWinner ? feederA.player2 : null)
-        : null;
-
-      const newP2 = feederB?.predictedWinner
-        ? (feederB.player1?.id === feederB.predictedWinner ? feederB.player1
-           : feederB.player2?.id === feederB.predictedWinner ? feederB.player2 : null)
-        : null;
-
       const target = updated.find(m => m.matchId === currRoundMatches[i].matchId)!;
+      const originalTarget = original.find(m => m.matchId === target.matchId)!;
+
+      // For each slot: if there's a feeder match, use the predicted winner from it.
+      // If there's no feeder match (bye recipient placed directly by API), keep the API player.
+      const newP1 = feederA
+        ? (feederA.predictedWinner
+            ? (feederA.player1?.id === feederA.predictedWinner ? feederA.player1
+               : feederA.player2?.id === feederA.predictedWinner ? feederA.player2 : null)
+            : null)
+        : originalTarget.player1; // No feeder = bye recipient, preserve API data
+
+      const newP2 = feederB
+        ? (feederB.predictedWinner
+            ? (feederB.player1?.id === feederB.predictedWinner ? feederB.player1
+               : feederB.player2?.id === feederB.predictedWinner ? feederB.player2 : null)
+            : null)
+        : originalTarget.player2; // No feeder = bye recipient, preserve API data
 
       const p1Changed = target.player1?.id !== newP1?.id;
       const p2Changed = target.player2?.id !== newP2?.id;
