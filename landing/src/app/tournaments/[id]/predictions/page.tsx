@@ -279,11 +279,11 @@ export default function TournamentPredictions() {
           return;
         }
 
-        // Build player map from R1 matches
+        // Build player map from ALL matches (not just R1, since bye recipients land in R2+)
         const playerMap = new Map<number, Player>();
         let seedCounter = 1;
-        const r1Matches = bracketMatches.filter(m => m.round === 1).sort((a, b) => a.match_number - b.match_number);
-        for (const m of r1Matches) {
+        const allMatchesSorted = [...bracketMatches].sort((a, b) => a.round - b.round || a.match_number - b.match_number);
+        for (const m of allMatchesSorted) {
           if (m.player1_id && !playerMap.has(m.player1_id)) {
             playerMap.set(m.player1_id, {
               id: m.player1_id,
@@ -383,8 +383,11 @@ export default function TournamentPredictions() {
   // Can show community predictions?
   const canShowCommunity = tournament && (tournament.status === 'in_progress' || tournament.status === 'completed');
 
+  // Predictions window closed: tournament started/completed and user didn't submit
+  const predictionsClosed = canShowCommunity && !submitted;
+
   const handlePredict = useCallback((matchId: string, winnerId: number) => {
-    if (submitted) return;
+    if (submitted || predictionsClosed) return;
 
     setMatches(prev => {
       const updated = prev.map(m =>
@@ -427,7 +430,7 @@ export default function TournamentPredictions() {
     }
   };
 
-  const canPredict = !submitted;
+  const canPredict = !submitted && !predictionsClosed;
 
   // Drag-to-scroll
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -511,39 +514,43 @@ export default function TournamentPredictions() {
                 {tournament.name} — Predictions
               </h1>
               <p className="text-sm text-gray-500 mt-1">
-                {submitted
-                  ? 'Your predictions are locked in. Results will be scored after the tournament concludes.'
-                  : 'Predict who will win each match, then submit to lock in your picks.'}
+                {predictionsClosed
+                  ? 'The prediction window has closed. You did not submit predictions for this tournament.'
+                  : submitted
+                    ? 'Your predictions are locked in. Results will be scored after the tournament concludes.'
+                    : 'Predict who will win each match, then submit to lock in your picks.'}
               </p>
             </div>
 
             {/* Mode toggle + actions */}
             <div className="flex items-center gap-3">
-              <div className="flex bg-white/[0.04] rounded-lg border border-white/[0.06] p-0.5">
-                <button
-                  onClick={() => setMode('mine')}
-                  className={`px-3 py-1.5 text-xs font-medium rounded-md transition-all ${
-                    mode === 'mine'
-                      ? 'bg-purple-500/20 text-purple-300 border border-purple-500/30'
-                      : 'text-gray-500 hover:text-gray-300 border border-transparent'
-                  }`}
-                >
-                  My Predictions
-                </button>
-                <button
-                  onClick={() => canShowCommunity ? setMode('community') : undefined}
-                  disabled={!canShowCommunity}
-                  className={`px-3 py-1.5 text-xs font-medium rounded-md transition-all ${
-                    mode === 'community'
-                      ? 'bg-green-500/20 text-green-300 border border-green-500/30'
-                      : !canShowCommunity
-                        ? 'text-gray-700 border border-transparent cursor-not-allowed'
+              {!predictionsClosed && (
+                <div className="flex bg-white/[0.04] rounded-lg border border-white/[0.06] p-0.5">
+                  <button
+                    onClick={() => setMode('mine')}
+                    className={`px-3 py-1.5 text-xs font-medium rounded-md transition-all ${
+                      mode === 'mine'
+                        ? 'bg-purple-500/20 text-purple-300 border border-purple-500/30'
                         : 'text-gray-500 hover:text-gray-300 border border-transparent'
-                  }`}
-                >
-                  Community Predictions
-                </button>
-              </div>
+                    }`}
+                  >
+                    My Predictions
+                  </button>
+                  <button
+                    onClick={() => canShowCommunity ? setMode('community') : undefined}
+                    disabled={!canShowCommunity}
+                    className={`px-3 py-1.5 text-xs font-medium rounded-md transition-all ${
+                      mode === 'community'
+                        ? 'bg-green-500/20 text-green-300 border border-green-500/30'
+                        : !canShowCommunity
+                          ? 'text-gray-700 border border-transparent cursor-not-allowed'
+                          : 'text-gray-500 hover:text-gray-300 border border-transparent'
+                    }`}
+                  >
+                    Community Predictions
+                  </button>
+                </div>
+              )}
 
               {canPredict && !submitted && (
                 <button
@@ -557,59 +564,72 @@ export default function TournamentPredictions() {
             </div>
           </div>
 
-          {/* Progress bar + champion */}
-          <div className="mt-4 flex flex-col sm:flex-row gap-4">
-            {/* Progress */}
-            <div className="flex-1 bg-white/[0.02] rounded-xl border border-white/[0.06] p-4">
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-xs text-gray-500">Predictions</span>
-                <span className="text-xs font-mono text-gray-400">{predictedCount}/{totalMatches}</span>
-              </div>
-              <div className="h-2 bg-white/[0.04] rounded-full overflow-hidden">
-                <div
-                  className={`h-full rounded-full transition-all duration-500 ${
-                    allPredicted ? 'bg-green-500' : 'bg-purple-500'
-                  }`}
-                  style={{ width: `${totalMatches > 0 ? (predictedCount / totalMatches) * 100 : 0}%` }}
-                />
-              </div>
-              {allPredicted && (
-                <p className="text-[10px] text-green-400 mt-1.5 flex items-center gap-1">
-                  <Check className="w-3 h-3" /> All matches predicted!
-                </p>
-              )}
+          {/* Closed without submission notice */}
+          {predictionsClosed && (
+            <div className="mt-4 bg-yellow-500/[0.06] rounded-xl border border-yellow-500/20 p-6 text-center">
+              <Lock className="w-8 h-8 text-yellow-500/60 mx-auto mb-2" />
+              <p className="text-sm text-yellow-300 font-medium">Prediction window closed</p>
+              <p className="text-xs text-gray-500 mt-1">
+                The tournament is now {tournament.status === 'completed' ? 'completed' : 'in progress'}. Predictions can no longer be submitted.
+              </p>
             </div>
+          )}
 
-            {/* Champion pick */}
-            <div className={`w-full sm:w-64 rounded-xl border p-4 flex items-center gap-3 transition-all ${
-              champion
-                ? 'bg-yellow-500/[0.06] border-yellow-500/20'
-                : 'bg-white/[0.02] border-white/[0.06]'
-            }`}>
-              <div className={`w-10 h-10 rounded-full flex-shrink-0 overflow-hidden ${
-                champion ? 'ring-2 ring-yellow-500/40' : 'bg-white/[0.04] flex items-center justify-center'
-              }`}>
-                {champion ? (
-                  <img
-                    src={champion.profilePicture || '/images/default-avatar.png'}
-                    alt={champion.name}
-                    className="w-full h-full object-cover"
+          {/* Progress bar + champion (only when user can predict or has submitted) */}
+          {!predictionsClosed && (
+            <div className="mt-4 flex flex-col sm:flex-row gap-4">
+              {/* Progress */}
+              <div className="flex-1 bg-white/[0.02] rounded-xl border border-white/[0.06] p-4">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-xs text-gray-500">Predictions</span>
+                  <span className="text-xs font-mono text-gray-400">{predictedCount}/{totalMatches}</span>
+                </div>
+                <div className="h-2 bg-white/[0.04] rounded-full overflow-hidden">
+                  <div
+                    className={`h-full rounded-full transition-all duration-500 ${
+                      allPredicted ? 'bg-green-500' : 'bg-purple-500'
+                    }`}
+                    style={{ width: `${totalMatches > 0 ? (predictedCount / totalMatches) * 100 : 0}%` }}
                   />
-                ) : (
-                  <Trophy className="w-5 h-5 text-gray-600" />
+                </div>
+                {allPredicted && (
+                  <p className="text-[10px] text-green-400 mt-1.5 flex items-center gap-1">
+                    <Check className="w-3 h-3" /> All matches predicted!
+                  </p>
                 )}
               </div>
-              <div>
-                <p className="text-[10px] text-gray-500 uppercase tracking-wider">Champion Pick</p>
-                <p className={`text-sm font-bold ${champion ? 'text-yellow-300' : 'text-gray-600'}`}>
-                  {champion ? champion.name : 'Not yet picked'}
-                </p>
+
+              {/* Champion pick */}
+              <div className={`w-full sm:w-64 rounded-xl border p-4 flex items-center gap-3 transition-all ${
+                champion
+                  ? 'bg-yellow-500/[0.06] border-yellow-500/20'
+                  : 'bg-white/[0.02] border-white/[0.06]'
+              }`}>
+                <div className={`w-10 h-10 rounded-full flex-shrink-0 overflow-hidden ${
+                  champion ? 'ring-2 ring-yellow-500/40' : 'bg-white/[0.04] flex items-center justify-center'
+                }`}>
+                  {champion ? (
+                    <img
+                      src={champion.profilePicture || '/images/default-avatar.png'}
+                      alt={champion.name}
+                      className="w-full h-full object-cover"
+                    />
+                  ) : (
+                    <Trophy className="w-5 h-5 text-gray-600" />
+                  )}
+                </div>
+                <div>
+                  <p className="text-[10px] text-gray-500 uppercase tracking-wider">Champion Pick</p>
+                  <p className={`text-sm font-bold ${champion ? 'text-yellow-300' : 'text-gray-600'}`}>
+                    {champion ? champion.name : 'Not yet picked'}
+                  </p>
+                </div>
               </div>
             </div>
-          </div>
+          )}
 
           {/* Locked banner */}
-          {submitted && (
+          {submitted && !predictionsClosed && (
             <div className="mt-3 bg-purple-500/[0.06] rounded-xl border border-purple-500/20 p-4 flex items-center gap-3">
               <Lock className="w-5 h-5 text-purple-400 flex-shrink-0" />
               <div className="flex-1">
@@ -622,90 +642,94 @@ export default function TournamentPredictions() {
           )}
 
           {/* Submit error */}
-          {submitError && (
+          {submitError && !predictionsClosed && (
             <div className="mt-3 bg-red-500/[0.06] rounded-xl border border-red-500/20 p-4 text-xs text-red-300">
               {submitError}
             </div>
           )}
 
           {/* Submit button */}
-          <div className="mt-4 flex items-center gap-4">
-            {!submitted ? (
-              <button
-                onClick={handleSubmit}
-                disabled={!allPredicted || submitting}
-                className={`flex items-center justify-center gap-2 px-6 py-3 rounded-xl font-bold text-sm transition-all ${
-                  allPredicted && !submitting
-                    ? 'bg-purple-600 hover:bg-purple-500 text-white shadow-lg shadow-purple-500/20 cursor-pointer'
-                    : 'bg-white/[0.04] text-gray-600 border border-white/[0.06] cursor-not-allowed'
-                }`}
-              >
-                {submitting ? (
-                  <>
-                    <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                    Submitting...
-                  </>
-                ) : (
-                  <>
-                    <Send className="w-4 h-4" />
-                    Submit Predictions
-                  </>
-                )}
-              </button>
-            ) : (
-              <div className="flex items-center gap-2 px-6 py-3 rounded-xl bg-purple-500/10 border border-purple-500/20 text-purple-300 font-bold text-sm">
-                <Check className="w-4 h-4" />
-                Predictions Submitted
-              </div>
-            )}
+          {!predictionsClosed && (
+            <div className="mt-4 flex items-center gap-4">
+              {!submitted ? (
+                <button
+                  onClick={handleSubmit}
+                  disabled={!allPredicted || submitting}
+                  className={`flex items-center justify-center gap-2 px-6 py-3 rounded-xl font-bold text-sm transition-all ${
+                    allPredicted && !submitting
+                      ? 'bg-purple-600 hover:bg-purple-500 text-white shadow-lg shadow-purple-500/20 cursor-pointer'
+                      : 'bg-white/[0.04] text-gray-600 border border-white/[0.06] cursor-not-allowed'
+                  }`}
+                >
+                  {submitting ? (
+                    <>
+                      <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                      Submitting...
+                    </>
+                  ) : (
+                    <>
+                      <Send className="w-4 h-4" />
+                      Submit Predictions
+                    </>
+                  )}
+                </button>
+              ) : (
+                <div className="flex items-center gap-2 px-6 py-3 rounded-xl bg-purple-500/10 border border-purple-500/20 text-purple-300 font-bold text-sm">
+                  <Check className="w-4 h-4" />
+                  Predictions Submitted
+                </div>
+              )}
 
-            {!allPredicted && !submitted && (
-              <div className="flex items-center gap-2 text-xs text-gray-500">
-                <AlertTriangle className="w-4 h-4 text-yellow-500/60" />
-                Predict a winner for every match before submitting
-              </div>
-            )}
-          </div>
+              {!allPredicted && !submitted && (
+                <div className="flex items-center gap-2 text-xs text-gray-500">
+                  <AlertTriangle className="w-4 h-4 text-yellow-500/60" />
+                  Predict a winner for every match before submitting
+                </div>
+              )}
+            </div>
+          )}
         </div>
 
         {/* ── BRACKET ── */}
-        <div className="bg-neutral-900/30 rounded-2xl border border-white/[0.06] overflow-hidden">
-          <div
-            ref={scrollRef}
-            onMouseDown={handleMouseDown}
-            className="flex gap-8 pb-6 p-6 overflow-x-auto cursor-grab active:cursor-grabbing select-none"
-          >
-            {rounds.map((round, roundIndex) => {
-              const spacingMultiplier = Math.pow(2, roundIndex);
-              const matchGap = roundIndex === 0 ? 16 : 16 * spacingMultiplier;
+        {!predictionsClosed && (
+          <div className="bg-neutral-900/30 rounded-2xl border border-white/[0.06] overflow-hidden">
+            <div
+              ref={scrollRef}
+              onMouseDown={handleMouseDown}
+              className="flex gap-8 pb-6 p-6 overflow-x-auto cursor-grab active:cursor-grabbing select-none"
+            >
+              {rounds.map((round, roundIndex) => {
+                const spacingMultiplier = Math.pow(2, roundIndex);
+                const matchGap = roundIndex === 0 ? 16 : 16 * spacingMultiplier;
 
-              return (
-                <div key={round.round} className="flex-shrink-0 flex flex-col">
-                  {/* Round header */}
-                  <div className="text-sm font-medium text-gray-400 mb-4 px-3 py-1 bg-green-500/10 rounded-lg text-center whitespace-nowrap">
-                    {round.name}
-                  </div>
+                return (
+                  <div key={round.round} className="flex-shrink-0 flex flex-col">
+                    {/* Round header */}
+                    <div className="text-sm font-medium text-gray-400 mb-4 px-3 py-1 bg-green-500/10 rounded-lg text-center whitespace-nowrap">
+                      {round.name}
+                    </div>
 
-                  {/* Matches */}
-                  <div
-                    className="flex flex-col justify-around flex-1"
-                    style={{ gap: `${matchGap}px` }}
-                  >
-                    {round.matches.map((match) => (
-                      <div key={match.matchId} className="relative">
-                        <PredictionMatchCard
-                          match={match}
-                          onPredict={handlePredict}
-                          canPredict={canPredict}
-                        />
-                      </div>
-                    ))}
+                    {/* Matches */}
+                    <div
+                      className="flex flex-col justify-around flex-1"
+                      style={{ gap: `${matchGap}px` }}
+                    >
+                      {round.matches.map((match) => (
+                        <div key={match.matchId} className="relative">
+                          <PredictionMatchCard
+                            match={match}
+                            onPredict={handlePredict}
+                            canPredict={canPredict}
+                          />
+                        </div>
+                      ))}
+                    </div>
                   </div>
-                </div>
-              );
-            })}
+                );
+              })}
+            </div>
           </div>
-        </div>
+        )}
 
       </div>
     </main>
