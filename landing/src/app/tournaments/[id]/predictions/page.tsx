@@ -3,7 +3,7 @@
 import React, { useState, useMemo, useCallback, useRef, useEffect } from 'react';
 import { useParams } from 'next/navigation';
 import PageShell from '../../../components/PageShell';
-import { Trophy, Check, Lock, RotateCcw, Send, AlertTriangle } from 'lucide-react';
+import { Trophy, Check, Lock, RotateCcw, Send, AlertTriangle, Users } from 'lucide-react';
 import { API_BASE_URL, apiRequest } from '../../../../lib/api';
 
 /* ═══════════════════════════════════════════
@@ -108,6 +108,80 @@ function getRoundName(round: number, totalRounds: number): string {
 }
 
 /* ═══════════════════════════════════════════
+   COMMUNITY CHAMPION CARD
+   ═══════════════════════════════════════════ */
+
+function CommunityChampionCard({ champion }: {
+  champion: { picks: { playerId: number; name: string; profilePicture: string | null; count: number; percentage: number }[]; percentage: number; tied: boolean };
+}) {
+  const [expanded, setExpanded] = useState(false);
+  const single = champion.picks.length === 1;
+  const top = champion.picks[0];
+
+  if (single) {
+    return (
+      <div className="mt-4 w-full sm:w-72 rounded-xl border p-4 flex items-center gap-3 bg-green-500/[0.06] border-green-500/20">
+        <div className="w-10 h-10 rounded-full flex-shrink-0 overflow-hidden ring-2 ring-green-500/40">
+          {top.profilePicture ? (
+            <img src={top.profilePicture} alt={top.name} className="w-full h-full object-cover" />
+          ) : (
+            <div className="w-full h-full bg-green-500/20 flex items-center justify-center">
+              <Trophy className="w-5 h-5 text-green-400" />
+            </div>
+          )}
+        </div>
+        <div className="min-w-0">
+          <p className="text-[10px] text-gray-500 uppercase tracking-wider">Most Predicted Champion</p>
+          <p className="text-sm font-bold text-green-300 truncate">{top.name}</p>
+          <p className="text-[10px] text-gray-500">{top.percentage}% of predictions</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Multiple tied players
+  return (
+    <div className="mt-4 relative w-full sm:w-80">
+      <button
+        onClick={() => setExpanded(!expanded)}
+        className="w-full rounded-xl border p-4 flex items-center gap-3 bg-green-500/[0.06] border-green-500/20 hover:bg-green-500/[0.08] transition-all text-left"
+      >
+        <div className="w-10 h-10 rounded-full flex-shrink-0 overflow-hidden ring-2 ring-green-500/40 bg-green-500/20 flex items-center justify-center">
+          <Users className="w-5 h-5 text-green-400" />
+        </div>
+        <div className="min-w-0 flex-1">
+          <p className="text-[10px] text-gray-500 uppercase tracking-wider">Most Predicted Champion</p>
+          <p className="text-sm font-bold text-green-300">{champion.picks.length} players tied</p>
+          <p className="text-[10px] text-gray-500">{champion.percentage}% each — click to see</p>
+        </div>
+        <svg className={`w-4 h-4 text-gray-500 transition-transform ${expanded ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+        </svg>
+      </button>
+      {expanded && (
+        <div className="mt-1 rounded-xl border border-green-500/20 bg-neutral-900/95 backdrop-blur p-2 space-y-1 shadow-xl">
+          {champion.picks.map(p => (
+            <div key={p.playerId} className="flex items-center gap-2 p-2 rounded-lg hover:bg-white/[0.03]">
+              <div className="w-7 h-7 rounded-full flex-shrink-0 overflow-hidden">
+                {p.profilePicture ? (
+                  <img src={p.profilePicture} alt={p.name} className="w-full h-full object-cover rounded-full" />
+                ) : (
+                  <div className="w-full h-full rounded-full bg-green-500/20 flex items-center justify-center text-[9px] font-bold text-green-400">
+                    {p.name.charAt(0)}
+                  </div>
+                )}
+              </div>
+              <span className="text-sm text-gray-300 font-medium truncate">{p.name}</span>
+              <span className="text-[10px] text-gray-500 ml-auto">{p.percentage}%</span>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* ═══════════════════════════════════════════
    MATCH CARD
    ═══════════════════════════════════════════ */
 
@@ -206,7 +280,7 @@ function PredictionMatchCard({
           </span>
         </div>
         <div className="flex items-center gap-1.5 ml-2">
-          {isCommunityMode && communityPct !== undefined && (
+          {showCommunityPct && communityPct !== undefined && (
             <span className={`text-[10px] font-mono tabular-nums ${
               communityPct >= 60 ? 'text-green-400' : communityPct >= 40 ? 'text-yellow-400' : 'text-red-400'
             }`}>
@@ -222,6 +296,11 @@ function PredictionMatchCard({
 
   const p1Pct = communityData && match.player1 ? communityData[match.player1.id] : undefined;
   const p2Pct = communityData && match.player2 ? communityData[match.player2.id] : undefined;
+  const bothPlayersPresent = match.player1 !== null && match.player2 !== null;
+  // Only show community % when both players are actually in the match
+  const showCommunityPct = mode === 'community' && bothPlayersPresent;
+  // Check if this matchup has any community prediction data at all
+  const hasAnyCommunityData = communityData && Object.keys(communityData).length > 0;
 
   return (
     <div className={`bg-neutral-800/50 backdrop-blur rounded-lg border shadow-lg p-4 w-64 transition-colors ${
@@ -257,7 +336,7 @@ function PredictionMatchCard({
       </div>
 
       {/* Community prediction bar */}
-      {mode === 'community' && p1Pct !== undefined && p2Pct !== undefined && match.player1 && match.player2 && (
+      {showCommunityPct && p1Pct !== undefined && p2Pct !== undefined && (
         <div className="mt-3 px-1">
           <div className="h-1.5 bg-white/[0.04] rounded-full overflow-hidden flex">
             <div
@@ -269,6 +348,12 @@ function PredictionMatchCard({
               style={{ width: `${p2Pct}%` }}
             />
           </div>
+        </div>
+      )}
+      {/* No community data for this matchup */}
+      {mode === 'community' && bothPlayersPresent && !hasAnyCommunityData && (
+        <div className="mt-2 text-center">
+          <span className="text-[10px] text-gray-600 italic">No prediction data</span>
         </div>
       )}
     </div>
@@ -454,12 +539,8 @@ export default function TournamentPredictions() {
   const communityChampion = useMemo(() => {
     if (!communityData?.championPicks?.length) return null;
     const top = communityData.championPicks[0];
-    // Check for ties
     const tied = communityData.championPicks.filter(c => c.count === top.count);
-    if (tied.length > 1) {
-      return { names: tied.map(c => c.name), percentage: top.percentage, profilePicture: null, tied: true };
-    }
-    return { names: [top.name], percentage: top.percentage, profilePicture: top.profilePicture, tied: false };
+    return { picks: tied, percentage: top.percentage, tied: tied.length > 1 };
   }, [communityData]);
 
   // Can show community predictions?
@@ -467,6 +548,13 @@ export default function TournamentPredictions() {
 
   // Predictions window closed: tournament started/completed and user didn't submit
   const predictionsClosed = canShowCommunity && !submitted;
+
+  // Auto-switch to community if user is locked out of "my predictions"
+  useEffect(() => {
+    if (predictionsClosed && mode === 'mine') {
+      setMode('community');
+    }
+  }, [predictionsClosed, mode]);
 
   // Fetch community data when switching to community tab
   useEffect(() => {
@@ -619,31 +707,32 @@ export default function TournamentPredictions() {
 
             {/* Mode toggle + actions */}
             <div className="flex items-center gap-3">
-              {!predictionsClosed && (
+              {(canShowCommunity || submitted) && (
                 <div className="flex bg-white/[0.04] rounded-lg border border-white/[0.06] p-0.5">
-                  <button
-                    onClick={() => setMode('mine')}
-                    className={`px-3 py-1.5 text-xs font-medium rounded-md transition-all ${
-                      mode === 'mine'
-                        ? 'bg-purple-500/20 text-purple-300 border border-purple-500/30'
-                        : 'text-gray-500 hover:text-gray-300 border border-transparent'
-                    }`}
-                  >
-                    My Predictions
-                  </button>
-                  <button
-                    onClick={() => canShowCommunity ? setMode('community') : undefined}
-                    disabled={!canShowCommunity}
-                    className={`px-3 py-1.5 text-xs font-medium rounded-md transition-all ${
-                      mode === 'community'
-                        ? 'bg-green-500/20 text-green-300 border border-green-500/30'
-                        : !canShowCommunity
-                          ? 'text-gray-700 border border-transparent cursor-not-allowed'
+                  {!predictionsClosed && (
+                    <button
+                      onClick={() => setMode('mine')}
+                      className={`px-3 py-1.5 text-xs font-medium rounded-md transition-all ${
+                        mode === 'mine'
+                          ? 'bg-purple-500/20 text-purple-300 border border-purple-500/30'
                           : 'text-gray-500 hover:text-gray-300 border border-transparent'
-                    }`}
-                  >
-                    Community Predictions
-                  </button>
+                      }`}
+                    >
+                      My Predictions
+                    </button>
+                  )}
+                  {canShowCommunity && (
+                    <button
+                      onClick={() => setMode('community')}
+                      className={`px-3 py-1.5 text-xs font-medium rounded-md transition-all ${
+                        mode === 'community'
+                          ? 'bg-green-500/20 text-green-300 border border-green-500/30'
+                          : 'text-gray-500 hover:text-gray-300 border border-transparent'
+                      }`}
+                    >
+                      Community Predictions
+                    </button>
+                  )}
                 </div>
               )}
 
@@ -660,7 +749,7 @@ export default function TournamentPredictions() {
           </div>
 
           {/* Closed without submission notice */}
-          {predictionsClosed && (
+          {predictionsClosed && mode !== 'community' && (
             <div className="mt-4 bg-yellow-500/[0.06] rounded-xl border border-yellow-500/20 p-6 text-center">
               <Lock className="w-8 h-8 text-yellow-500/60 mx-auto mb-2" />
               <p className="text-sm text-yellow-300 font-medium">Prediction window closed</p>
@@ -670,8 +759,8 @@ export default function TournamentPredictions() {
             </div>
           )}
 
-          {/* Progress bar + champion (only when user can predict or has submitted) */}
-          {!predictionsClosed && (
+          {/* Progress bar + champion — only when actively picking (not submitted, not locked) */}
+          {!submitted && !predictionsClosed && mode === 'mine' && (
             <div className="mt-4 flex flex-col sm:flex-row gap-4">
               {/* Progress */}
               <div className="flex-1 bg-white/[0.02] rounded-xl border border-white/[0.06] p-4">
@@ -695,66 +784,41 @@ export default function TournamentPredictions() {
               </div>
 
               {/* Champion pick */}
-              {mode === 'community' && communityChampion ? (
-                <div className="w-full sm:w-72 rounded-xl border p-4 flex items-center gap-3 transition-all bg-green-500/[0.06] border-green-500/20">
-                  <div className={`w-10 h-10 rounded-full flex-shrink-0 overflow-hidden ring-2 ring-green-500/40`}>
-                    {!communityChampion.tied && communityChampion.profilePicture ? (
-                      <img
-                        src={communityChampion.profilePicture}
-                        alt={communityChampion.names[0]}
-                        className="w-full h-full object-cover"
-                      />
-                    ) : (
-                      <div className="w-full h-full bg-green-500/20 flex items-center justify-center">
-                        <Trophy className="w-5 h-5 text-green-400" />
-                      </div>
-                    )}
-                  </div>
-                  <div className="min-w-0">
-                    <p className="text-[10px] text-gray-500 uppercase tracking-wider">Most Predicted Champion</p>
-                    <p className="text-sm font-bold text-green-300 truncate">
-                      {communityChampion.tied
-                        ? communityChampion.names.join(' / ')
-                        : communityChampion.names[0]}
-                    </p>
-                    <p className="text-[10px] text-gray-500">
-                      {communityChampion.percentage}% of predictions
-                      {communityChampion.tied && ' (tied)'}
-                    </p>
-                  </div>
-                </div>
-              ) : (
-                <div className={`w-full sm:w-64 rounded-xl border p-4 flex items-center gap-3 transition-all ${
-                  champion
-                    ? 'bg-yellow-500/[0.06] border-yellow-500/20'
-                    : 'bg-white/[0.02] border-white/[0.06]'
+              <div className={`w-full sm:w-64 rounded-xl border p-4 flex items-center gap-3 transition-all ${
+                champion
+                  ? 'bg-yellow-500/[0.06] border-yellow-500/20'
+                  : 'bg-white/[0.02] border-white/[0.06]'
+              }`}>
+                <div className={`w-10 h-10 rounded-full flex-shrink-0 overflow-hidden ${
+                  champion ? 'ring-2 ring-yellow-500/40' : 'bg-white/[0.04] flex items-center justify-center'
                 }`}>
-                  <div className={`w-10 h-10 rounded-full flex-shrink-0 overflow-hidden ${
-                    champion ? 'ring-2 ring-yellow-500/40' : 'bg-white/[0.04] flex items-center justify-center'
-                  }`}>
-                    {champion ? (
-                      <img
-                        src={champion.profilePicture || '/images/default-avatar.png'}
-                        alt={champion.name}
-                        className="w-full h-full object-cover"
-                      />
-                    ) : (
-                      <Trophy className="w-5 h-5 text-gray-600" />
-                    )}
-                  </div>
-                  <div>
-                    <p className="text-[10px] text-gray-500 uppercase tracking-wider">Champion Pick</p>
-                    <p className={`text-sm font-bold ${champion ? 'text-yellow-300' : 'text-gray-600'}`}>
-                      {champion ? champion.name : 'Not yet picked'}
-                    </p>
-                  </div>
+                  {champion ? (
+                    <img
+                      src={champion.profilePicture || '/images/default-avatar.png'}
+                      alt={champion.name}
+                      className="w-full h-full object-cover"
+                    />
+                  ) : (
+                    <Trophy className="w-5 h-5 text-gray-600" />
+                  )}
                 </div>
-              )}
+                <div>
+                  <p className="text-[10px] text-gray-500 uppercase tracking-wider">Champion Pick</p>
+                  <p className={`text-sm font-bold ${champion ? 'text-yellow-300' : 'text-gray-600'}`}>
+                    {champion ? champion.name : 'Not yet picked'}
+                  </p>
+                </div>
+              </div>
             </div>
           )}
 
-          {/* Locked banner */}
-          {submitted && !predictionsClosed && (
+          {/* Community champion card */}
+          {mode === 'community' && communityChampion && (
+            <CommunityChampionCard champion={communityChampion} />
+          )}
+
+          {/* Locked banner — only in 'mine' mode */}
+          {submitted && mode === 'mine' && (
             <div className="mt-3 bg-purple-500/[0.06] rounded-xl border border-purple-500/20 p-4 flex items-center gap-3">
               <Lock className="w-5 h-5 text-purple-400 flex-shrink-0" />
               <div className="flex-1">
@@ -848,7 +912,7 @@ export default function TournamentPredictions() {
         )}
 
         {/* ── BRACKET ── */}
-        {!predictionsClosed && (
+        {(mode === 'community' || !predictionsClosed) && (
           <>
             {/* Community stats bar */}
             {mode === 'community' && communityData && (
