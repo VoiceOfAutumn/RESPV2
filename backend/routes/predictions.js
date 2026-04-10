@@ -260,7 +260,7 @@ router.get('/:tournamentId/community', async (req, res) => {
     const totalPredictors = parseInt(totalResult.rows[0].total);
 
     if (totalPredictors === 0) {
-      return res.json({ totalPredictors: 0, matches: {} });
+      return res.json({ totalPredictors: 0, matches: {}, championPicks: [] });
     }
 
     // Per-match pick counts grouped by predicted_winner_id
@@ -282,7 +282,37 @@ router.get('/:tournamentId/community', async (req, res) => {
       matches[matchId][row.predicted_winner_id] = Math.round((parseInt(row.pick_count) / totalPredictors) * 100);
     }
 
-    res.json({ totalPredictors, matches });
+    // Champion picks: who was predicted to win the final match, with counts
+    const maxRoundResult = await pool.query(
+      `SELECT MAX(round) AS max_round FROM tournament_matches
+       WHERE tournament_id = $1 AND bye_match = false`,
+      [tournamentId]
+    );
+    const maxRound = maxRoundResult.rows[0]?.max_round;
+
+    let championPicks = [];
+    if (maxRound) {
+      const champResult = await pool.query(
+        `SELECT tpp.predicted_winner_id, u.display_name, u.profile_picture, COUNT(*) AS pick_count
+         FROM tournament_prediction_picks tpp
+         JOIN tournament_predictions tp ON tp.id = tpp.prediction_id
+         JOIN tournament_matches tm ON tm.id = tpp.match_id
+         JOIN users u ON u.id = tpp.predicted_winner_id
+         WHERE tp.tournament_id = $1 AND tm.round = $2 AND tm.bye_match = false
+         GROUP BY tpp.predicted_winner_id, u.display_name, u.profile_picture
+         ORDER BY pick_count DESC, u.display_name ASC`,
+        [tournamentId, maxRound]
+      );
+      championPicks = champResult.rows.map(r => ({
+        playerId: r.predicted_winner_id,
+        name: r.display_name,
+        profilePicture: r.profile_picture,
+        count: parseInt(r.pick_count),
+        percentage: Math.round((parseInt(r.pick_count) / totalPredictors) * 100),
+      }));
+    }
+
+    res.json({ totalPredictors, matches, championPicks });
   } catch (err) {
     console.error('Error fetching community predictions:', err);
     res.status(500).json({ error: 'Internal server error' });

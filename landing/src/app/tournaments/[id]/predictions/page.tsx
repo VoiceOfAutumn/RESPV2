@@ -293,8 +293,9 @@ export default function TournamentPredictions() {
   const [mode, setMode] = useState<'mine' | 'community'>('mine');
   const [pointsAwarded, setPointsAwarded] = useState(0);
   const [championCorrect, setChampionCorrect] = useState(false);
-  const [communityData, setCommunityData] = useState<{ totalPredictors: number; matches: Record<number, Record<number, number>> } | null>(null);
+  const [communityData, setCommunityData] = useState<{ totalPredictors: number; matches: Record<number, Record<number, number>>; championPicks: { playerId: number; name: string; profilePicture: string | null; count: number; percentage: number }[] } | null>(null);
   const [communityLoading, setCommunityLoading] = useState(false);
+  const [showConfirm, setShowConfirm] = useState(false);
 
   // Load bracket data and existing predictions
   useEffect(() => {
@@ -405,16 +406,27 @@ export default function TournamentPredictions() {
     load();
   }, [id]);
 
-  // Forward-propagated bracket
+  // Forward-propagated bracket (for "My Predictions" — includes user picks propagated forward)
   const bracket = useMemo(() => {
     if (matches.length === 0 || totalRounds === 0) return matches;
     return propagatePredictions(matches);
   }, [matches]);
 
+  // Community bracket: raw API state only — no user prediction propagation
+  const communityBracket = useMemo(() => {
+    return matches.map(m => ({
+      ...m,
+      predictedWinner: null, // strip user picks
+    }));
+  }, [matches]);
+
+  // Active bracket based on mode
+  const activeBracket = mode === 'community' ? communityBracket : bracket;
+
   // Grouped by round
   const rounds = useMemo(() => {
     const grouped: Record<number, MatchPrediction[]> = {};
-    for (const m of bracket) {
+    for (const m of activeBracket) {
       if (!grouped[m.round]) grouped[m.round] = [];
       grouped[m.round].push(m);
     }
@@ -425,7 +437,7 @@ export default function TournamentPredictions() {
         name: getRoundName(Number(round), totalRounds),
         matches: roundMatches.sort((a, b) => a.matchNumber - b.matchNumber),
       }));
-  }, [bracket, totalRounds]);
+  }, [activeBracket, totalRounds]);
 
   // Stats
   const totalMatches = bracket.length;
@@ -437,6 +449,18 @@ export default function TournamentPredictions() {
   const champion = finalMatch?.predictedWinner
     ? bracket.flatMap(m => [m.player1, m.player2]).find(p => p?.id === finalMatch.predictedWinner) ?? null
     : null;
+
+  // Community champion (most predicted winner of the final)
+  const communityChampion = useMemo(() => {
+    if (!communityData?.championPicks?.length) return null;
+    const top = communityData.championPicks[0];
+    // Check for ties
+    const tied = communityData.championPicks.filter(c => c.count === top.count);
+    if (tied.length > 1) {
+      return { names: tied.map(c => c.name), percentage: top.percentage, profilePicture: null, tied: true };
+    }
+    return { names: [top.name], percentage: top.percentage, profilePicture: top.profilePicture, tied: false };
+  }, [communityData]);
 
   // Can show community predictions?
   const canShowCommunity = tournament && (tournament.status === 'in_progress' || tournament.status === 'completed');
@@ -588,17 +612,9 @@ export default function TournamentPredictions() {
         <div className="mb-6">
           <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4">
             <div>
-              <p className="text-xs uppercase tracking-wider text-purple-400 font-semibold mb-1">Predictions</p>
               <h1 className="text-2xl md:text-3xl font-extrabold text-white">
-                {tournament.name} — Predictions
+                {tournament.name}
               </h1>
-              <p className="text-sm text-gray-500 mt-1">
-                {predictionsClosed
-                  ? 'The prediction window has closed. You did not submit predictions for this tournament.'
-                  : submitted
-                    ? 'Your predictions are locked in. Results will be scored after the tournament concludes.'
-                    : 'Predict who will win each match, then submit to lock in your picks.'}
-              </p>
             </div>
 
             {/* Mode toggle + actions */}
@@ -679,31 +695,61 @@ export default function TournamentPredictions() {
               </div>
 
               {/* Champion pick */}
-              <div className={`w-full sm:w-64 rounded-xl border p-4 flex items-center gap-3 transition-all ${
-                champion
-                  ? 'bg-yellow-500/[0.06] border-yellow-500/20'
-                  : 'bg-white/[0.02] border-white/[0.06]'
-              }`}>
-                <div className={`w-10 h-10 rounded-full flex-shrink-0 overflow-hidden ${
-                  champion ? 'ring-2 ring-yellow-500/40' : 'bg-white/[0.04] flex items-center justify-center'
+              {mode === 'community' && communityChampion ? (
+                <div className="w-full sm:w-72 rounded-xl border p-4 flex items-center gap-3 transition-all bg-green-500/[0.06] border-green-500/20">
+                  <div className={`w-10 h-10 rounded-full flex-shrink-0 overflow-hidden ring-2 ring-green-500/40`}>
+                    {!communityChampion.tied && communityChampion.profilePicture ? (
+                      <img
+                        src={communityChampion.profilePicture}
+                        alt={communityChampion.names[0]}
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      <div className="w-full h-full bg-green-500/20 flex items-center justify-center">
+                        <Trophy className="w-5 h-5 text-green-400" />
+                      </div>
+                    )}
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-[10px] text-gray-500 uppercase tracking-wider">Most Predicted Champion</p>
+                    <p className="text-sm font-bold text-green-300 truncate">
+                      {communityChampion.tied
+                        ? communityChampion.names.join(' / ')
+                        : communityChampion.names[0]}
+                    </p>
+                    <p className="text-[10px] text-gray-500">
+                      {communityChampion.percentage}% of predictions
+                      {communityChampion.tied && ' (tied)'}
+                    </p>
+                  </div>
+                </div>
+              ) : (
+                <div className={`w-full sm:w-64 rounded-xl border p-4 flex items-center gap-3 transition-all ${
+                  champion
+                    ? 'bg-yellow-500/[0.06] border-yellow-500/20'
+                    : 'bg-white/[0.02] border-white/[0.06]'
                 }`}>
-                  {champion ? (
-                    <img
-                      src={champion.profilePicture || '/images/default-avatar.png'}
-                      alt={champion.name}
-                      className="w-full h-full object-cover"
-                    />
-                  ) : (
-                    <Trophy className="w-5 h-5 text-gray-600" />
-                  )}
+                  <div className={`w-10 h-10 rounded-full flex-shrink-0 overflow-hidden ${
+                    champion ? 'ring-2 ring-yellow-500/40' : 'bg-white/[0.04] flex items-center justify-center'
+                  }`}>
+                    {champion ? (
+                      <img
+                        src={champion.profilePicture || '/images/default-avatar.png'}
+                        alt={champion.name}
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      <Trophy className="w-5 h-5 text-gray-600" />
+                    )}
+                  </div>
+                  <div>
+                    <p className="text-[10px] text-gray-500 uppercase tracking-wider">Champion Pick</p>
+                    <p className={`text-sm font-bold ${champion ? 'text-yellow-300' : 'text-gray-600'}`}>
+                      {champion ? champion.name : 'Not yet picked'}
+                    </p>
+                  </div>
                 </div>
-                <div>
-                  <p className="text-[10px] text-gray-500 uppercase tracking-wider">Champion Pick</p>
-                  <p className={`text-sm font-bold ${champion ? 'text-yellow-300' : 'text-gray-600'}`}>
-                    {champion ? champion.name : 'Not yet picked'}
-                  </p>
-                </div>
-              </div>
+              )}
             </div>
           )}
 
@@ -737,38 +783,31 @@ export default function TournamentPredictions() {
           )}
 
           {/* Submit button */}
-          {!predictionsClosed && (
+          {!predictionsClosed && !submitted && (
             <div className="mt-4 flex items-center gap-4">
-              {!submitted ? (
-                <button
-                  onClick={handleSubmit}
-                  disabled={!allPredicted || submitting}
-                  className={`flex items-center justify-center gap-2 px-6 py-3 rounded-xl font-bold text-sm transition-all ${
-                    allPredicted && !submitting
-                      ? 'bg-purple-600 hover:bg-purple-500 text-white shadow-lg shadow-purple-500/20 cursor-pointer'
-                      : 'bg-white/[0.04] text-gray-600 border border-white/[0.06] cursor-not-allowed'
-                  }`}
-                >
-                  {submitting ? (
-                    <>
-                      <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                      Submitting...
-                    </>
-                  ) : (
-                    <>
-                      <Send className="w-4 h-4" />
-                      Submit Predictions
-                    </>
-                  )}
-                </button>
-              ) : (
-                <div className="flex items-center gap-2 px-6 py-3 rounded-xl bg-purple-500/10 border border-purple-500/20 text-purple-300 font-bold text-sm">
-                  <Check className="w-4 h-4" />
-                  Predictions Submitted
-                </div>
-              )}
+              <button
+                onClick={() => setShowConfirm(true)}
+                disabled={!allPredicted || submitting}
+                className={`flex items-center justify-center gap-2 px-6 py-3 rounded-xl font-bold text-sm transition-all ${
+                  allPredicted && !submitting
+                    ? 'bg-purple-600 hover:bg-purple-500 text-white shadow-lg shadow-purple-500/20 cursor-pointer'
+                    : 'bg-white/[0.04] text-gray-600 border border-white/[0.06] cursor-not-allowed'
+                }`}
+              >
+                {submitting ? (
+                  <>
+                    <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                    Submitting...
+                  </>
+                ) : (
+                  <>
+                    <Send className="w-4 h-4" />
+                    Submit Predictions
+                  </>
+                )}
+              </button>
 
-              {!allPredicted && !submitted && (
+              {!allPredicted && (
                 <div className="flex items-center gap-2 text-xs text-gray-500">
                   <AlertTriangle className="w-4 h-4 text-yellow-500/60" />
                   Predict a winner for every match before submitting
@@ -777,6 +816,36 @@ export default function TournamentPredictions() {
             </div>
           )}
         </div>
+
+        {/* ── CONFIRMATION OVERLAY ── */}
+        {showConfirm && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm" onClick={() => setShowConfirm(false)}>
+            <div className="bg-neutral-900 border border-white/[0.08] rounded-2xl p-6 max-w-sm w-full mx-4 shadow-2xl" onClick={e => e.stopPropagation()}>
+              <div className="text-center mb-4">
+                <Lock className="w-8 h-8 text-purple-400 mx-auto mb-3" />
+                <h3 className="text-lg font-bold text-white">Submit Predictions?</h3>
+                <p className="text-sm text-gray-400 mt-2">
+                  Once submitted, your predictions <span className="text-white font-medium">cannot be changed</span>. Make sure you&apos;re happy with your picks.
+                </p>
+              </div>
+              <div className="flex gap-3">
+                <button
+                  onClick={() => setShowConfirm(false)}
+                  className="flex-1 px-4 py-2.5 rounded-xl text-sm font-medium bg-white/[0.04] border border-white/[0.06] text-gray-400 hover:text-white hover:bg-white/[0.08] transition-all"
+                >
+                  Go Back
+                </button>
+                <button
+                  onClick={() => { setShowConfirm(false); handleSubmit(); }}
+                  disabled={submitting}
+                  className="flex-1 px-4 py-2.5 rounded-xl text-sm font-bold bg-purple-600 hover:bg-purple-500 text-white shadow-lg shadow-purple-500/20 transition-all"
+                >
+                  Confirm &amp; Submit
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* ── BRACKET ── */}
         {!predictionsClosed && (
