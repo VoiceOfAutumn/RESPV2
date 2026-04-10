@@ -238,6 +238,48 @@ router.post('/:tournamentId/score', authMiddleware, async (req, res) => {
   }
 });
 
+// ── GET /predictions/:tournamentId/community ── Aggregated community prediction percentages
+router.get('/:tournamentId/community', async (req, res) => {
+  try {
+    const { tournamentId } = req.params;
+
+    // Total number of users who submitted predictions
+    const totalResult = await pool.query(
+      'SELECT COUNT(*) AS total FROM tournament_predictions WHERE tournament_id = $1',
+      [tournamentId]
+    );
+    const totalPredictors = parseInt(totalResult.rows[0].total);
+
+    if (totalPredictors === 0) {
+      return res.json({ totalPredictors: 0, matches: {} });
+    }
+
+    // Per-match pick counts grouped by predicted_winner_id
+    const picksResult = await pool.query(
+      `SELECT tpp.match_id, tpp.predicted_winner_id, COUNT(*) AS pick_count
+       FROM tournament_prediction_picks tpp
+       JOIN tournament_predictions tp ON tp.id = tpp.prediction_id
+       WHERE tp.tournament_id = $1
+       GROUP BY tpp.match_id, tpp.predicted_winner_id
+       ORDER BY tpp.match_id, pick_count DESC`,
+      [tournamentId]
+    );
+
+    // Build { match_id: { player_id: percentage, ... } }
+    const matches = {};
+    for (const row of picksResult.rows) {
+      const matchId = row.match_id;
+      if (!matches[matchId]) matches[matchId] = {};
+      matches[matchId][row.predicted_winner_id] = Math.round((parseInt(row.pick_count) / totalPredictors) * 100);
+    }
+
+    res.json({ totalPredictors, matches });
+  } catch (err) {
+    console.error('Error fetching community predictions:', err);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
 // ── GET /predictions/:tournamentId/leaderboard ── Prediction leaderboard for a tournament
 router.get('/:tournamentId/leaderboard', async (req, res) => {
   try {

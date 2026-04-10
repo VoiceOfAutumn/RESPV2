@@ -26,6 +26,8 @@ interface MatchPrediction {
   player2: Player | null;
   predictedWinner: number | null;
   actualWinner: number | null;
+  isCorrect: boolean | null;     // from backend scoring (null = not scored yet)
+  pointsEarned: number;          // from backend scoring
   nextMatchId: number | null;
   nextMatchSlot: number | null;  // 1 = feeds into player1, 2 = feeds into player2
 }
@@ -80,22 +82,12 @@ function propagatePredictions(matches: MatchPrediction[]): MatchPrediction[] {
       const winner = match.player1?.id === match.predictedWinner ? match.player1
         : match.player2?.id === match.predictedWinner ? match.player2 : null;
 
+      // Only fill EMPTY slots — never overwrite actual bracket data from the API
       const slot = match.nextMatchSlot ?? 1;
       if (slot === 1) {
-        if (nextMatch.player1?.id !== winner?.id) {
-          nextMatch.player1 = winner;
-          // If the previous occupant was the predicted winner, clear it
-          if (nextMatch.predictedWinner && nextMatch.predictedWinner !== nextMatch.player1?.id && nextMatch.predictedWinner !== nextMatch.player2?.id) {
-            nextMatch.predictedWinner = null;
-          }
-        }
+        if (!nextMatch.player1) nextMatch.player1 = winner;
       } else {
-        if (nextMatch.player2?.id !== winner?.id) {
-          nextMatch.player2 = winner;
-          if (nextMatch.predictedWinner && nextMatch.predictedWinner !== nextMatch.player1?.id && nextMatch.predictedWinner !== nextMatch.player2?.id) {
-            nextMatch.predictedWinner = null;
-          }
-        }
+        if (!nextMatch.player2) nextMatch.player2 = winner;
       }
     }
   }
@@ -123,15 +115,21 @@ function PredictionMatchCard({
   match,
   onPredict,
   canPredict,
+  mode,
+  communityData,
 }: {
   match: MatchPrediction;
   onPredict: (matchId: string, winnerId: number) => void;
   canPredict: boolean;
+  mode: 'mine' | 'community';
+  communityData?: Record<number, number>; // player_id → percentage
 }) {
   const isPredicted = match.predictedWinner !== null;
   const hasActualWinner = match.actualWinner !== null;
+  // Use backend is_correct when available (scored), otherwise compare IDs
+  const isCorrect = match.isCorrect !== null ? match.isCorrect : (isPredicted && hasActualWinner ? match.predictedWinner === match.actualWinner : null);
 
-  const renderPlayerRow = (player: Player | null, isPicked: boolean) => {
+  const renderPlayerRow = (player: Player | null, isPicked: boolean, communityPct?: number) => {
     if (!player) {
       return (
         <div className="flex justify-between items-center p-2 rounded-md">
@@ -149,20 +147,26 @@ function PredictionMatchCard({
     const isActualLoser = hasActualWinner && match.actualWinner !== player.id;
     const isClickable = canPredict && match.player1 !== null && match.player2 !== null;
 
+    const isCommunityMode = mode === 'community';
+
     return (
       <button
         onClick={isClickable ? () => onPredict(match.matchId, player.id) : undefined}
         disabled={!isClickable}
         className={`w-full flex justify-between items-center p-2 rounded-md transition-colors text-left ${
-          isActualWinner
-            ? 'bg-green-500/10'
-            : isActualLoser
-              ? 'opacity-40'
-              : isPicked
-                ? 'bg-purple-500/10'
-                : isClickable
-                  ? 'hover:bg-white/[0.04] cursor-pointer'
-                  : ''
+          isCommunityMode
+            ? isActualWinner
+              ? 'bg-green-500/10'
+              : ''
+            : isActualWinner
+              ? 'bg-green-500/10'
+              : isActualLoser
+                ? 'opacity-40'
+                : isPicked
+                  ? 'bg-purple-500/10'
+                  : isClickable
+                    ? 'hover:bg-white/[0.04] cursor-pointer'
+                    : ''
         }`}
       >
         <div className="flex items-center gap-2 min-w-0 flex-1">
@@ -171,63 +175,102 @@ function PredictionMatchCard({
               <img src={player.profilePicture} alt={player.name} className="w-full h-full object-cover rounded-full" />
             ) : (
               <div className={`w-full h-full rounded-full flex items-center justify-center text-[8px] font-bold ${
-                isActualWinner
-                  ? 'bg-green-500/30 text-green-300 ring-1 ring-green-500/40'
-                  : isPicked
-                    ? 'bg-purple-500/30 text-purple-300 ring-1 ring-purple-500/40'
+                isCommunityMode
+                  ? isActualWinner
+                    ? 'bg-green-500/30 text-green-300 ring-1 ring-green-500/40'
                     : 'bg-gray-700/80 text-gray-400 ring-1 ring-gray-700/50'
+                  : isActualWinner
+                    ? 'bg-green-500/30 text-green-300 ring-1 ring-green-500/40'
+                    : isPicked
+                      ? 'bg-purple-500/30 text-purple-300 ring-1 ring-purple-500/40'
+                      : 'bg-gray-700/80 text-gray-400 ring-1 ring-gray-700/50'
               }`}>
                 {player.seed}
               </div>
             )}
           </div>
           <span className={`text-sm truncate ${
-            isActualWinner
-              ? 'font-semibold text-green-400'
-              : isActualLoser
-                ? 'text-gray-600'
-                : isPicked
-                  ? 'font-semibold text-purple-400'
-                  : 'text-gray-300'
+            isCommunityMode
+              ? isActualWinner
+                ? 'font-semibold text-green-400'
+                : 'text-gray-300'
+              : isActualWinner
+                ? 'font-semibold text-green-400'
+                : isActualLoser
+                  ? 'text-gray-600'
+                  : isPicked
+                    ? 'font-semibold text-purple-400'
+                    : 'text-gray-300'
           }`}>
             {player.name}
           </span>
         </div>
         <div className="flex items-center gap-1.5 ml-2">
-          {isActualWinner && <Check className="w-3.5 h-3.5 text-green-400 flex-shrink-0" />}
-          {!hasActualWinner && isPicked && <Check className="w-3.5 h-3.5 text-purple-400 flex-shrink-0" />}
+          {isCommunityMode && communityPct !== undefined && (
+            <span className={`text-[10px] font-mono tabular-nums ${
+              communityPct >= 60 ? 'text-green-400' : communityPct >= 40 ? 'text-yellow-400' : 'text-red-400'
+            }`}>
+              {communityPct}%
+            </span>
+          )}
+          {!isCommunityMode && isActualWinner && <Check className="w-3.5 h-3.5 text-green-400 flex-shrink-0" />}
+          {!isCommunityMode && !hasActualWinner && isPicked && <Check className="w-3.5 h-3.5 text-purple-400 flex-shrink-0" />}
         </div>
       </button>
     );
   };
 
+  const p1Pct = communityData && match.player1 ? communityData[match.player1.id] : undefined;
+  const p2Pct = communityData && match.player2 ? communityData[match.player2.id] : undefined;
+
   return (
     <div className={`bg-neutral-800/50 backdrop-blur rounded-lg border shadow-lg p-4 w-64 transition-colors ${
-      hasActualWinner
-        ? 'border-green-500/20'
-        : isPredicted
-          ? 'border-purple-500/20'
-          : 'border-gray-700/50 hover:border-gray-600/50'
+      mode === 'community'
+        ? hasActualWinner ? 'border-green-500/20' : 'border-gray-700/50'
+        : hasActualWinner
+          ? 'border-green-500/20'
+          : isPredicted
+            ? 'border-purple-500/20'
+            : 'border-gray-700/50 hover:border-gray-600/50'
     }`}>
       <div className="text-center mb-2">
         <div className="text-xs text-gray-500">Match {match.matchNumber}</div>
-        {hasActualWinner && isPredicted && (
-          <div className={`text-xs ${match.predictedWinner === match.actualWinner ? 'text-green-400' : 'text-red-400'}`}>
-            {match.predictedWinner === match.actualWinner ? '✓ Correct' : '✗ Wrong'}
+        {mode === 'mine' && hasActualWinner && isPredicted && (
+          <div className={`text-xs ${isCorrect ? 'text-green-400' : 'text-red-400'}`}>
+            {isCorrect ? '✓ Correct' : '✗ Wrong'}
+            {match.pointsEarned > 0 && (
+              <span className="ml-1 text-yellow-400">+{match.pointsEarned}pt</span>
+            )}
           </div>
         )}
-        {!hasActualWinner && isPredicted && (
+        {mode === 'mine' && !hasActualWinner && isPredicted && (
           <div className="text-xs text-purple-400/70">Predicted</div>
         )}
       </div>
 
       <div className="space-y-1">
-        {renderPlayerRow(match.player1, match.predictedWinner === match.player1?.id)}
+        {renderPlayerRow(match.player1, match.predictedWinner === match.player1?.id, p1Pct)}
         <div className="text-center">
           <span className="text-xs text-gray-600">vs</span>
         </div>
-        {renderPlayerRow(match.player2, match.predictedWinner === match.player2?.id)}
+        {renderPlayerRow(match.player2, match.predictedWinner === match.player2?.id, p2Pct)}
       </div>
+
+      {/* Community prediction bar */}
+      {mode === 'community' && p1Pct !== undefined && p2Pct !== undefined && match.player1 && match.player2 && (
+        <div className="mt-3 px-1">
+          <div className="h-1.5 bg-white/[0.04] rounded-full overflow-hidden flex">
+            <div
+              className="h-full rounded-l-full bg-purple-500/60 transition-all duration-500"
+              style={{ width: `${p1Pct}%` }}
+            />
+            <div
+              className="h-full rounded-r-full bg-gray-500/40 transition-all duration-500"
+              style={{ width: `${p2Pct}%` }}
+            />
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -248,6 +291,10 @@ export default function TournamentPredictions() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [mode, setMode] = useState<'mine' | 'community'>('mine');
+  const [pointsAwarded, setPointsAwarded] = useState(0);
+  const [championCorrect, setChampionCorrect] = useState(false);
+  const [communityData, setCommunityData] = useState<{ totalPredictors: number; matches: Record<number, Record<number, number>> } | null>(null);
+  const [communityLoading, setCommunityLoading] = useState(false);
 
   // Load bracket data and existing predictions
   useEffect(() => {
@@ -318,6 +365,8 @@ export default function TournamentPredictions() {
           player2: m.player2_id ? playerMap.get(m.player2_id) ?? null : null,
           predictedWinner: null,
           actualWinner: m.winner_id,
+          isCorrect: null,
+          pointsEarned: 0,
           nextMatchId: m.next_match_id,
           nextMatchSlot: m.next_match_slot,
         }));
@@ -328,12 +377,16 @@ export default function TournamentPredictions() {
           if (predRes.submitted) {
             setSubmitted(true);
             setSubmittedAt(predRes.submittedAt);
+            setPointsAwarded(predRes.pointsAwarded || 0);
+            setChampionCorrect(predRes.championCorrect || false);
 
-            // Apply saved picks
+            // Apply saved picks (including scoring data)
             for (const pick of predRes.picks) {
               const match = predictionMatches.find(m => m.dbMatchId === pick.match_id);
               if (match) {
                 match.predictedWinner = pick.predicted_winner_id;
+                match.isCorrect = pick.is_correct ?? null;
+                match.pointsEarned = pick.points_earned ?? 0;
               }
             }
           }
@@ -391,18 +444,39 @@ export default function TournamentPredictions() {
   // Predictions window closed: tournament started/completed and user didn't submit
   const predictionsClosed = canShowCommunity && !submitted;
 
+  // Fetch community data when switching to community tab
+  useEffect(() => {
+    if (mode !== 'community' || !id || !canShowCommunity) return;
+    if (communityData) return; // already loaded
+
+    const fetchCommunity = async () => {
+      setCommunityLoading(true);
+      try {
+        const res = await fetch(`${API_BASE_URL}/predictions/${id}/community`, { credentials: 'include' });
+        if (res.ok) {
+          const data = await res.json();
+          setCommunityData(data);
+        }
+      } catch {
+        // ignore
+      } finally {
+        setCommunityLoading(false);
+      }
+    };
+    fetchCommunity();
+  }, [mode, id, canShowCommunity, communityData]);
+
   const handlePredict = useCallback((matchId: string, winnerId: number) => {
     if (submitted || predictionsClosed) return;
 
-    setMatches(prev => {
-      const updated = prev.map(m =>
+    setMatches(prev =>
+      prev.map(m =>
         m.matchId === matchId
           ? { ...m, predictedWinner: m.predictedWinner === winnerId ? null : winnerId }
           : m
-      );
-      return propagatePredictions(updated);
-    });
-  }, [submitted]);
+      )
+    );
+  }, [submitted, predictionsClosed]);
 
   const handleReset = () => {
     if (submitted) return;
@@ -643,6 +717,15 @@ export default function TournamentPredictions() {
                   Submitted {submittedAt ? new Date(submittedAt).toLocaleString() : ''} — your picks cannot be changed
                 </p>
               </div>
+              {pointsAwarded > 0 && (
+                <div className="text-right">
+                  <p className="text-lg font-bold text-yellow-400">{pointsAwarded} pts</p>
+                  <p className="text-[10px] text-gray-500">
+                    {bracket.filter(m => m.isCorrect === true).length}/{bracket.filter(m => m.isCorrect !== null).length} correct
+                    {championCorrect && <span className="text-yellow-400 ml-1">★ Champion bonus</span>}
+                  </p>
+                </div>
+              )}
             </div>
           )}
 
@@ -697,43 +780,68 @@ export default function TournamentPredictions() {
 
         {/* ── BRACKET ── */}
         {!predictionsClosed && (
-          <div className="bg-neutral-900/30 rounded-2xl border border-white/[0.06] overflow-hidden">
-            <div
-              ref={scrollRef}
-              onMouseDown={handleMouseDown}
-              className="flex gap-8 pb-6 p-6 overflow-x-auto cursor-grab active:cursor-grabbing select-none"
-            >
-              {rounds.map((round, roundIndex) => {
-                const spacingMultiplier = Math.pow(2, roundIndex);
-                const matchGap = roundIndex === 0 ? 16 : 16 * spacingMultiplier;
+          <>
+            {/* Community stats bar */}
+            {mode === 'community' && communityData && (
+              <div className="mb-4 bg-green-500/[0.04] rounded-xl border border-green-500/20 p-4 flex items-center gap-3">
+                <div className="w-8 h-8 rounded-full bg-green-500/10 flex items-center justify-center">
+                  <span className="text-sm font-bold text-green-400">{communityData.totalPredictors}</span>
+                </div>
+                <div>
+                  <p className="text-xs text-green-300 font-medium">Community Predictions</p>
+                  <p className="text-[10px] text-gray-500">
+                    {communityData.totalPredictors} {communityData.totalPredictors === 1 ? 'user has' : 'users have'} submitted predictions for this tournament
+                  </p>
+                </div>
+              </div>
+            )}
+            {mode === 'community' && communityLoading && (
+              <div className="mb-4 text-center py-4">
+                <div className="w-6 h-6 border-2 border-green-500/30 border-t-green-500 rounded-full animate-spin mx-auto" />
+                <p className="text-xs text-gray-500 mt-2">Loading community predictions...</p>
+              </div>
+            )}
 
-                return (
-                  <div key={round.round} className="flex-shrink-0 flex flex-col">
-                    {/* Round header */}
-                    <div className="text-sm font-medium text-gray-400 mb-4 px-3 py-1 bg-green-500/10 rounded-lg text-center whitespace-nowrap">
-                      {round.name}
-                    </div>
+            <div className="bg-neutral-900/30 rounded-2xl border border-white/[0.06] overflow-hidden">
+              <div
+                ref={scrollRef}
+                onMouseDown={handleMouseDown}
+                className="flex gap-8 pb-6 p-6 overflow-x-auto cursor-grab active:cursor-grabbing select-none"
+              >
+                {rounds.map((round, roundIndex) => {
+                  const spacingMultiplier = Math.pow(2, roundIndex);
+                  const matchGap = roundIndex === 0 ? 16 : 16 * spacingMultiplier;
 
-                    {/* Matches */}
-                    <div
-                      className="flex flex-col justify-around flex-1"
-                      style={{ gap: `${matchGap}px` }}
-                    >
-                      {round.matches.map((match) => (
-                        <div key={match.matchId} className="relative">
-                          <PredictionMatchCard
-                            match={match}
-                            onPredict={handlePredict}
-                            canPredict={canPredict}
-                          />
-                        </div>
-                      ))}
+                  return (
+                    <div key={round.round} className="flex-shrink-0 flex flex-col">
+                      {/* Round header */}
+                      <div className="text-sm font-medium text-gray-400 mb-4 px-3 py-1 bg-green-500/10 rounded-lg text-center whitespace-nowrap">
+                        {round.name}
+                      </div>
+
+                      {/* Matches */}
+                      <div
+                        className="flex flex-col justify-around flex-1"
+                        style={{ gap: `${matchGap}px` }}
+                      >
+                        {round.matches.map((match) => (
+                          <div key={match.matchId} className="relative">
+                            <PredictionMatchCard
+                              match={match}
+                              onPredict={handlePredict}
+                              canPredict={canPredict}
+                              mode={mode}
+                              communityData={communityData?.matches[match.dbMatchId]}
+                            />
+                          </div>
+                        ))}
+                      </div>
                     </div>
-                  </div>
-                );
-              })}
+                  );
+                })}
+              </div>
             </div>
-          </div>
+          </>
         )}
 
       </div>
