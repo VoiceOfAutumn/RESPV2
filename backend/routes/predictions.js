@@ -144,10 +144,10 @@ router.post('/:tournamentId/score', authMiddleware, async (req, res) => {
 
     await client.query('BEGIN');
 
-    // Get all matches with results for this tournament
+    // Get all non-bye matches with results for this tournament
     const matchResults = await client.query(
       `SELECT id, round, winner_id FROM tournament_matches
-       WHERE tournament_id = $1 AND winner_id IS NOT NULL`,
+       WHERE tournament_id = $1 AND winner_id IS NOT NULL AND bye_match = false`,
       [tournamentId]
     );
 
@@ -165,13 +165,22 @@ router.post('/:tournamentId/score', authMiddleware, async (req, res) => {
 
     // Get all predictions for this tournament
     const predictions = await client.query(
-      'SELECT id, user_id FROM tournament_predictions WHERE tournament_id = $1',
+      'SELECT id, user_id, points_awarded FROM tournament_predictions WHERE tournament_id = $1',
       [tournamentId]
     );
 
     let scoredCount = 0;
 
     for (const pred of predictions.rows) {
+      // Idempotency: if already scored, subtract old points before re-scoring
+      const oldPoints = pred.points_awarded || 0;
+      if (oldPoints > 0) {
+        await client.query(
+          'UPDATE users SET prediction_points = prediction_points - $1, lifetime_prediction_points = lifetime_prediction_points - $1 WHERE id = $2',
+          [oldPoints, pred.user_id]
+        );
+      }
+
       let totalPoints = 0;
       let championCorrect = false;
 
