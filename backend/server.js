@@ -602,6 +602,8 @@ app.get('/user/:displayname', async (req, res) => {
         users.display_name, 
         users.profile_picture,
         users.points,
+        users.prediction_points,
+        users.lifetime_prediction_points,
         users.role,
         countries.code as country_code,
         countries.name as country_name

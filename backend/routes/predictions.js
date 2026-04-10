@@ -214,9 +214,9 @@ router.post('/:tournamentId/score', authMiddleware, async (req, res) => {
         [totalPoints, championCorrect, pred.id]
       );
 
-      // Award points to the user
+      // Award prediction points to the user (separate from EXP)
       await client.query(
-        'UPDATE users SET points = points + $1 WHERE id = $2',
+        'UPDATE users SET prediction_points = prediction_points + $1, lifetime_prediction_points = lifetime_prediction_points + $1 WHERE id = $2',
         [totalPoints, pred.user_id]
       );
 
