@@ -251,9 +251,11 @@ const Leaderboard = () => {
                     } ${medal ? `bg-gradient-to-r ${medal.color}` : ''}`}
                   >
                     <td className="w-24 px-6 py-2.5 whitespace-nowrap">
-                      <div className={`text-sm font-bold ${rank ? 'text-white' : 'text-gray-500 italic'}`}>
-                        {rank ? `#${rank}` : 'Unranked'}
-                      </div>
+                      {rank ? (
+                        <div className="text-sm font-bold text-white">#{rank}</div>
+                      ) : (
+                        <div className="text-[11px] font-normal text-gray-500 italic">Unranked</div>
+                      )}
                     </td>
                     <td className="px-6 py-2.5 whitespace-nowrap">
                       <div className="flex items-center gap-3">

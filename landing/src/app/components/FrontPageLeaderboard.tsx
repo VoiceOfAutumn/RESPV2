@@ -160,7 +160,7 @@ const FrontPageLeaderboard = () => {
               key={entry.display_name}
               className="group relative flex items-center justify-between p-2 rounded-lg transition-all duration-300 hover:bg-white/5"
             >
-              <div className={`w-10 font-bold text-center text-sm ${entry.rank ? 'text-white' : 'text-gray-500 italic'}`}>
+              <div className={`w-10 text-center ${entry.rank ? 'font-bold text-sm text-white' : 'text-[10px] font-normal text-gray-500 italic'}`}>
                 {entry.rank ? `#${entry.rank}` : 'N/A'}
               </div>
               <div className="flex items-center gap-3 flex-1 ml-2">

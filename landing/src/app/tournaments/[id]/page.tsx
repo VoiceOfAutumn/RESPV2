@@ -7,6 +7,7 @@ import { EditInfoModal } from '@/components/TournamentStaffControls';
 import { useToast } from '@/app/components/ToastContext';
 import { Tournament, TournamentUpdate, GameData, GameInfo } from '@/types/tournament';
 import { API_BASE_URL } from '@/lib/api';
+import { Lock, GitBranch, BarChart3, UserPlus } from 'lucide-react';
 import Link from 'next/link';
 import Image from 'next/image';
 
@@ -23,6 +24,8 @@ export default function TournamentDetailPage() {
   const [showEditModal, setShowEditModal] = useState(false);
   const [showSignupModal, setShowSignupModal] = useState(false);
   const [signupAgreed, setSignupAgreed] = useState(false);
+  const [showStaffMenu, setShowStaffMenu] = useState(false);
+  const [isUpdatingStatus, setIsUpdatingStatus] = useState(false);
   const { showToast } = useToast();
   const router = useRouter();
 
@@ -30,6 +33,68 @@ export default function TournamentDetailPage() {
   const handleTournamentUpdate = (update: TournamentUpdate) => {
     if (!tournament) return;
     setTournamentState({ ...tournament, ...update });
+  };
+
+  const handleStatusChange = async (newStatus: Tournament['status']) => {
+    setIsUpdatingStatus(true);
+    try {
+      const authToken = localStorage.getItem('authToken');
+      const headers: HeadersInit = { 'Content-Type': 'application/json' };
+      if (authToken) headers['Authorization'] = `Bearer ${authToken}`;
+
+      const res = await fetch(`${API_BASE_URL}/tournaments/${id}/status`, {
+        method: 'PUT',
+        headers,
+        credentials: 'include',
+        body: JSON.stringify({ status: newStatus }),
+      });
+
+      if (res.ok) {
+        setTournamentState(prev => prev ? { ...prev, status: newStatus } : prev);
+        setShowStaffMenu(false);
+        showToast({ title: 'Success', message: 'Tournament status updated', type: 'success' });
+      } else {
+        const err = await res.json().catch(() => ({}));
+        showToast({ title: 'Error', message: err.message || 'Failed to update status', type: 'error' });
+      }
+    } catch {
+      showToast({ title: 'Error', message: 'Error updating status', type: 'error' });
+    } finally {
+      setIsUpdatingStatus(false);
+    }
+  };
+
+  const handleGenerateBrackets = async () => {
+    setIsUpdatingStatus(true);
+    try {
+      const authToken = localStorage.getItem('authToken');
+      const headers: HeadersInit = {};
+      if (authToken) headers['Authorization'] = `Bearer ${authToken}`;
+
+      const res = await fetch(`${API_BASE_URL}/tournaments/${id}/bracket/generate`, {
+        method: 'POST',
+        headers,
+        credentials: 'include',
+      });
+
+      if (res.ok) {
+        setTournamentState(prev => prev ? { ...prev, status: 'brackets_generated' as const } : prev);
+        setShowStaffMenu(false);
+        showToast({ title: 'Success', message: 'Brackets generated', type: 'success' });
+        router.push(`/tournaments/${id}/bracket`);
+      } else {
+        const err = await res.json().catch(() => ({}));
+        if (err.message?.includes('already been generated')) {
+          router.push(`/tournaments/${id}/bracket`);
+        } else {
+          showToast({ title: 'Error', message: err.message || 'Failed to generate brackets', type: 'error' });
+        }
+      }
+    } catch {
+      showToast({ title: 'Error', message: 'Error generating brackets', type: 'error' });
+    } finally {
+      setIsUpdatingStatus(false);
+    }
   };
 
   const fetchTournament = async () => {
@@ -222,7 +287,81 @@ export default function TournamentDetailPage() {
       
       <div className="p-8">
         <div className="max-w-7xl mx-auto space-y-8">
-          <div className="bg-neutral-800/50 backdrop-blur rounded-xl shadow-lg p-8 border border-gray-700/50">
+          <div className="bg-neutral-800/50 backdrop-blur rounded-xl shadow-lg p-8 border border-gray-700/50 relative">
+            {/* Staff controls — top-right */}
+            {isStaff && (
+              <div className="absolute top-4 right-4 flex items-center gap-2 z-10">
+                <button
+                  onClick={() => setShowEditModal(true)}
+                  className="bg-blue-500/10 text-blue-400 hover:bg-blue-500/20 font-medium py-1.5 px-4 rounded-lg text-sm
+                    transition-all duration-200"
+                >
+                  Edit Info
+                </button>
+                <div className="relative">
+                  <button
+                    onClick={() => setShowStaffMenu(!showStaffMenu)}
+                    className="bg-purple-500/10 text-purple-400 hover:bg-purple-500/20 font-medium py-1.5 px-4 rounded-lg text-sm
+                      transition-all duration-200"
+                  >
+                    Staff Actions
+                  </button>
+                  {showStaffMenu && (
+                    <div className="absolute right-0 top-full mt-1 w-56 rounded-lg bg-gray-800 border border-gray-700/50 shadow-xl overflow-hidden">
+                      <div className="py-1">
+                        <button
+                          onClick={() => handleStatusChange('registration_open')}
+                          disabled={tournament.status === 'registration_open' || isUpdatingStatus}
+                          className="block w-full px-4 py-2 text-left text-sm text-gray-300 hover:bg-gray-700/50 disabled:opacity-40"
+                        >
+                          Open Registration
+                        </button>
+                        <button
+                          onClick={() => handleStatusChange('registration_closed')}
+                          disabled={tournament.status === 'registration_closed' || isUpdatingStatus}
+                          className="block w-full px-4 py-2 text-left text-sm text-gray-300 hover:bg-gray-700/50 disabled:opacity-40"
+                        >
+                          Close Registration
+                        </button>
+                        {tournament.status === 'registration_closed' && (
+                          <button
+                            onClick={handleGenerateBrackets}
+                            disabled={isUpdatingStatus}
+                            className="block w-full px-4 py-2 text-left text-sm text-gray-300 hover:bg-gray-700/50 disabled:opacity-40"
+                          >
+                            Generate Brackets
+                          </button>
+                        )}
+                        {tournament.status === 'brackets_generated' && (
+                          <button
+                            onClick={() => handleStatusChange('in_progress')}
+                            disabled={isUpdatingStatus}
+                            className="block w-full px-4 py-2 text-left text-sm text-gray-300 hover:bg-gray-700/50 disabled:opacity-40"
+                          >
+                            Start Tournament
+                          </button>
+                        )}
+                        <button
+                          onClick={() => handleStatusChange('completed')}
+                          disabled={tournament.status === 'completed' || isUpdatingStatus}
+                          className="block w-full px-4 py-2 text-left text-sm text-gray-300 hover:bg-gray-700/50 disabled:opacity-40"
+                        >
+                          Complete Tournament
+                        </button>
+                        <button
+                          onClick={() => handleStatusChange('cancelled')}
+                          disabled={tournament.status === 'cancelled' || isUpdatingStatus}
+                          className="block w-full px-4 py-2 text-left text-sm text-red-400 hover:bg-gray-700/50 disabled:opacity-40"
+                        >
+                          Cancel Tournament
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
             <div className="flex flex-col lg:flex-row gap-8">
               <div className="w-full lg:w-1/3">
                 <div className="relative aspect-video w-full">
@@ -265,21 +404,64 @@ export default function TournamentDetailPage() {
                       {tournament.status.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase())}
                     </span>
                   </div>
-                </div>                <div className="flex gap-3 pt-4">
-                  <button
-                    onClick={() => router.push(`/tournaments/${id}/bracket`)}
-                    className="bg-purple-500/10 text-purple-400 hover:bg-purple-500/20 font-semibold py-2 px-6 rounded-lg 
-                      transition-all duration-300 transform hover:scale-105 active:scale-95"
-                  >
-                    View Bracket
-                  </button>
+                </div>                <div className="flex flex-wrap gap-3 pt-4">
+                  {/* Bracket button */}
+                  {tournament.status === 'registration_open' || tournament.status === 'registration_closed' ? (
+                    <div className="relative group">
+                      <button
+                        disabled
+                        className="flex items-center gap-2 px-6 py-3 rounded-xl font-bold text-sm bg-white/[0.04] text-gray-600 border border-white/[0.06] cursor-not-allowed"
+                      >
+                        <Lock className="w-4 h-4" />
+                        Bracket
+                      </button>
+                      <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-1.5 rounded-lg bg-gray-800 border border-gray-700/50 text-xs text-gray-300 whitespace-nowrap opacity-0 pointer-events-none group-hover:opacity-100 transition-opacity shadow-xl z-20">
+                        Brackets have not yet been generated
+                        <div className="absolute top-full left-1/2 -translate-x-1/2 w-2 h-2 bg-gray-800 border-b border-r border-gray-700/50 rotate-45 -mt-1" />
+                      </div>
+                    </div>
+                  ) : (
+                    <button
+                      onClick={() => router.push(`/tournaments/${id}/bracket`)}
+                      className="flex items-center gap-2 px-6 py-3 rounded-xl font-bold text-sm bg-purple-600 hover:bg-purple-500 text-white shadow-lg shadow-purple-500/20 transition-all"
+                    >
+                      <GitBranch className="w-4 h-4" />
+                      Bracket
+                    </button>
+                  )}
 
+                  {/* Predictions button */}
+                  {tournament.status === 'registration_open' || tournament.status === 'registration_closed' ? (
+                    <div className="relative group">
+                      <button
+                        disabled
+                        className="flex items-center gap-2 px-6 py-3 rounded-xl font-bold text-sm bg-white/[0.04] text-gray-600 border border-white/[0.06] cursor-not-allowed"
+                      >
+                        <Lock className="w-4 h-4" />
+                        Predictions
+                      </button>
+                      <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-1.5 rounded-lg bg-gray-800 border border-gray-700/50 text-xs text-gray-300 whitespace-nowrap opacity-0 pointer-events-none group-hover:opacity-100 transition-opacity shadow-xl z-20">
+                        Predictions are not available until the bracket has been generated
+                        <div className="absolute top-full left-1/2 -translate-x-1/2 w-2 h-2 bg-gray-800 border-b border-r border-gray-700/50 rotate-45 -mt-1" />
+                      </div>
+                    </div>
+                  ) : (
+                    <button
+                      onClick={() => router.push(`/tournaments/${id}/predictions`)}
+                      className="flex items-center gap-2 px-6 py-3 rounded-xl font-bold text-sm bg-purple-600 hover:bg-purple-500 text-white shadow-lg shadow-purple-500/20 transition-all"
+                    >
+                      <BarChart3 className="w-4 h-4" />
+                      Predictions
+                    </button>
+                  )}
+
+                  {/* Sign Up button */}
                   {canSignUp && (
                     <button
                       onClick={() => { setSignupAgreed(false); setShowSignupModal(true); }}
-                      className="bg-purple-500/10 text-purple-400 hover:bg-purple-500/20 font-semibold py-2 px-6 rounded-lg 
-                        transition-all duration-300 transform hover:scale-105 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
+                      className="flex items-center gap-2 px-6 py-3 rounded-xl font-bold text-sm bg-purple-600 hover:bg-purple-500 text-white shadow-lg shadow-purple-500/20 transition-all"
                     >
+                      <UserPlus className="w-4 h-4" />
                       Sign Up
                     </button>
                   )}
@@ -291,16 +473,6 @@ export default function TournamentDetailPage() {
                         transition-all duration-300 transform hover:scale-105 active:scale-95"
                     >
                       Cancel Signup
-                    </button>
-                  )}
-
-                  {isStaff && (
-                    <button
-                      onClick={() => setShowEditModal(true)}
-                      className="bg-blue-500/10 text-blue-400 hover:bg-blue-500/20 font-semibold py-2 px-6 rounded-lg 
-                        transition-all duration-300 transform hover:scale-105 active:scale-95"
-                    >
-                      Edit Info
                     </button>
                   )}
                 </div>

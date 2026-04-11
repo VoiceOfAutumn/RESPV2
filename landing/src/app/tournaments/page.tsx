@@ -1,9 +1,8 @@
 'use client';
 
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { createPortal } from 'react-dom';
 import PageShell from '../components/PageShell';
 import { Search, Calendar, Users, TrendingUp, ChevronLeft, ChevronRight } from 'lucide-react';
 import { API_BASE_URL } from '@/lib/api';
@@ -21,55 +20,18 @@ interface Tournament {
 
 interface User {
   role?: 'user' | 'staff' | 'admin';
-  displayName?: string;
-  profile_picture?: string;
 }
-
-interface DropdownPortalProps {
-  children: React.ReactNode;
-  buttonRef: React.RefObject<HTMLButtonElement>;
-}
-
-const DropdownPortal = ({ children, buttonRef }: DropdownPortalProps) => {
-  const [mounted, setMounted] = useState(false);
-
-  useEffect(() => {
-    setMounted(true);
-    return () => setMounted(false);
-  }, []);
-
-  if (!mounted || !buttonRef.current) return null;
-
-  const rect = buttonRef.current.getBoundingClientRect();
-  const top = rect.bottom + window.scrollY;
-  const right = window.innerWidth - rect.right;
-
-  return createPortal(
-    <div
-      style={{
-        position: 'absolute',
-        top: `${top}px`,
-        right: `${right}px`,
-        zIndex: 9999,
-      }}
-    >
-      {children}
-    </div>,
-    document.body
-  );
-};
 
 export default function TournamentsPage() {
   const router = useRouter();
   const [tournaments, setTournaments] = useState<Tournament[]>([]);
   const [loading, setLoading] = useState(true);
-  const [currentPage, setCurrentPage] = useState(1);  const [searchTerm, setSearchTerm] = useState('');
+  const [currentPage, setCurrentPage] = useState(1);
+  const [searchTerm, setSearchTerm] = useState('');
   const [user, setUser] = useState<User | null>(null);
-  const [showActionMenu, setShowActionMenu] = useState<number | null>(null);
   const itemsPerPage = 6;
 
   const isStaff = user?.role === 'admin';
-  const actionButtonRefs = useRef<{ [key: number]: HTMLButtonElement | null }>({});
 
   useEffect(() => {
     const fetchUser = async () => {
@@ -143,124 +105,6 @@ export default function TournamentsPage() {
         setLoading(false);
       });
   }, []);
-
-  const handleStatusChange = async (tournamentId: number, newStatus: string) => {
-    try {
-      console.log(`Attempting to change tournament ${tournamentId} status to ${newStatus}`);
-      
-      // Get auth token for authentication
-      const authToken = localStorage.getItem('authToken');
-      const headers: HeadersInit = {
-        'Content-Type': 'application/json',
-      };
-      
-      if (authToken) {
-        headers['Authorization'] = `Bearer ${authToken}`;
-      }
-
-      const response = await fetch(`${API_BASE_URL}/tournaments/${tournamentId}/status`, {
-        method: 'PUT',
-        headers,
-        credentials: 'include',
-        body: JSON.stringify({ status: newStatus })
-      });      console.log('Status change response:', response.status);
-      
-      let errorMessage;
-      try {
-        const responseData = await response.json();
-        console.log('Status change response data:', responseData);
-
-        if (response.ok) {
-          // Update the tournament status locally
-          setTournaments(tournaments.map(t => 
-            t.id === tournamentId ? { ...t, status: newStatus } : t
-          ));
-          setShowActionMenu(null);
-          return;
-        }
-        
-        errorMessage = responseData.error || responseData.message || 'Failed to update tournament status';
-      } catch (parseError) {
-        console.error('Failed to parse response:', parseError);
-        errorMessage = 'Invalid server response';
-      }      // If we get here, there was an error
-      console.error('Failed to update tournament status:', errorMessage);
-      alert(`Failed to update tournament status: ${errorMessage}`);
-      throw new Error(errorMessage);
-    } catch (error) {
-      console.error('Failed to update tournament status:', error instanceof Error ? error.message : error);
-      // Show a user-friendly error message
-      alert(error instanceof Error ? error.message : 'Failed to update tournament status');
-    }
-  };  const handleGenerateBrackets = async (tournamentId: number) => {
-    try {
-      console.log(`Attempting to generate brackets for tournament ${tournamentId}`);
-      
-      // Get auth token for authentication
-      const authToken = localStorage.getItem('authToken');
-      const headers: HeadersInit = {};
-      
-      if (authToken) {
-        headers['Authorization'] = `Bearer ${authToken}`;
-      }
-
-      const response = await fetch(`${API_BASE_URL}/tournaments/${tournamentId}/bracket/generate`, {
-        method: 'POST',
-        headers,
-        credentials: 'include',
-      });
-
-      console.log('Generate brackets response:', response.status);
-
-      // First check if the response is OK
-      if (response.ok) {
-        // Update local status to brackets_generated
-        setTournaments(tournaments.map(t => 
-          t.id === tournamentId ? { ...t, status: 'brackets_generated' } : t
-        ));
-        setShowActionMenu(null);
-        // Try to parse the response as JSON
-        try {
-          const responseData = await response.json();
-          console.log('Generate brackets response data:', responseData);
-          router.push(`/tournaments/${tournamentId}/bracket`);
-        } catch (parseError) {
-          console.error('Failed to parse JSON response:', parseError);
-          // Don't throw, just navigate to brackets
-          router.push(`/tournaments/${tournamentId}/bracket`);
-        }
-      } else {
-        // Try to get error message from response
-        let errorMessage = 'Failed to generate brackets';
-        try {
-          const errorData = await response.json();
-          errorMessage = errorData.error || errorData.message || errorMessage;
-        } catch {
-          // If we can't parse the error response, try to get text
-          try {
-            const errorText = await response.text();
-            errorMessage = errorText || errorMessage;
-          } catch {
-            // If all else fails, use the status text
-            errorMessage = response.statusText || errorMessage;
-          }
-        }
-        
-        console.error('Failed to generate brackets:', errorMessage);
-        
-        // If brackets already exist, just navigate to the bracket page
-        if (errorMessage.includes('already been generated')) {
-          router.push(`/tournaments/${tournamentId}/bracket`);
-          return;
-        }
-        
-        throw new Error(errorMessage);      }
-    } catch (error) {
-      console.error('Failed to generate brackets:', error);
-      // Show error toast
-      alert(error instanceof Error ? error.message : 'Failed to generate brackets');
-    }
-  };
 
   // Filter tournaments based on search term
   const filteredTournaments = tournaments.filter(tournament =>
@@ -393,14 +237,14 @@ export default function TournamentsPage() {
                   <th className="px-6 py-3 text-left text-sm font-semibold text-gray-300">Date</th>
                   <th className="px-6 py-3 text-left text-sm font-semibold text-gray-300">Signup Closes</th>
                   <th className="px-6 py-3 text-left text-sm font-semibold text-gray-300">Status</th>
-                  <th className="px-6 py-3 text-right text-sm font-semibold text-gray-300">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-700/50">
                 {paginatedTournaments.map((tournament) => (
                   <tr
                     key={tournament.id}
-                    className="bg-neutral-800/30 backdrop-blur hover:bg-neutral-700/30 transition-colors duration-200"
+                    onClick={() => router.push(`/tournaments/${tournament.id}`)}
+                    className="bg-neutral-800/30 backdrop-blur hover:bg-neutral-700/30 transition-colors duration-200 cursor-pointer group"
                   >
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="flex items-center gap-3">
@@ -411,7 +255,7 @@ export default function TournamentsPage() {
                             className="w-full h-full object-cover"
                           />
                         </div>
-                        <div className="text-sm font-medium text-white">{tournament.name}</div>
+                        <div className="text-sm font-medium text-white group-hover:text-purple-400 transition-colors duration-200">{tournament.name}</div>
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
@@ -448,101 +292,6 @@ export default function TournamentsPage() {
                       <span className={`inline-flex items-center px-2.5 py-1 rounded-md text-xs font-semibold tracking-wide uppercase ${getStatusBadgeStyle(tournament.status)}`}>
                         {getStatusText(tournament.status)}
                       </span>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                      <div className="flex justify-end gap-2 items-center">                        <Link
-                          href={`/tournaments/${tournament.id}`}
-                          className="bg-purple-500/10 text-purple-400 hover:bg-purple-500/20 px-3 py-1 rounded-lg 
-                            transition-all duration-300 transform hover:scale-105 active:scale-95"
-                        >
-                          Details
-                        </Link>
-
-                        <Link
-                          href={`/tournaments/${tournament.id}/bracket`}
-                          className="bg-purple-500/10 text-purple-400 hover:bg-purple-500/20 px-3 py-1 rounded-lg 
-                            transition-all duration-300 transform hover:scale-105 active:scale-95"
-                        >
-                          Bracket
-                        </Link>
-
-                        {isStaff && (
-                          <div className="relative">
-                            <button
-                              ref={el => {
-                                if (el) actionButtonRefs.current[tournament.id] = el;
-                              }}
-                              onClick={() => setShowActionMenu(showActionMenu === tournament.id ? null : tournament.id)}
-                              className="bg-purple-500/10 text-purple-400 hover:bg-purple-500/20 px-3 py-1 rounded-lg 
-                                transition-all duration-300 transform hover:scale-105 active:scale-95"
-                            >
-                              Staff Actions
-                            </button>                            {showActionMenu === tournament.id && actionButtonRefs.current[tournament.id] && (
-                              <DropdownPortal buttonRef={{ current: actionButtonRefs.current[tournament.id]! }}>
-                                <div className="w-56 rounded-lg bg-gray-800 shadow-lg ring-1 ring-black ring-opacity-5">
-                                  <div className="py-1">
-                                    {/* Status Management */}
-                                    <button
-                                      onClick={() => handleStatusChange(tournament.id, 'registration_open')}
-                                      disabled={tournament.status === 'registration_open'}
-                                      className="block w-full px-4 py-2 text-left text-sm text-gray-300 hover:bg-gray-700/50 disabled:opacity-50"
-                                    >
-                                      Open Registration
-                                    </button>
-                                    <button
-                                      onClick={() => handleStatusChange(tournament.id, 'registration_closed')}
-                                      disabled={tournament.status === 'registration_closed'}
-                                      className="block w-full px-4 py-2 text-left text-sm text-gray-300 hover:bg-gray-700/50 disabled:opacity-50"
-                                    >
-                                      Close Registration
-                                    </button>
-                                    {tournament.status === 'brackets_generated' && (
-                                      <button
-                                        onClick={() => handleStatusChange(tournament.id, 'in_progress')}
-                                        className="block w-full px-4 py-2 text-left text-sm text-gray-300 hover:bg-gray-700/50"
-                                      >
-                                        Start Tournament
-                                      </button>
-                                    )}
-                                    <button
-                                      onClick={() => handleStatusChange(tournament.id, 'completed')}
-                                      disabled={tournament.status === 'completed'}
-                                      className="block w-full px-4 py-2 text-left text-sm text-gray-300 hover:bg-gray-700/50 disabled:opacity-50"
-                                    >
-                                      Complete Tournament
-                                    </button>
-                                      {/* Bracket Management */}
-                                    {tournament.status === 'registration_closed' && (
-                                      <button
-                                        onClick={() => handleGenerateBrackets(tournament.id)}
-                                        className="block w-full px-4 py-2 text-left text-sm text-gray-300 hover:bg-gray-700/50"
-                                      >
-                                        Generate Brackets
-                                      </button>
-                                    )}
-                                    
-                                    <Link
-                                      href={`/tournaments/${tournament.id}/bracket`}
-                                      className="block w-full px-4 py-2 text-left text-sm text-gray-300 hover:bg-gray-700/50"
-                                    >
-                                      {tournament.status === 'in_progress' ? 'Manage Matches' : 'View Bracket'}
-                                    </Link>
-                                    
-                                    {/* Cancel Tournament */}
-                                    <button
-                                      onClick={() => handleStatusChange(tournament.id, 'cancelled')}
-                                      disabled={tournament.status === 'cancelled'}
-                                      className="block w-full px-4 py-2 text-left text-sm text-red-400 hover:bg-gray-700/50 disabled:opacity-50"
-                                    >
-                                      Cancel Tournament
-                                    </button>
-                                  </div>
-                                </div>
-                              </DropdownPortal>
-                            )}
-                          </div>
-                        )}
-                      </div>
                     </td>
                   </tr>
                 ))}
