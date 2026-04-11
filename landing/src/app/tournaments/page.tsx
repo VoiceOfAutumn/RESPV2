@@ -229,7 +229,9 @@ export default function TournamentsPage() {
             <div className="animate-spin rounded-full h-16 w-16 border-4 border-purple-500 border-t-transparent shadow-lg shadow-purple-500/20"></div>
           </div>
         ) : paginatedTournaments.length > 0 ? (
-          <div className="overflow-x-auto rounded-xl border border-gray-700/50">
+          <>
+            {/* Desktop table */}
+            <div className="hidden md:block overflow-x-auto rounded-xl border border-gray-700/50">
             <table className="w-full">
               <thead>
                 <tr className="bg-gray-800/50">
@@ -297,7 +299,55 @@ export default function TournamentsPage() {
                 ))}
               </tbody>
             </table>
-          </div>
+            </div>
+
+            {/* Mobile card view */}
+            <div className="md:hidden space-y-3">
+              {paginatedTournaments.map((tournament) => (
+                <div
+                  key={tournament.id}
+                  onClick={() => router.push(`/tournaments/${tournament.id}`)}
+                  className="bg-neutral-800/30 backdrop-blur rounded-xl border border-gray-700/50 p-4 cursor-pointer hover:bg-neutral-700/30 transition-colors duration-200 group"
+                >
+                  <div className="flex items-center gap-3 mb-3">
+                    <div className="w-12 h-12 flex-shrink-0 rounded-lg overflow-hidden">
+                      <img
+                        src={tournament.image || '/images/default-avatar.png'}
+                        alt={tournament.name}
+                        className="w-full h-full object-cover"
+                      />
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <div className="text-sm font-medium text-white group-hover:text-purple-400 transition-colors duration-200 truncate">
+                        {tournament.name}
+                      </div>
+                      <span className={`inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-semibold tracking-wide uppercase mt-1 ${getStatusBadgeStyle(tournament.status)}`}>
+                        {getStatusText(tournament.status)}
+                      </span>
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-2 text-xs">
+                    <div>
+                      <span className="text-gray-500">Date</span>
+                      <div className="text-gray-300 mt-0.5">
+                        {tournament.date
+                          ? new Date(tournament.date).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric', timeZone: 'UTC' })
+                          : 'T.B.D.'}
+                      </div>
+                    </div>
+                    <div>
+                      <span className="text-gray-500">Signup Closes</span>
+                      <div className="text-gray-300 mt-0.5">
+                        {tournament.signup_close_date
+                          ? new Date(tournament.signup_close_date).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric', timeZone: 'UTC' })
+                          : 'T.B.D.'}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </>
         ) : (
           <div className="bg-neutral-800/50 backdrop-blur rounded-xl shadow-lg p-12 border border-gray-700/50 text-center">
             <p className="text-gray-400">No tournaments found</p>

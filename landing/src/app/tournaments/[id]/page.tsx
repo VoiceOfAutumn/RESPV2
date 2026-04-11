@@ -7,7 +7,7 @@ import { EditInfoModal } from '@/components/TournamentStaffControls';
 import { useToast } from '@/app/components/ToastContext';
 import { Tournament, TournamentUpdate, GameData, GameInfo } from '@/types/tournament';
 import { API_BASE_URL } from '@/lib/api';
-import { Lock, GitBranch, BarChart3, UserPlus } from 'lucide-react';
+import { Lock, GitBranch, BarChart3, UserPlus, XCircle } from 'lucide-react';
 import Link from 'next/link';
 import Image from 'next/image';
 
@@ -469,9 +469,9 @@ export default function TournamentDetailPage() {
                   {canCancel && (
                     <button
                       onClick={handleCancelSignup}
-                      className="bg-red-500/10 text-red-400 hover:bg-red-500/20 font-semibold py-2 px-6 rounded-lg 
-                        transition-all duration-300 transform hover:scale-105 active:scale-95"
+                      className="flex items-center gap-2 px-6 py-3 rounded-xl font-bold text-sm bg-red-600 hover:bg-red-500 text-white shadow-lg shadow-red-500/20 transition-all"
                     >
+                      <XCircle className="w-4 h-4" />
                       Cancel Signup
                     </button>
                   )}
