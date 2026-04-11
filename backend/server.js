@@ -854,11 +854,16 @@ app.get('/countries', async (req, res) => {
 app.get('/leaderboard', async (req, res) => {
   try {
     console.log('🔍 Attempting to fetch leaderboard data...');
-    // Query to fetch leaderboard data (display name and points sorted by points)
+    // Query to fetch leaderboard data with tied-rank support (same rank, skip next)
+    // Users with 0 points get rank = null (unranked)
     const query = `
-      SELECT display_name, points, profile_picture
+      SELECT display_name, points, profile_picture,
+        CASE WHEN points > 0
+          THEN RANK() OVER (ORDER BY CASE WHEN points > 0 THEN 0 ELSE 1 END, points DESC)
+          ELSE NULL
+        END AS rank
       FROM users
-      ORDER BY points DESC;
+      ORDER BY points DESC, display_name ASC;
     `;
     const { rows } = await pool.query(query);
     console.log(`✅ Leaderboard query successful, returned ${rows.length} users`);

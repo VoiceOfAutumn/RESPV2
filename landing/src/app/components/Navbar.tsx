@@ -63,7 +63,19 @@ export default function Navbar({ mobileOpen, onClose }: NavbarProps) {
             <FontAwesomeIcon icon={icon} className="h-5 w-5" />
             <Link href={href} onClick={onClose}>{label}</Link>
           </li>
-        ))}        {/* Clubs - Coming Soon */}
+        ))}
+        {/* Shop */}
+        <li
+          className={`flex items-center space-x-2 ${
+            pathname === '/shop'
+              ? 'text-[#E5E5E5]'
+              : 'text-[#81878C] hover:text-[#E5E5E5]'
+          }`}
+        >
+          <FontAwesomeIcon icon={faCoins} className="h-5 w-5" />
+          <Link href="/shop" onClick={onClose}>Shop</Link>
+        </li>
+        {/* Clubs - Coming Soon */}
         <li className="flex items-center space-x-2 text-[#81878C] hover:text-[#E5E5E5]">
           <FontAwesomeIcon
             icon={faShieldAlt}
@@ -89,18 +101,6 @@ export default function Navbar({ mobileOpen, onClose }: NavbarProps) {
               Coming Soon
             </span>
           </div>
-        </li>
-
-        {/* Shop */}
-        <li
-          className={`flex items-center space-x-2 ${
-            pathname === '/shop'
-              ? 'text-[#E5E5E5]'
-              : 'text-[#81878C] hover:text-[#E5E5E5]'
-          }`}
-        >
-          <FontAwesomeIcon icon={faCoins} className="h-5 w-5" />
-          <Link href="/shop" onClick={onClose}>Shop</Link>
         </li>
 
         <hr className="w-full border-t border-gray-600 my-4" />

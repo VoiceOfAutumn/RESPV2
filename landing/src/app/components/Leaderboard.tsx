@@ -10,6 +10,7 @@ interface LeaderboardEntry {
   display_name: string;
   points: number;
   profile_picture: string | null;
+  rank: number | null;
 }
 
 const Leaderboard = () => {
@@ -235,22 +236,23 @@ const Leaderboard = () => {
             </thead>
             <tbody className="divide-y divide-gray-700/50">
               {tableUsers.map((entry, index) => {
-                const rank = isFirstPage ? index + 4 : indexOfFirstUser + index + 1;
-                const isHighlighted = rank === highlightedRank;
-                const medal = getRankDecoration(rank - 1);
+                const rank = entry.rank;
+                const displayIndex = isFirstPage ? index + 4 : indexOfFirstUser + index + 1;
+                const isHighlighted = displayIndex === highlightedRank;
+                const medal = rank ? getRankDecoration(rank - 1) : undefined;
                 const avatarSrc = entry.profile_picture || '/images/default-avatar.png';
 
                 return (
                   <tr
                     key={entry.display_name}
-                    id={`rank-${rank}`}
+                    id={`rank-${displayIndex}`}
                     className={`transition-colors duration-300 ${
                       isHighlighted ? 'bg-yellow-500/10 animate-pulse' : 'hover:bg-white/5'
                     } ${medal ? `bg-gradient-to-r ${medal.color}` : ''}`}
                   >
                     <td className="w-24 px-6 py-2.5 whitespace-nowrap">
-                      <div className="text-sm font-bold text-white">
-                        {`#${rank}`}
+                      <div className={`text-sm font-bold ${rank ? 'text-white' : 'text-gray-500 italic'}`}>
+                        {rank ? `#${rank}` : 'Unranked'}
                       </div>
                     </td>
                     <td className="px-6 py-2.5 whitespace-nowrap">

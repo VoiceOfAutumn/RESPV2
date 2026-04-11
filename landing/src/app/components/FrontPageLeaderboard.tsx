@@ -9,6 +9,7 @@ interface LeaderboardEntry {
   display_name: string;
   points: number;
   profile_picture: string | null;
+  rank: number | null;
 }
 
 const FrontPageLeaderboard = () => {
@@ -149,8 +150,7 @@ const FrontPageLeaderboard = () => {
 
       {/* #4 - #10 normal list */}
       <div className="space-y-2">
-        {rest.map((entry, index) => {
-          const rank = index + 4;
+        {rest.map((entry) => {
           const avatarSrc = entry.profile_picture && entry.profile_picture.trim() !== ''
             ? entry.profile_picture
             : '/images/default-avatar.png';
@@ -160,8 +160,8 @@ const FrontPageLeaderboard = () => {
               key={entry.display_name}
               className="group relative flex items-center justify-between p-2 rounded-lg transition-all duration-300 hover:bg-white/5"
             >
-              <div className="w-6 text-white font-bold text-center text-sm">
-                {`#${rank}`}
+              <div className={`w-10 font-bold text-center text-sm ${entry.rank ? 'text-white' : 'text-gray-500 italic'}`}>
+                {entry.rank ? `#${entry.rank}` : 'N/A'}
               </div>
               <div className="flex items-center gap-3 flex-1 ml-2">
                 <div className="relative">
