@@ -1,6 +1,7 @@
 const router = require('express').Router();
 const pool = require('../db');
 const authMiddleware = require('../middleware/authMiddleware');
+const { scoreTournamentPredictions } = require('./predictions');
 
 // GET /tournaments
 router.get('/', async (req, res) => {
@@ -272,6 +273,11 @@ router.put('/:id/matches/:matchId', authMiddleware, async (req, res) => {
     }
 
     res.json({ message: 'Match updated successfully' });
+
+    // Auto-score predictions in the background (non-blocking)
+    scoreTournamentPredictions(id).catch(err =>
+      console.error('Auto-score predictions error:', err.message)
+    );
   } catch (err) {
     console.error('Error updating match:', err);
     res.status(500).json({ error: 'Internal server error' });

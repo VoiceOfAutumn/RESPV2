@@ -129,19 +129,12 @@ router.post('/:tournamentId', authMiddleware, async (req, res) => {
   }
 });
 
-// ── POST /predictions/:tournamentId/score ── Score predictions after matches are played (admin only)
-router.post('/:tournamentId/score', authMiddleware, async (req, res) => {
-  const client = await pool.connect();
+// ── Shared scoring logic (used by auto-score and manual endpoint) ──
+async function scoreTournamentPredictions(tournamentId, client) {
+  const shouldRelease = !client;
+  if (!client) client = await pool.connect();
+
   try {
-    const { tournamentId } = req.params;
-    const userId = req.session.userId;
-
-    // Admin check
-    const userResult = await client.query('SELECT role FROM users WHERE id = $1', [userId]);
-    if (userResult.rows.length === 0 || userResult.rows[0].role !== 'admin') {
-      return res.status(403).json({ error: 'Admin only' });
-    }
-
     await client.query('BEGIN');
 
     // Get all non-bye matches with results for this tournament
@@ -153,15 +146,22 @@ router.post('/:tournamentId/score', authMiddleware, async (req, res) => {
 
     if (matchResults.rows.length === 0) {
       await client.query('ROLLBACK');
-      return res.status(400).json({ error: 'No match results available yet' });
+      return { scored: 0 };
     }
 
     // Determine the max round (final) for champion bonus
     const maxRound = Math.max(...matchResults.rows.map(m => m.round));
 
-    // Get the actual champion (winner of the final match)
+    // Check if ALL non-bye matches have been played
+    const totalNonBye = await client.query(
+      'SELECT COUNT(*) AS total FROM tournament_matches WHERE tournament_id = $1 AND bye_match = false',
+      [tournamentId]
+    );
+    const allComplete = matchResults.rows.length === parseInt(totalNonBye.rows[0].total);
+
+    // Get the actual champion (winner of the final match) — only if tournament is fully complete
     const finalMatch = matchResults.rows.find(m => m.round === maxRound);
-    const actualChampionId = finalMatch ? finalMatch.winner_id : null;
+    const actualChampionId = allComplete && finalMatch ? finalMatch.winner_id : null;
 
     // Get all predictions for this tournament
     const predictions = await client.query(
@@ -202,7 +202,7 @@ router.post('/:tournamentId/score', authMiddleware, async (req, res) => {
         }
       }
 
-      // Check champion prediction (final match pick)
+      // Check champion prediction (final match pick) — only when all matches complete
       if (actualChampionId && finalMatch) {
         const champPick = await client.query(
           `SELECT predicted_winner_id FROM tournament_prediction_picks
@@ -233,17 +233,40 @@ router.post('/:tournamentId/score', authMiddleware, async (req, res) => {
     }
 
     await client.query('COMMIT');
-
-    res.json({
-      message: `Scored ${scoredCount} predictions`,
-      championId: actualChampionId,
-    });
+    return { scored: scoredCount, championId: actualChampionId };
   } catch (err) {
     await client.query('ROLLBACK');
+    throw err;
+  } finally {
+    if (shouldRelease) client.release();
+  }
+}
+
+// ── POST /predictions/:tournamentId/score ── Score predictions after matches are played (admin only)
+router.post('/:tournamentId/score', authMiddleware, async (req, res) => {
+  try {
+    const { tournamentId } = req.params;
+    const userId = req.session.userId;
+
+    // Admin check
+    const userResult = await pool.query('SELECT role FROM users WHERE id = $1', [userId]);
+    if (userResult.rows.length === 0 || userResult.rows[0].role !== 'admin') {
+      return res.status(403).json({ error: 'Admin only' });
+    }
+
+    const result = await scoreTournamentPredictions(tournamentId);
+
+    if (result.scored === 0) {
+      return res.status(400).json({ error: 'No match results available yet' });
+    }
+
+    res.json({
+      message: `Scored ${result.scored} predictions`,
+      championId: result.championId,
+    });
+  } catch (err) {
     console.error('Error scoring predictions:', err);
     res.status(500).json({ error: 'Internal server error' });
-  } finally {
-    client.release();
   }
 });
 
@@ -413,3 +436,4 @@ router.get('/:tournamentId/leaderboard', async (req, res) => {
 });
 
 module.exports = router;
+module.exports.scoreTournamentPredictions = scoreTournamentPredictions;
