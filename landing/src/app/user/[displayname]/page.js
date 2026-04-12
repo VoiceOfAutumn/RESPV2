@@ -305,21 +305,19 @@ export default function UserProfile() {
       <div className="max-w-7xl mx-auto px-4 md:px-8 mt-6">
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
           {/* EXP + Rank card */}
-          <div className="bg-white/[0.03] backdrop-blur-sm rounded-xl p-4 border border-white/[0.06] text-center">
-            <div className="flex items-baseline justify-center gap-2">
+          <div className="bg-white/[0.03] backdrop-blur-sm rounded-xl p-4 border border-white/[0.06] relative">
+            <div className="text-center">
               <p className="text-2xl md:text-3xl font-bold text-purple-400">{user.points}</p>
-              {userRank ? (
-                <a
-                  href="/leaderboards"
-                  className="text-[11px] font-normal text-gray-400 hover:text-purple-400 transition-colors cursor-pointer"
-                >
-                  #{userRank}
-                </a>
-              ) : (
-                <span className="text-[10px] text-gray-600 italic">—</span>
-              )}
+              <p className="text-[10px] text-gray-500 uppercase tracking-wider mt-1">EXP</p>
             </div>
-            <p className="text-[10px] text-gray-500 uppercase tracking-wider mt-1">EXP</p>
+            {userRank ? (
+              <a
+                href="/leaderboards"
+                className="absolute top-2.5 right-3 text-[11px] font-normal text-gray-500 hover:text-purple-400 transition-colors cursor-pointer"
+              >
+                #{userRank}
+              </a>
+            ) : null}
           </div>
           {/* Zenny card */}
           <div className="bg-white/[0.03] backdrop-blur-sm rounded-xl p-4 border border-white/[0.06] text-center">
