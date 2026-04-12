@@ -1,40 +1,64 @@
 // src/app/components/Hero.tsx
+'use client';
+
+import { useEffect, useState } from 'react';
 import Link from "next/link";
 import { Swords, Trophy, TrendingUp, ChevronRight } from "lucide-react";
+import { API_BASE_URL } from "@/lib/api";
 import FrontPageLeaderboard from "./FrontPageLeaderboard";
 import RecentTournaments from "./RecentTournaments";
 
 export default function HeroLanding() {
+  const [isLive, setIsLive] = useState(false);
+
+  useEffect(() => {
+    fetch(`${API_BASE_URL}/twitch/live`)
+      .then(res => res.json())
+      .then(data => setIsLive(data.live))
+      .catch(() => {});
+  }, []);
+
   return (    <div className="w-full flex sm:flex-row flex-col pt-20 px-4 gap-4">
       {/* Left Column (3/5 width) */}
       <div className="sm:w-3/5 w-full flex flex-col gap-4">
         {/* Hero Banner with backdrop */}
         <div className="flex gap-4">
-          {/* Compete - Win - Level Up banner */}
+          {/* Compete - Win - Level Up banner / Live stream */}
           <div className="relative flex-1 rounded-xl shadow overflow-hidden">
-            <img
-              src="/images/EmptyHeaderBar.png"
-              alt=""
-              className="w-full h-full object-cover"
-            />
-            <div className="absolute inset-0 bg-black/20 flex items-center justify-center">
-              <div className="flex items-center gap-4 sm:gap-8">
-                <div className="flex flex-col items-center gap-1.5">
-                  <Swords className="text-white" size={26} />
-                  <span className="text-white font-extrabold text-xs sm:text-base tracking-[0.2em] uppercase">COMPETE</span>
+            {isLive ? (
+              <iframe
+                src="https://player.twitch.tv/?channel=retrorivalstv&parent=retrorivals.nl&parent=localhost&muted=true"
+                allowFullScreen
+                className="w-full h-full min-h-[140px]"
+                style={{ border: 0 }}
+              />
+            ) : (
+              <>
+                <img
+                  src="/images/EmptyHeaderBar.png"
+                  alt=""
+                  className="w-full h-full object-cover"
+                />
+                <div className="absolute inset-0 bg-black/20 flex items-center justify-center">
+                  <div className="flex items-center gap-4 sm:gap-8">
+                    <div className="flex flex-col items-center gap-1.5">
+                      <Swords className="text-white" size={26} />
+                      <span className="text-white font-extrabold text-xs sm:text-base tracking-[0.2em] uppercase">COMPETE</span>
+                    </div>
+                    <span className="text-white/40 text-lg font-light">—</span>
+                    <div className="flex flex-col items-center gap-1.5">
+                      <Trophy className="text-white" size={26} />
+                      <span className="text-white font-extrabold text-xs sm:text-base tracking-[0.2em] uppercase">WIN</span>
+                    </div>
+                    <span className="text-white/40 text-lg font-light">—</span>
+                    <div className="flex flex-col items-center gap-1.5">
+                      <TrendingUp className="text-white" size={26} />
+                      <span className="text-white font-extrabold text-xs sm:text-base tracking-[0.2em] uppercase">LEVEL UP!</span>
+                    </div>
+                  </div>
                 </div>
-                <span className="text-white/40 text-lg font-light">—</span>
-                <div className="flex flex-col items-center gap-1.5">
-                  <Trophy className="text-white" size={26} />
-                  <span className="text-white font-extrabold text-xs sm:text-base tracking-[0.2em] uppercase">WIN</span>
-                </div>
-                <span className="text-white/40 text-lg font-light">—</span>
-                <div className="flex flex-col items-center gap-1.5">
-                  <TrendingUp className="text-white" size={26} />
-                  <span className="text-white font-extrabold text-xs sm:text-base tracking-[0.2em] uppercase">LEVEL UP!</span>
-                </div>
-              </div>
-            </div>
+              </>
+            )}
           </div>
 
           {/* New Player Guide card */}

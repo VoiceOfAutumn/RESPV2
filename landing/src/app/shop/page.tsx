@@ -26,7 +26,7 @@ export default function Shop() {
             <p className="text-lg font-bold text-white mb-3">Hey there Player!</p>
             <p className="text-gray-300 leading-relaxed">
               We&apos;re still building up the shop right now. But don&apos;t worry, once we are set up, you&apos;re
-              the first to get a taste of our products! Make sure you stock up on prediction points for our
+              the first to get a taste of our products! Make sure you stock up on Zenny for our
               grand opening so you can access all our merchandise!
             </p>
           </div>

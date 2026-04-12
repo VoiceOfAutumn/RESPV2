@@ -877,6 +877,55 @@ app.get('/leaderboard', async (req, res) => {
   }
 });
 
+// ++++++++++++++++++++++ TWITCH LIVE CHECK ++++++++++++++++++++++
+let twitchCache = { live: false, timestamp: 0 };
+let twitchAppToken = null;
+let twitchTokenExpiry = 0;
+
+async function getTwitchAppToken() {
+  if (twitchAppToken && Date.now() < twitchTokenExpiry) return twitchAppToken;
+  const res = await fetch('https://id.twitch.tv/oauth2/token', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: new URLSearchParams({
+      client_id: process.env.TWITCH_CLIENT_ID,
+      client_secret: process.env.TWITCH_CLIENT_SECRET,
+      grant_type: 'client_credentials',
+    }),
+  });
+  const data = await res.json();
+  twitchAppToken = data.access_token;
+  twitchTokenExpiry = Date.now() + (data.expires_in - 60) * 1000;
+  return twitchAppToken;
+}
+
+app.get('/twitch/live', async (req, res) => {
+  try {
+    // Return cached result if fresh (60 seconds)
+    if (Date.now() - twitchCache.timestamp < 60000) {
+      return res.json({ live: twitchCache.live });
+    }
+
+    const token = await getTwitchAppToken();
+    const response = await fetch(
+      'https://api.twitch.tv/helix/streams?user_login=retrorivalstv',
+      {
+        headers: {
+          'Client-ID': process.env.TWITCH_CLIENT_ID,
+          Authorization: `Bearer ${token}`,
+        },
+      }
+    );
+    const data = await response.json();
+    const live = data.data && data.data.length > 0;
+    twitchCache = { live, timestamp: Date.now() };
+    res.json({ live });
+  } catch (err) {
+    console.error('Twitch live check error:', err.message);
+    res.json({ live: false });
+  }
+});
+
 // ++++++++++++++++++++++ TOURNAMENT RELATED ++++++++++++++++++++++
 app.use('/tournaments', require('./routes/tournaments'));
 
