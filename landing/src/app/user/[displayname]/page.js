@@ -7,7 +7,7 @@ import PageShell from '../../components/PageShell';
 import { getFlagImageProps } from '@/lib/countryFlags';
 import { API_BASE_URL } from '@/lib/api';
 import { getLevelData } from '@/lib/leveling';
-import { MapPin, Award, TrendingUp, Users, X, Plus, Trash2 } from 'lucide-react';
+import { MapPin, Award, TrendingUp, Users, X, Plus, Trash2, Coins } from 'lucide-react';
 
 function LoadingSkeleton() {
   return (
@@ -99,13 +99,13 @@ export default function UserProfile() {
         const userData = await userRes.json();
         setUser(userData);
 
-        // Fetch leaderboard to determine rank
+        // Fetch leaderboard to determine rank (uses API rank with tie support)
         const leaderboardRes = await fetch(`${API_BASE_URL}/leaderboard`);
         if (leaderboardRes.ok) {
           const leaderboardData = await leaderboardRes.json();
-          const userRankIndex = leaderboardData.findIndex(entry => entry.display_name === displayname);
-          if (userRankIndex !== -1) {
-            setUserRank(userRankIndex + 1);
+          const entry = leaderboardData.find(e => e.display_name === displayname);
+          if (entry && entry.rank) {
+            setUserRank(Number(entry.rank));
           }
         }
 
@@ -304,9 +304,30 @@ export default function UserProfile() {
       {/* ── STATS BAR ── */}
       <div className="max-w-7xl mx-auto px-4 md:px-8 mt-6">
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+          {/* EXP + Rank card */}
+          <div className="bg-white/[0.03] backdrop-blur-sm rounded-xl p-4 border border-white/[0.06] text-center">
+            <p className="text-2xl md:text-3xl font-bold text-purple-400">{user.points}</p>
+            <p className="text-[10px] text-gray-500 uppercase tracking-wider mt-1">EXP</p>
+            {userRank ? (
+              <a
+                href={`/leaderboards`}
+                className="inline-block text-[11px] text-gray-400 hover:text-purple-400 transition-colors mt-1.5 cursor-pointer"
+              >
+                Rank #{userRank} →
+              </a>
+            ) : (
+              <p className="text-[10px] text-gray-600 italic mt-1.5">Unranked</p>
+            )}
+          </div>
+          {/* Zenny card */}
+          <div className="bg-white/[0.03] backdrop-blur-sm rounded-xl p-4 border border-white/[0.06] text-center">
+            <p className="text-2xl md:text-3xl font-bold text-yellow-400 flex items-center justify-center gap-1.5">
+              <Coins className="w-5 h-5 md:w-6 md:h-6" />
+              {user.lifetime_prediction_points ?? 0}
+            </p>
+            <p className="text-[10px] text-gray-500 uppercase tracking-wider mt-1">Zenny</p>
+          </div>
           {[
-            { label: 'EXP', value: user.points, color: 'text-purple-400' },
-            { label: 'Rank', value: userRank ? `#${userRank}` : '-', color: 'text-white' },
             { label: 'Win Rate', value: `${user.win_rate ?? 0}%`, color: 'text-green-400' },
             { label: 'Tournaments', value: user.tournaments_played ?? 0, color: 'text-blue-400' },
           ].map((s) => (
