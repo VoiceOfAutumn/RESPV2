@@ -248,11 +248,13 @@ router.post('/:tournamentId/score', authMiddleware, async (req, res) => {
 });
 
 // ── GET /predictions/:tournamentId/community ── Aggregated community prediction percentages
+// Percentages are matchup-specific: only users who predicted the same two players
+// to face each other in a given match are counted in its denominator.
 router.get('/:tournamentId/community', async (req, res) => {
   try {
     const { tournamentId } = req.params;
 
-    // Total number of users who submitted predictions
+    // Total predictors
     const totalResult = await pool.query(
       'SELECT COUNT(*) AS total FROM tournament_predictions WHERE tournament_id = $1',
       [tournamentId]
@@ -263,26 +265,94 @@ router.get('/:tournamentId/community', async (req, res) => {
       return res.json({ totalPredictors: 0, matches: {}, championPicks: [] });
     }
 
-    // Per-match pick counts grouped by predicted_winner_id
-    const picksResult = await pool.query(
-      `SELECT tpp.match_id, tpp.predicted_winner_id, COUNT(*) AS pick_count
-       FROM tournament_prediction_picks tpp
-       JOIN tournament_predictions tp ON tp.id = tpp.prediction_id
-       WHERE tp.tournament_id = $1
-       GROUP BY tpp.match_id, tpp.predicted_winner_id
-       ORDER BY tpp.match_id, pick_count DESC`,
+    // All matches (including byes) for feeder mapping
+    const matchesResult = await pool.query(
+      `SELECT id, round, match_number, player1_id, player2_id,
+              next_match_id, next_match_slot, bye_match
+       FROM tournament_matches
+       WHERE tournament_id = $1
+       ORDER BY round, match_number`,
       [tournamentId]
     );
 
-    // Build { match_id: { player_id: percentage, ... } }
-    const matches = {};
-    for (const row of picksResult.rows) {
-      const matchId = row.match_id;
-      if (!matches[matchId]) matches[matchId] = {};
-      matches[matchId][row.predicted_winner_id] = Math.round((parseInt(row.pick_count) / totalPredictors) * 100);
+    // All prediction picks with user_id
+    const picksResult = await pool.query(
+      `SELECT tp.user_id, tpp.match_id, tpp.predicted_winner_id
+       FROM tournament_prediction_picks tpp
+       JOIN tournament_predictions tp ON tp.id = tpp.prediction_id
+       WHERE tp.tournament_id = $1`,
+      [tournamentId]
+    );
+
+    // Build per-user pick map: userId -> { matchId -> predictedWinnerId }
+    const userPicks = {};
+    for (const pick of picksResult.rows) {
+      if (!userPicks[pick.user_id]) userPicks[pick.user_id] = {};
+      userPicks[pick.user_id][pick.match_id] = pick.predicted_winner_id;
+    }
+    const allUserIds = Object.keys(userPicks).map(Number);
+
+    // Build feeder map: matchId -> [{ feederId, slot }]
+    const feeders = {};
+    const byeMatchIds = new Set();
+    for (const m of matchesResult.rows) {
+      if (m.bye_match) byeMatchIds.add(m.id);
+      if (m.next_match_id) {
+        if (!feeders[m.next_match_id]) feeders[m.next_match_id] = [];
+        feeders[m.next_match_id].push({ feederId: m.id, slot: m.next_match_slot });
+      }
     }
 
-    // Champion picks: who was predicted to win the final match, with counts
+    // Calculate matchup-specific percentages per match
+    const matches = {};
+    for (const m of matchesResult.rows) {
+      if (m.bye_match) continue;
+      const p1 = m.player1_id;
+      const p2 = m.player2_id;
+      if (!p1 || !p2) continue;
+
+      const matchFeeders = feeders[m.id] || [];
+      // Filter out bye feeders (predetermined outcomes, no user picks)
+      const realFeeders = matchFeeders.filter(f => !byeMatchIds.has(f.feederId));
+
+      let matchupUsers;
+      if (realFeeders.length === 0) {
+        // Round 1 or all feeders are byes/direct placements: every predictor predicted this matchup
+        matchupUsers = allUserIds;
+      } else {
+        // Later round: only count users who predicted this exact pair of players
+        matchupUsers = allUserIds.filter(userId => {
+          const picks = userPicks[userId];
+          return realFeeders.every(f => {
+            const expectedPlayer = f.slot === 1 ? p1 : p2;
+            return picks[f.feederId] === expectedPlayer;
+          });
+        });
+      }
+
+      const matchupCount = matchupUsers.length;
+      if (matchupCount === 0) {
+        matches[m.id] = { _matchupPredictors: 0 };
+        continue;
+      }
+
+      // Count winner picks among matchup users only
+      const pickCounts = {};
+      for (const userId of matchupUsers) {
+        const winnerId = userPicks[userId]?.[m.id];
+        if (winnerId) {
+          pickCounts[winnerId] = (pickCounts[winnerId] || 0) + 1;
+        }
+      }
+
+      const entry = { _matchupPredictors: matchupCount };
+      for (const [playerId, count] of Object.entries(pickCounts)) {
+        entry[playerId] = Math.round((count / matchupCount) * 100);
+      }
+      matches[m.id] = entry;
+    }
+
+    // Champion picks (uses totalPredictors as base since champion is a global question)
     const maxRoundResult = await pool.query(
       `SELECT MAX(round) AS max_round FROM tournament_matches
        WHERE tournament_id = $1 AND bye_match = false`,

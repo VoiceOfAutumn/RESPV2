@@ -180,12 +180,14 @@ function PredictionMatchCard({
   canPredict,
   mode,
   communityData,
+  matchupPredictors,
 }: {
   match: MatchPrediction;
   onPredict: (matchId: string, winnerId: number) => void;
   canPredict: boolean;
   mode: 'mine' | 'community';
   communityData?: Record<number, number>; // player_id → percentage
+  matchupPredictors?: number;
 }) {
   const isPredicted = match.predictedWinner !== null;
   const hasActualWinner = match.actualWinner !== null;
@@ -293,8 +295,14 @@ function PredictionMatchCard({
             ? 'border-purple-500/20'
             : 'border-gray-700/50 hover:border-gray-600/50'
     }`}>
-      <div className="text-center mb-2">
+      <div className="text-center mb-2 relative">
         <div className="text-xs text-gray-500">Match {match.matchNumber}</div>
+        {mode === 'community' && matchupPredictors !== undefined && matchupPredictors > 0 && (
+          <div className="absolute -top-1 -right-1 flex items-center gap-0.5 bg-white/[0.06] border border-white/[0.08] rounded-md px-1.5 py-0.5" title={`${matchupPredictors} user${matchupPredictors !== 1 ? 's' : ''} predicted this matchup`}>
+            <Users className="w-2.5 h-2.5 text-gray-500" />
+            <span className="text-[9px] text-gray-500 font-medium">{matchupPredictors}</span>
+          </div>
+        )}
         {mode === 'mine' && hasActualWinner && isPredicted && (
           <div className={`text-xs ${isCorrect ? 'text-green-400' : 'text-red-400'}`}>
             {isCorrect ? '✓ Correct' : '✗ Wrong'}
@@ -344,7 +352,7 @@ export default function TournamentPredictions() {
   const [mode, setMode] = useState<'mine' | 'community'>('mine');
   const [pointsAwarded, setPointsAwarded] = useState(0);
   const [championCorrect, setChampionCorrect] = useState(false);
-  const [communityData, setCommunityData] = useState<{ totalPredictors: number; matches: Record<number, Record<number, number>>; championPicks: { playerId: number; name: string; profilePicture: string | null; count: number; percentage: number }[] } | null>(null);
+  const [communityData, setCommunityData] = useState<{ totalPredictors: number; matches: Record<number, { pcts: Record<number, number>; mp: number }>; championPicks: { playerId: number; name: string; profilePicture: string | null; count: number; percentage: number }[] } | null>(null);
   const [communityLoading, setCommunityLoading] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
 
@@ -533,7 +541,13 @@ export default function TournamentPredictions() {
         const res = await fetch(`${API_BASE_URL}/predictions/${id}/community`, { credentials: 'include' });
         if (res.ok) {
           const data = await res.json();
-          setCommunityData(data);
+          // Separate _matchupPredictors from player percentages per match
+          const transformedMatches: Record<number, { pcts: Record<number, number>; mp: number }> = {};
+          for (const [matchId, matchData] of Object.entries(data.matches)) {
+            const { _matchupPredictors, ...percentages } = matchData as Record<string, number>;
+            transformedMatches[Number(matchId)] = { pcts: percentages as unknown as Record<number, number>, mp: _matchupPredictors ?? 0 };
+          }
+          setCommunityData({ ...data, matches: transformedMatches });
         }
       } catch {
         // ignore
@@ -942,7 +956,8 @@ export default function TournamentPredictions() {
                               onPredict={handlePredict}
                               canPredict={canPredict}
                               mode={mode}
-                              communityData={communityData?.matches[match.dbMatchId]}
+                              communityData={communityData?.matches[match.dbMatchId]?.pcts}
+                              matchupPredictors={communityData?.matches[match.dbMatchId]?.mp}
                             />
                           </div>
                         ))}
